@@ -1,2 +1,7 @@
 __pycache__/
 *.pyc
+.pytest_cache/
+output/test_fixtures/
+output/run1.kdm.xmi
+output/run2.kdm.xmi
+output/example_project_cli_test.kdm.xmi

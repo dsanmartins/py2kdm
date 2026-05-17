@@ -1,0 +1,35 @@
+{
+  "projectName": "bare_raise_project",
+  "language": "python",
+  "files": [
+    {
+      "id": "file:bare_raise",
+      "name": "bare_raise.py",
+      "path": "bare_raise.py",
+      "qualified_name": "bare_raise",
+      "imports": [],
+      "classes": [],
+      "functions": [
+        {
+          "id": "function:bare_raise.foo",
+          "name": "foo",
+          "qualified_name": "bare_raise.foo",
+          "parameters": [],
+          "local_variables": [],
+          "calls": [],
+          "body": [
+            {
+              "id": "body:raise_bare",
+              "type": "statement",
+              "statement_type": "raise",
+              "line_start": 1,
+              "line_end": 1,
+              "exception": null,
+              "exception_calls": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

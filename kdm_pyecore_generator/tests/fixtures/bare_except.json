@@ -1,0 +1,65 @@
+{
+  "projectName": "bare_except_project",
+  "language": "python",
+  "files": [
+    {
+      "id": "file:bare_except",
+      "name": "bare_except.py",
+      "path": "bare_except.py",
+      "qualified_name": "bare_except",
+      "imports": [],
+      "classes": [],
+      "functions": [
+        {
+          "id": "function:bare_except.foo",
+          "name": "foo",
+          "qualified_name": "bare_except.foo",
+          "parameters": [],
+          "local_variables": [],
+          "calls": [],
+          "body": [
+            {
+              "id": "body:try_1",
+              "type": "control_structure",
+              "control_type": "try",
+              "line_start": 1,
+              "line_end": 4,
+              "body": [
+                {
+                  "id": "body:raise_bare",
+                  "type": "statement",
+                  "statement_type": "raise",
+                  "line_start": 2,
+                  "line_end": 2,
+                  "exception": null,
+                  "exception_calls": []
+                }
+              ],
+              "handlers": [
+                {
+                  "id": "body:except_all",
+                  "type": "exception_handler",
+                  "line_start": 3,
+                  "line_end": 4,
+                  "exception": null,
+                  "body": [
+                    {
+                      "id": "body:return_void",
+                      "type": "statement",
+                      "statement_type": "return",
+                      "line_start": 4,
+                      "line_end": 4,
+                      "value": null
+                    }
+                  ]
+                }
+              ],
+              "orelse": [],
+              "finalbody": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

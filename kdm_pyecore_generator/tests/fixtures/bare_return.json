@@ -1,0 +1,34 @@
+{
+  "projectName": "bare_return_project",
+  "language": "python",
+  "files": [
+    {
+      "id": "file:bare_return",
+      "name": "bare_return.py",
+      "path": "bare_return.py",
+      "qualified_name": "bare_return",
+      "imports": [],
+      "classes": [],
+      "functions": [
+        {
+          "id": "function:bare_return.foo",
+          "name": "foo",
+          "qualified_name": "bare_return.foo",
+          "parameters": [],
+          "local_variables": [],
+          "calls": [],
+          "body": [
+            {
+              "id": "body:return_void",
+              "type": "statement",
+              "statement_type": "return",
+              "line_start": 1,
+              "line_end": 1,
+              "value": null
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

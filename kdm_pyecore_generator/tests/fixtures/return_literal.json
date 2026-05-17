@@ -1,0 +1,34 @@
+{
+  "projectName": "return_literal_project",
+  "language": "python",
+  "files": [
+    {
+      "id": "file:return_literal",
+      "name": "return_literal.py",
+      "path": "return_literal.py",
+      "qualified_name": "return_literal",
+      "imports": [],
+      "classes": [],
+      "functions": [
+        {
+          "id": "function:return_literal.foo",
+          "name": "foo",
+          "qualified_name": "return_literal.foo",
+          "parameters": [],
+          "local_variables": [],
+          "calls": [],
+          "body": [
+            {
+              "id": "body:return_true",
+              "type": "statement",
+              "statement_type": "return",
+              "line_start": 1,
+              "line_end": 1,
+              "value": "True"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
