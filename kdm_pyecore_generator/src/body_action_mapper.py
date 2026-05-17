@@ -22,6 +22,11 @@ class BodyActionMapper:
         # Value: FinallyUnit
         self.finally_action_index = {}
 
+        # Index for callable body blocks.
+        # Key: callable id
+        # Value: BlockUnit
+        self.callable_body_block_index = {}
+
     def map_body_actions(self, data: dict):
         for file_model in data.get("files", []):
             for cls in file_model.get("classes", []):
@@ -37,13 +42,125 @@ class BodyActionMapper:
         if callable_kdm is None:
             return
 
-        for statement in callable_model.get("body", []):
+        body = callable_model.get("body", [])
+
+        if not body:
+            return
+
+        body_block = self._get_or_create_callable_body_block(
+            callable_model=callable_model,
+            file_model=file_model,
+            callable_kdm=callable_kdm,
+        )
+
+        if body_block is None:
+            return
+
+        for statement in body:
             self._map_body_item(
                 item=statement,
                 callable_model=callable_model,
                 file_model=file_model,
-                parent_kdm=callable_kdm,
+                parent_kdm=body_block,
             )
+
+    # ------------------------------------------------------------
+    # Callable body BlockUnit
+    # ------------------------------------------------------------
+
+    def _get_or_create_callable_body_block(
+        self,
+        callable_model: dict,
+        file_model: dict,
+        callable_kdm,
+    ):
+        callable_id = callable_model.get("id")
+
+        if callable_id in self.callable_body_block_index:
+            return self.callable_body_block_index[callable_id]
+
+        if not self.factory.has_feature(callable_kdm, "codeElement"):
+            return None
+
+        for child in callable_kdm.codeElement:
+            if getattr(child.eClass, "name", None) != "BlockUnit":
+                continue
+
+            if self._has_attribute(
+                child,
+                "callable_body_id",
+                callable_id,
+            ):
+                self.callable_body_block_index[callable_id] = child
+                return child
+
+        body_block = self.factory.create_block_unit(
+            name="body",
+            kind="body",
+        )
+
+        self._add_attribute_once(
+            body_block,
+            "role",
+            "callable_body",
+        )
+
+        self._add_attribute_once(
+            body_block,
+            "callable_body_id",
+            callable_id,
+        )
+
+        self._add_callable_body_source_region(
+            body_block=body_block,
+            callable_model=callable_model,
+            file_model=file_model,
+        )
+
+        callable_kdm.codeElement.append(body_block)
+        self.callable_body_block_index[callable_id] = body_block
+
+        return body_block
+
+    def _add_callable_body_source_region(
+        self,
+        body_block,
+        callable_model: dict,
+        file_model: dict,
+    ):
+        body = callable_model.get("body", [])
+
+        if not body:
+            return
+
+        start_lines = [
+            item.get("line_start")
+            for item in body
+            if item.get("line_start") is not None
+        ]
+
+        end_lines = [
+            item.get("line_end")
+            for item in body
+            if item.get("line_end") is not None
+        ]
+
+        if not start_lines and not end_lines:
+            return
+
+        start_line = min(start_lines) if start_lines else None
+        end_line = max(end_lines) if end_lines else start_line
+
+        source_file = self._get_source_file(file_model)
+
+        self.factory.add_source_region(
+            body_block,
+            path=file_model.get("path"),
+            language=self.language,
+            start_line=start_line,
+            end_line=end_line,
+            file_item=source_file,
+        )
 
     def _map_body_item(
         self,
@@ -69,9 +186,7 @@ class BodyActionMapper:
         else:
             next_parent = parent_kdm
 
-        # Option B:
-        # condition_calls, value_calls, exception_calls and context_calls
-        # are moved under the ActionElement/TryUnit/CatchUnit that owns them.
+        # Expression-level calls are moved under the element that owns them.
         self._map_expression_calls(item, next_parent)
 
         # Nested expression calls:
@@ -241,7 +356,7 @@ class BodyActionMapper:
         if action is None:
             return
 
-        self.factory.add_attribute(
+        self._add_attribute_once(
             action,
             "expression_role",
             expression_role,
@@ -434,22 +549,11 @@ class BodyActionMapper:
         and relations, not temporary attributes.
         """
 
-        metadata = {
-            "body_id": item.get("id"),
-        }
-
-        # Keep body_type only when it is not already obvious from the KDM metaclass.
-        item_type = item.get("type")
-
-        if item_type not in {
-            "control_structure",
-            "exception_handler",
-            "finally_block",
-            "statement",
-        }:
-            metadata["body_type"] = item_type
-
-        self.factory.add_attributes_from_dict(action, metadata)
+        self._add_attribute_once(
+            action,
+            "body_id",
+            item.get("id"),
+        )
 
     def _get_source_file(self, file_model: dict):
         if self.inventory_builder is None:
@@ -495,7 +599,7 @@ class BodyActionMapper:
             if action in owner_action.codeElement:
                 continue
 
-            self.factory.add_attribute(
+            self._add_attribute_once(
                 action,
                 "expression_role",
                 "nested_expression_call",
@@ -567,7 +671,7 @@ class BodyActionMapper:
             ):
                 continue
 
-            self.factory.add_attribute(
+            self._add_attribute_once(
                 nested_action,
                 "expression_role",
                 "nested_expression_call",
@@ -603,3 +707,29 @@ class BodyActionMapper:
             return True
 
         return True
+
+    # ------------------------------------------------------------
+    # Attribute helpers
+    # ------------------------------------------------------------
+
+    def _has_attribute(self, element, tag: str, value: str) -> bool:
+        if not self.factory.has_feature(element, "attribute"):
+            return False
+
+        for attribute in element.attribute:
+            if getattr(attribute, "tag", None) != tag:
+                continue
+
+            if getattr(attribute, "value", None) == str(value):
+                return True
+
+        return False
+
+    def _add_attribute_once(self, element, tag: str, value):
+        if value is None:
+            return
+
+        if self._has_attribute(element, tag, value):
+            return
+
+        self.factory.add_attribute(element, tag, value)

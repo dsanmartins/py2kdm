@@ -44,6 +44,7 @@ class KDMFactory:
         self.FloatType = resolver.find("FloatType")
         self.VoidType = resolver.find("VoidType")
         self.Datatype = resolver.find("Datatype")
+        self.BlockUnit = resolver.find("BlockUnit")
 
         # KDM annotations
         self.Attribute = resolver.find("Attribute")
@@ -468,3 +469,12 @@ class KDMFactory:
             source_file.encoding = encoding
 
         return source_file
+
+    def create_block_unit(self, name: str = "body", kind: str = "body"):
+        unit = self.BlockUnit()
+        unit.name = name
+
+        if kind is not None and self.has_feature(unit, "kind"):
+            unit.kind = kind
+
+        return unit

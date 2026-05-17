@@ -41,6 +41,7 @@ class KDMValidator:
     - absence of obsolete temporary attributes;
     - semantic consistency for calls, creates, reads, writes, returns,
       raises, try/catch/finally flows;
+    - callable body structure using BlockUnit;
     - generator-specific consistency rules:
       duplicate attributes, duplicate source regions and duplicate child actions.
     """
@@ -93,12 +94,13 @@ class KDMValidator:
         self._validate_inventory(segment)
         self._validate_source_regions(all_elements)
 
-        # Generator-specific consistency checks
+        # Generator-specific consistency checks.
         self._validate_no_duplicate_attributes(all_elements)
         self._validate_no_duplicate_source_refs(all_elements)
         self._validate_no_duplicate_child_actions(all_elements)
+        self._validate_callable_body_blocks(all_elements)
 
-        # KDM semantic checks
+        # KDM semantic checks.
         self._validate_has_type(all_elements)
         self._validate_has_value(all_elements)
         self._validate_calls_and_creates(all_elements)
@@ -108,7 +110,7 @@ class KDMValidator:
         self._validate_try_catch_finally_flows(all_elements)
         self._validate_imports_and_extends(all_elements)
 
-        # Step 4 cleanup rule
+        # Step 4 cleanup rule.
         self._validate_no_obsolete_attributes(all_elements)
 
         return self.report
@@ -234,6 +236,7 @@ class KDMValidator:
             "ParameterUnit",
             "StorableUnit",
             "ActionElement",
+            "BlockUnit",
             "TryUnit",
             "CatchUnit",
             "FinallyUnit",
@@ -330,7 +333,7 @@ class KDMValidator:
                     )
 
     # ------------------------------------------------------------
-    # Step 5 generator-specific consistency validations
+    # Generator-specific consistency validations
     # ------------------------------------------------------------
 
     def _validate_no_duplicate_attributes(self, all_elements):
@@ -410,6 +413,112 @@ class KDMValidator:
                     )
 
                 seen.add(key)
+
+    def _validate_callable_body_blocks(self, all_elements):
+        """
+        Validates that executable actions inside MethodUnit / CallableUnit
+        are grouped under a BlockUnit representing the callable body.
+
+        Expected structure:
+
+            MethodUnit / CallableUnit
+              └── BlockUnit name="body"
+                    ├── ActionElement
+                    ├── TryUnit
+                    ├── CatchUnit
+                    ├── FinallyUnit
+                    └── ...
+
+        Direct ActionElement children under MethodUnit / CallableUnit are
+        considered invalid, except for BlockUnit itself.
+        """
+
+        for element in all_elements:
+            if element.eClass.name not in {"MethodUnit", "CallableUnit"}:
+                continue
+
+            if not self._has_feature(element, "codeElement"):
+                continue
+
+            body_blocks = []
+            direct_action_children = []
+
+            for child in element.codeElement:
+                child_class = child.eClass.name
+
+                if child_class == "BlockUnit":
+                    if (
+                        self._get_name(child) == "body"
+                        or self._has_attribute(child, "role", "callable_body")
+                    ):
+                        body_blocks.append(child)
+                    continue
+
+                if self._is_instance_of(child, "ActionElement"):
+                    direct_action_children.append(child)
+
+            if len(body_blocks) > 1:
+                self.report.add_error(
+                    f"{element.eClass.name} '{self._get_name(element)}' "
+                    f"has more than one callable body BlockUnit."
+                )
+
+            for action in direct_action_children:
+                self.report.add_error(
+                    f"{element.eClass.name} '{self._get_name(element)}' "
+                    f"contains direct executable action "
+                    f"{action.eClass.name} '{self._get_name(action)}'. "
+                    "Executable body actions must be contained in a BlockUnit."
+                )
+
+            if body_blocks:
+                self._validate_body_block(body_blocks[0], element)
+
+    def _validate_body_block(self, block_unit, callable_element):
+        """
+        Validates a callable body BlockUnit.
+        """
+
+        if block_unit.eClass.name != "BlockUnit":
+            self.report.add_error(
+                f"Callable body of {self._get_name(callable_element)} "
+                "is not a BlockUnit."
+            )
+            return
+
+        if self._get_name(block_unit) != "body":
+            self.report.add_warning(
+                f"Callable body BlockUnit in "
+                f"{callable_element.eClass.name} '{self._get_name(callable_element)}' "
+                f"has name '{self._get_name(block_unit)}' instead of 'body'."
+            )
+
+        if not self._has_attribute(block_unit, "role", "callable_body"):
+            self.report.add_warning(
+                f"BlockUnit '{self._get_name(block_unit)}' under "
+                f"{callable_element.eClass.name} '{self._get_name(callable_element)}' "
+                "does not have role='callable_body'."
+            )
+
+        if not self._has_feature(block_unit, "codeElement"):
+            self.report.add_error(
+                f"BlockUnit '{self._get_name(block_unit)}' does not have codeElement."
+            )
+            return
+
+        has_executable_child = False
+
+        for child in block_unit.codeElement:
+            if self._is_instance_of(child, "ActionElement"):
+                has_executable_child = True
+                break
+
+        if not has_executable_child:
+            self.report.add_warning(
+                f"Callable body BlockUnit under "
+                f"{callable_element.eClass.name} '{self._get_name(callable_element)}' "
+                "does not contain executable ActionElement children."
+            )
 
     # ------------------------------------------------------------
     # Type relations

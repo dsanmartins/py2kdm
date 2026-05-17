@@ -164,6 +164,13 @@ def generate_kdm(
 
     # ------------------------------------------------------------
     # 8b. Map body control structures and non-call statements
+    #
+    # This creates:
+    # - BlockUnit body for each MethodUnit / CallableUnit with a body
+    # - ActionElement for ordinary statements
+    # - TryUnit for try blocks
+    # - CatchUnit for except blocks
+    # - FinallyUnit for finally blocks
     # ------------------------------------------------------------
 
     body_action_mapper = BodyActionMapper(
@@ -185,6 +192,12 @@ def generate_kdm(
 
     # ------------------------------------------------------------
     # 8d. Resolve exception semantics
+    #
+    # This creates:
+    # - raise X(...) -> action::Throws -> StorableUnit X_exception
+    # - X_exception  -> code::HasType -> ClassUnit X
+    # - TryUnit      -> action::ExceptionFlow -> CatchUnit
+    # - TryUnit      -> action::ExitFlow -> FinallyUnit
     # ------------------------------------------------------------
 
     exception_relation_resolver = ExceptionRelationResolver(
@@ -230,6 +243,12 @@ def generate_kdm(
 
     # ------------------------------------------------------------
     # 9c. Resolve return values
+    #
+    # More standard KDM 1.4 modeling:
+    # - return x       -> action::Reads -> StorableUnit x
+    # - return literal -> action::Reads -> StorableUnit literal
+    #                     and StorableUnit literal -> code::HasValue -> Value
+    # - return f(...)  -> action::Reads -> temporary StorableUnit result
     # ------------------------------------------------------------
 
     return_relation_resolver = ReturnRelationResolver(
@@ -283,6 +302,7 @@ def generate_kdm(
         "typable_elements": len(mapper.typable_elements),
         "value_elements": len(mapper.value_elements),
         "statement_body_actions": len(body_action_mapper.statement_action_index),
+        "callable_body_blocks": len(body_action_mapper.callable_body_block_index),
         "finally_units": len(body_action_mapper.finally_action_index),
         "inventory_model_generated": inventory_builder.inventory_model is not None,
         "source_files": len(inventory_builder.source_files),
@@ -341,6 +361,7 @@ def main():
     print(f"Typable elements: {summary['typable_elements']}")
     print(f"Value elements: {summary['value_elements']}")
     print(f"Statement/body actions: {summary['statement_body_actions']}")
+    print(f"Callable body blocks: {summary['callable_body_blocks']}")
     print(f"Finally units: {summary['finally_units']}")
 
     if summary["inventory_model_generated"]:
