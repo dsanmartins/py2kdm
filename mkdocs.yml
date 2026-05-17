@@ -1,0 +1,16 @@
+site_name: py2kdm
+
+theme:
+  name: material
+
+nav:
+  - Home: index.md
+  - Architecture: architecture.md
+  - Python Extractor: python_extractor.md
+  - Intermediate JSON Model: intermediate_json_model.md
+  - JSON to KDM Mapping: json_to_kdm_mapping.md
+  - Validation Rules: validation_rules.md
+  - CLI Usage: cli_usage.md
+  - Development Guide: development_guide.md
+  - Testing Strategy: testing_strategy.md
+  - Limitations: limitations.md
