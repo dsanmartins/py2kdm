@@ -10554,6 +10554,8 @@
         "parameters": 36,
         "annotated_parameters": 17,
         "resolved_parameters": 36,
+        "context_variables": 1,
+        "resolved_context_variables": 1,
         "elements": 153,
         "relationships": 225
     }

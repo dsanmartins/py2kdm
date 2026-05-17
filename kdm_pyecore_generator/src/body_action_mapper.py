@@ -1,4 +1,33 @@
 class BodyActionMapper:
+    """
+    Maps executable body nodes from the intermediate JSON model to KDM action
+    elements.
+
+    This mapper is responsible for building the executable structure inside
+    each KDM MethodUnit or CallableUnit. For every callable with a non-empty
+    body, it creates a KDM BlockUnit named ``body`` and attaches executable
+    actions to that block.
+
+    The expected structure is:
+
+        MethodUnit / CallableUnit
+          └── BlockUnit name="body" kind="body"
+                ├── ActionElement
+                ├── TryUnit
+                ├── CatchUnit
+                ├── FinallyUnit
+                └── nested ActionElement nodes
+
+    The mapper also reuses call ActionElement nodes previously created by
+    ReferenceResolver, preserving call relations while nesting them in the
+    correct executable context.
+
+    Traceability is preserved through:
+    - body_id attributes on generated body actions;
+    - callable_body_id attributes on BlockUnit elements;
+    - SourceRef / SourceRegion elements.
+    """
+
     def __init__(
         self,
         factory,
@@ -7,6 +36,29 @@ class BodyActionMapper:
         inventory_builder=None,
         language="unknown",
     ):
+        """
+        Initializes the body action mapper.
+
+        Parameters
+        ----------
+        factory:
+            KDMFactory used to create KDM elements and relations.
+
+        id_index:
+            Dictionary mapping intermediate JSON ids to generated KDM elements.
+
+        action_index:
+            Dictionary of ActionElement nodes already created by
+            ReferenceResolver, mainly for calls and constructor calls.
+
+        inventory_builder:
+            InventoryBuilder used to resolve SourceFile references for
+            SourceRegion traceability.
+
+        language:
+            Source language name used in SourceRef / SourceRegion metadata.
+        """
+
         self.factory = factory
         self.id_index = id_index
         self.action_index = action_index or {}
@@ -28,6 +80,11 @@ class BodyActionMapper:
         self.callable_body_block_index = {}
 
     def map_body_actions(self, data: dict):
+        """
+        Maps all method and function bodies contained in the intermediate JSON
+        model to KDM executable structures.
+        """
+
         for file_model in data.get("files", []):
             for cls in file_model.get("classes", []):
                 for method in cls.get("methods", []):
@@ -37,6 +94,13 @@ class BodyActionMapper:
                 self._map_callable_body(func, file_model)
 
     def _map_callable_body(self, callable_model: dict, file_model: dict):
+        """
+        Maps one callable body to a KDM BlockUnit.
+
+        The callable itself remains a MethodUnit or CallableUnit. Its executable
+        statements are placed inside a child BlockUnit named ``body``.
+        """
+
         callable_kdm = self.id_index.get(callable_model.get("id"))
 
         if callable_kdm is None:
@@ -74,6 +138,10 @@ class BodyActionMapper:
         file_model: dict,
         callable_kdm,
     ):
+        """
+        Creates or reuses the BlockUnit that represents a callable body.
+        """
+
         callable_id = callable_model.get("id")
 
         if callable_id in self.callable_body_block_index:
@@ -128,6 +196,13 @@ class BodyActionMapper:
         callable_model: dict,
         file_model: dict,
     ):
+        """
+        Adds source traceability to a callable body BlockUnit.
+
+        The source region spans from the first to the last statement in the
+        callable body whenever line information is available.
+        """
+
         body = callable_model.get("body", [])
 
         if not body:
@@ -169,6 +244,11 @@ class BodyActionMapper:
         file_model: dict,
         parent_kdm,
     ):
+        """
+        Maps one JSON body item to a KDM action element and recursively maps
+        its nested body items.
+        """
+
         action = self._get_or_create_action_for_body_item(
             item=item,
             callable_model=callable_model,
@@ -245,6 +325,14 @@ class BodyActionMapper:
         file_model: dict,
         parent_kdm,
     ):
+        """
+        Maps a JSON finalbody list to a KDM FinallyUnit.
+
+        For try statements, the finalbody is represented by a synthetic
+        FinallyUnit. The ExceptionRelationResolver later connects the TryUnit
+        to this FinallyUnit using ExitFlow.
+        """
+
         finalbody = item.get("finalbody", [])
 
         if not finalbody:
@@ -479,6 +567,11 @@ class BodyActionMapper:
         return None
 
     def _create_action_for_body_item(self, item: dict):
+        """
+        Creates a new KDM action element for a JSON body item when no existing
+        call action can be reused.
+        """
+
         statement_type = item.get("statement_type")
         node_type = item.get("type")
         control_type = item.get("control_type")

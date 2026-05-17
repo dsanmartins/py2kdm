@@ -2,11 +2,29 @@ class SymbolTable:
     """
     Stores internal symbols extracted from the intermediate project model.
 
-    This version avoids overwriting symbols with the same simple name.
-    It keeps indexes by qualified name and by simple name.
+    The symbol table is built after the file-level extraction phase. It indexes
+    modules, classes, functions and methods so that later components can resolve
+    imports, calls and type references.
+
+    The table keeps both qualified-name indexes and simple-name indexes.
+
+    Qualified-name indexes map one name to one symbol:
+
+        example_project.services.user_service.UserService -> UserService symbol
+
+    Simple-name indexes map one name to a list of symbols:
+
+        UserService -> [UserService symbol, other UserService symbol, ...]
+
+    This avoids overwriting symbols when different modules define elements with
+    the same simple name.
     """
 
     def __init__(self):
+        """
+        Initializes all symbol indexes.
+        """
+
         self.modules_by_qualified_name = {}
 
         self.classes_by_qualified_name = {}
@@ -22,6 +40,15 @@ class SymbolTable:
     def build_from_project_model(self, project_model: dict):
         """
         Builds the symbol table from the full intermediate project model.
+
+        Parameters
+        ----------
+        project_model:
+            Project-level intermediate model produced by the extractor.
+
+        Notes
+        -----
+        Files containing extraction errors are ignored.
         """
 
         for file_model in project_model.get("files", []):
@@ -41,10 +68,10 @@ class SymbolTable:
 
     def _add_to_list_index(self, index: dict, key: str, symbol: dict):
         """
-        Adds a symbol to a dictionary whose values are lists.
+        Adds a symbol to an index whose values are lists.
 
-        This avoids overwriting symbols when several elements share
-        the same simple name.
+        This helper is used for simple-name indexes, where several elements can
+        share the same name.
         """
 
         if not key:
@@ -70,7 +97,7 @@ class SymbolTable:
             "name": module_model.get("name"),
             "qualified_name": qualified_name,
             "path": module_model.get("path"),
-            "type": "module"
+            "type": "module",
         }
 
         self.modules_by_qualified_name[qualified_name] = symbol
@@ -91,7 +118,7 @@ class SymbolTable:
             "name": name,
             "qualified_name": qualified_name,
             "type": "class",
-            "bases": class_model.get("bases", [])
+            "bases": class_model.get("bases", []),
         }
 
         self.classes_by_qualified_name[qualified_name] = symbol
@@ -99,7 +126,7 @@ class SymbolTable:
 
     def register_function(self, function_model: dict):
         """
-        Registers a global function by qualified name and by simple name.
+        Registers a module-level function by qualified name and by simple name.
         """
 
         name = function_model.get("name")
@@ -112,7 +139,7 @@ class SymbolTable:
             "id": function_model.get("id"),
             "name": name,
             "qualified_name": qualified_name,
-            "type": "function"
+            "type": "function",
         }
 
         self.functions_by_qualified_name[qualified_name] = symbol
@@ -120,7 +147,14 @@ class SymbolTable:
 
     def register_method(self, class_model: dict, method_model: dict):
         """
-        Registers a method by qualified name, by method name, and by class.method.
+        Registers a method by qualified name, by method name and by class.method.
+
+        The method is indexed using:
+
+        - its fully qualified method name;
+        - its simple method name;
+        - ClassName.methodName;
+        - QualifiedClassName.methodName, when available.
         """
 
         method_name = method_model.get("name")
@@ -137,7 +171,7 @@ class SymbolTable:
             "qualified_name": method_qualified_name,
             "class_name": class_name,
             "class_qualified_name": class_qualified_name,
-            "type": "method"
+            "type": "method",
         }
 
         self.methods_by_qualified_name[method_qualified_name] = symbol
@@ -145,20 +179,20 @@ class SymbolTable:
         self._add_to_list_index(
             self.methods_by_name,
             method_name,
-            symbol
+            symbol,
         )
 
         self._add_to_list_index(
             self.methods_by_class_and_name,
             f"{class_name}.{method_name}",
-            symbol
+            symbol,
         )
 
         if class_qualified_name:
             self._add_to_list_index(
                 self.methods_by_class_and_name,
                 f"{class_qualified_name}.{method_name}",
-                symbol
+                symbol,
             )
 
     def find_module(self, qualified_name: str):
@@ -184,14 +218,14 @@ class SymbolTable:
 
     def find_function_by_qualified_name(self, qualified_name: str):
         """
-        Finds a function by qualified name.
+        Finds a module-level function by qualified name.
         """
 
         return self.functions_by_qualified_name.get(qualified_name)
 
     def find_functions_by_name(self, name: str):
         """
-        Finds all functions with the given simple name.
+        Finds all module-level functions with the given simple name.
         """
 
         return self.functions_by_name.get(name, [])
@@ -212,14 +246,15 @@ class SymbolTable:
 
     def find_methods_by_class_and_name(self, class_and_method_name: str):
         """
-        Finds all methods matching ClassName.methodName or QualifiedClass.methodName.
+        Finds all methods matching either ClassName.methodName or
+        QualifiedClassName.methodName.
         """
 
         return self.methods_by_class_and_name.get(class_and_method_name, [])
 
     def to_dict(self):
         """
-        Returns the symbol table as a serializable dictionary.
+        Returns the symbol table as a JSON-serializable dictionary.
         """
 
         return {
@@ -230,5 +265,5 @@ class SymbolTable:
             "functions_by_name": self.functions_by_name,
             "methods_by_qualified_name": self.methods_by_qualified_name,
             "methods_by_name": self.methods_by_name,
-            "methods_by_class_and_name": self.methods_by_class_and_name
+            "methods_by_class_and_name": self.methods_by_class_and_name,
         }

@@ -5,15 +5,30 @@ class ReturnRelationResolver:
     """
     Resolves return-value semantics in the generated KDM model.
 
-    It creates standard KDM action::Reads relationships:
+    KDM 1.4 does not define a specific Returns relation. Therefore, this
+    resolver models returned values as data read by the return ActionElement.
 
-        return x        -> Reads -> StorableUnit x
-        return f(x)     -> Reads -> StorableUnit return_value_of_f
-        return None     -> Reads -> StorableUnit return_literal_None
-                            and return_literal_None --HasValue--> Value None
+    It creates the following mappings:
 
-    KDM 1.4 does not define a specific Returns relation. Therefore, the
-    returned value is modeled as data read by the return ActionElement.
+    - return x
+        -> ActionElement kind="return"
+        -> action::Reads -> StorableUnit x
+
+    - return f(...)
+        -> ActionElement kind="return"
+        -> StorableUnit return_value_of_f
+        -> action::Reads -> return_value_of_f
+
+    - return True
+        -> ActionElement kind="return"
+        -> StorableUnit return_literal_True
+        -> Value value_True
+        -> return_literal_True --code::HasValue--> value_True
+        -> return --action::Reads--> return_literal_True
+
+    - return
+        -> ActionElement kind="return"
+        -> Attribute return_flow="void"
     """
 
     def __init__(
@@ -24,6 +39,29 @@ class ReturnRelationResolver:
         storable_index=None,
         id_index=None,
     ):
+        """
+        Initializes the return relation resolver.
+
+        Parameters
+        ----------
+        factory:
+            KDMFactory used to create KDM elements and relations.
+
+        statement_action_index:
+            Dictionary mapping JSON body ids to ActionElement instances created
+            by BodyActionMapper.
+
+        action_index:
+            Dictionary of call ActionElement nodes created by ReferenceResolver.
+
+        storable_index:
+            Dictionary of variables, parameters and fields represented as
+            StorableUnit elements.
+
+        id_index:
+            Dictionary mapping intermediate JSON ids to generated KDM elements.
+        """
+
         self.factory = factory
         self.statement_action_index = statement_action_index
         self.action_index = action_index or {}
@@ -31,6 +69,11 @@ class ReturnRelationResolver:
         self.id_index = id_index or {}
 
     def resolve(self, data: dict):
+        """
+        Resolves return semantics for all functions and methods contained in
+        the intermediate JSON model.
+        """
+
         for file_model in data.get("files", []):
             for cls in file_model.get("classes", []):
                 for method in cls.get("methods", []):
@@ -40,10 +83,18 @@ class ReturnRelationResolver:
                 self._resolve_callable(func)
 
     def _resolve_callable(self, callable_model: dict):
+        """
+        Resolves return statements inside a single callable body.
+        """
+
         for item in callable_model.get("body", []):
             self._resolve_body_item(item, callable_model)
 
     def _resolve_body_item(self, item: dict, callable_model: dict):
+        """
+        Recursively resolves return statements inside a body item.
+        """
+
         if item.get("statement_type") == "return":
             self._resolve_return(item, callable_model)
 
@@ -64,6 +115,10 @@ class ReturnRelationResolver:
     # ------------------------------------------------------------
 
     def _resolve_return(self, item: dict, callable_model: dict):
+        """
+        Resolves a single return statement.
+        """
+
         return_action = self.statement_action_index.get(item.get("id"))
 
         if return_action is None:
@@ -102,9 +157,12 @@ class ReturnRelationResolver:
         return_action,
     ):
         """
-        Priority:
+        Finds the KDM element representing the value returned by a return
+        statement.
+
+        Resolution priority:
         1. Return value call: return f(...)
-        2. Returned variable/storable: return user
+        2. Returned variable or storable: return user
         3. Returned literal: return None, return 1, return "text"
         """
 
@@ -139,11 +197,8 @@ class ReturnRelationResolver:
 
     def _find_return_call_target(self, item: dict):
         """
-        Handles return expressions involving calls.
-
-        Examples:
-            return json.dumps(...)
-            return service.create_user(...)
+        Finds the ActionElement corresponding to a call expression returned by
+        a return statement.
         """
 
         value_call_id = item.get("value_call_id")
@@ -201,6 +256,11 @@ class ReturnRelationResolver:
     # ------------------------------------------------------------
 
     def _is_literal_value(self, value) -> bool:
+        """
+        Checks whether a returned expression is a simple literal supported by
+        the generator.
+        """
+
         if value is None:
             return False
 
@@ -230,13 +290,13 @@ class ReturnRelationResolver:
 
         KDM Reads.to must point to a StorableUnit in this generator.
 
-        We create:
+        Expected structure:
 
             return ActionElement
               ├── StorableUnit return_literal_None
-              │     └── HasValue -> Value None
+              │     └── code::HasValue -> Value None
               ├── Value value_None
-              └── Reads -> return_literal_None
+              └── action::Reads -> return_literal_None
         """
 
         if return_action is None:
@@ -343,18 +403,20 @@ class ReturnRelationResolver:
 
     def _get_or_create_return_call_value(self, return_action, call_action):
         """
-        Creates or reuses a StorableUnit representing the value produced
-        by a returned call expression.
+        Creates or reuses a StorableUnit representing the value produced by a
+        returned call expression.
 
         Example:
+
             return json.dumps(data)
 
         Produces:
+
             return
               ├── StorableUnit return_value_of_json_dumps
               │     ├── role = returned_call_result
               │     └── source_call_name = json.dumps
-              └── Reads -> return_value_of_json_dumps
+              └── action::Reads -> return_value_of_json_dumps
         """
 
         if return_action is None or call_action is None:
@@ -411,6 +473,11 @@ class ReturnRelationResolver:
     # ------------------------------------------------------------
 
     def _create_return_relation(self, source, target):
+        """
+        Creates a Reads relation from a return ActionElement to the returned
+        value representation.
+        """
+
         if source is None or target is None:
             return
 
@@ -485,6 +552,11 @@ class ReturnRelationResolver:
         self.factory.add_attribute(element, tag, value)
 
     def _safe_name(self, value) -> str:
+        """
+        Converts a literal or call name into a safe identifier fragment for
+        generated KDM element names.
+        """
+
         value_text = str(value).strip()
 
         safe = (

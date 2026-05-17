@@ -2,20 +2,30 @@ class ExceptionRelationResolver:
     """
     Resolves exception-related semantics in the generated KDM model.
 
-    Current implementation:
+    This resolver transforms exception information from the intermediate JSON
+    model into standard KDM 1.4 action elements and action relations.
 
-    - raise X(...)  -> action:Throws -> StorableUnit X_exception
-                       and X_exception --HasType--> X
+    It creates the following mappings:
 
-    - try/except    -> TryUnit --ExceptionFlow--> CatchUnit
+    - raise X(...)
+        -> ActionElement kind="raise"
+        -> StorableUnit X_exception
+        -> action::Throws -> X_exception
+        -> X_exception --code::HasType--> X
 
-    - try/finally   -> TryUnit --ExitFlow--> FinallyUnit
+    - try / except
+        -> TryUnit
+        -> CatchUnit
+        -> TryUnit --action::ExceptionFlow--> CatchUnit
 
-    Notes:
-    - KDM has a standard Throws relation.
-    - KDM does not define a direct Catches relation.
-    - Catch blocks are modeled as CatchUnit elements connected from TryUnit
-      through ExceptionFlow.
+    - try / finally
+        -> TryUnit
+        -> FinallyUnit
+        -> TryUnit --action::ExitFlow--> FinallyUnit
+
+    The resolver intentionally avoids generic ActionRelationship elements with
+    temporary attributes such as kind="catches". Exception handling is modeled
+    with KDM-specific metaclasses whenever possible.
     """
 
     def __init__(
@@ -28,6 +38,36 @@ class ExceptionRelationResolver:
         external_index=None,
         finally_action_index=None,
     ):
+        """
+        Initializes the exception relation resolver.
+
+        Parameters
+        ----------
+        factory:
+            KDMFactory used to create KDM elements and relations.
+
+        id_index:
+            Dictionary mapping intermediate JSON ids to generated KDM elements.
+
+        statement_action_index:
+            Dictionary mapping JSON body ids to ActionElement, TryUnit,
+            CatchUnit or FinallyUnit instances created by BodyActionMapper.
+
+        builtin_model:
+            CodeModel used to store builtin Python exceptions such as
+            ValueError, OSError or Exception.
+
+        builtin_index:
+            Optional dictionary of already-created builtin elements.
+
+        external_index:
+            Optional dictionary of external KDM targets created by the external
+            model builder.
+
+        finally_action_index:
+            Dictionary mapping try body ids to synthetic FinallyUnit elements.
+        """
+
         self.factory = factory
         self.id_index = id_index
         self.statement_action_index = statement_action_index
@@ -37,6 +77,11 @@ class ExceptionRelationResolver:
         self.finally_action_index = finally_action_index or {}
 
     def resolve(self, data: dict):
+        """
+        Resolves exception semantics for all functions and methods contained
+        in the intermediate JSON model.
+        """
+
         for file_model in data.get("files", []):
             for cls in file_model.get("classes", []):
                 for method in cls.get("methods", []):
@@ -46,10 +91,19 @@ class ExceptionRelationResolver:
                 self._resolve_callable(func)
 
     def _resolve_callable(self, callable_model: dict):
+        """
+        Resolves exception-related statements inside a single callable body.
+        """
+
         for item in callable_model.get("body", []):
             self._resolve_body_item(item)
 
     def _resolve_body_item(self, item: dict):
+        """
+        Recursively resolves exception semantics for a body item and its nested
+        children.
+        """
+
         item_type = item.get("type")
         statement_type = item.get("statement_type")
         control_type = item.get("control_type")
@@ -80,6 +134,10 @@ class ExceptionRelationResolver:
     # ------------------------------------------------------------
 
     def _resolve_try_flows(self, item: dict):
+        """
+        Creates ExceptionFlow and ExitFlow relations for a try statement.
+        """
+
         try_action = self.statement_action_index.get(item.get("id"))
 
         if try_action is None:
@@ -161,6 +219,12 @@ class ExceptionRelationResolver:
         return False
 
     def _annotate_catch_unit(self, catch_action, handler: dict):
+        """
+        Adds lightweight traceability metadata to a CatchUnit and creates a
+        ParameterUnit representing the caught exception object when the
+        exception type is known.
+        """
+
         exception_name = handler.get("exception")
 
         if not exception_name:
@@ -206,12 +270,14 @@ class ExceptionRelationResolver:
         exception_name: str,
     ):
         """
-        Creates a ParameterUnit inside CatchUnit to represent the exception
-        object received by the handler.
+        Creates or reuses a ParameterUnit inside a CatchUnit to represent the
+        exception object received by an exception handler.
 
-        CatchUnit
-          └── ParameterUnit exception_RepositoryError
-                └── HasType -> RepositoryError
+        Expected structure:
+
+            CatchUnit
+              └── ParameterUnit exception_RepositoryError
+                    └── code::HasType -> RepositoryError
         """
 
         if catch_action is None or exception_type is None:
@@ -260,6 +326,13 @@ class ExceptionRelationResolver:
     # ------------------------------------------------------------
 
     def _resolve_raise(self, item: dict):
+        """
+        Resolves a raise statement.
+
+        A typed raise creates a Throws relation. A bare raise is marked as a
+        rethrow using exception_flow="rethrow".
+        """
+
         raise_action = self.statement_action_index.get(item.get("id"))
 
         if raise_action is None:
@@ -268,7 +341,6 @@ class ExceptionRelationResolver:
         exception_target = self._find_exception_target_from_raise(item)
 
         if exception_target is None:
-            # Python supports bare raise inside except blocks.
             if not item.get("exception") and not item.get("exception_calls"):
                 self._add_attribute_once(
                     raise_action,
@@ -287,7 +359,7 @@ class ExceptionRelationResolver:
         """
         Finds the KDM target for a raise statement.
 
-        Priority:
+        Resolution priority:
         1. exception_calls[*].target_id
         2. item["exception"]
         """
@@ -314,11 +386,13 @@ class ExceptionRelationResolver:
 
     def _resolve_exception_handler(self, item: dict):
         """
-        CatchUnit is connected and annotated from TryUnit using ExceptionFlow
-        in _resolve_try_flows.
+        Intentionally does nothing.
 
-        This method intentionally does nothing to avoid duplicate attributes.
+        CatchUnit elements are connected and annotated from the owning TryUnit
+        in _resolve_try_flows. This avoids duplicate attributes when the
+        recursive traversal later reaches the handler node.
         """
+
         return
 
     # ------------------------------------------------------------
@@ -377,10 +451,8 @@ class ExceptionRelationResolver:
 
     def _get_or_create_builtin_exception(self, exception_name: str):
         """
-        Creates builtin exception classes such as ValueError or OSError
-        inside the PythonBuiltins CodeModel.
-
-        If builtin_model is not provided, the exception is not created.
+        Creates or reuses a builtin exception ClassUnit inside the
+        PythonBuiltins CodeModel.
         """
 
         if not exception_name:
@@ -425,6 +497,10 @@ class ExceptionRelationResolver:
     # ------------------------------------------------------------
 
     def _create_exception_relation(self, source, target, kind: str):
+        """
+        Creates a KDM Throws relation for a raise action.
+        """
+
         if source is None or target is None:
             return
 
@@ -476,16 +552,18 @@ class ExceptionRelationResolver:
 
     def _get_or_create_thrown_exception_data(self, source, exception_type):
         """
-        Creates or reuses a DataElement representing the exception object
-        thrown by a raise action.
+        Creates or reuses a StorableUnit representing a thrown exception object.
 
-        KDM Throws.to must point to a DataElement, not to a ClassUnit.
-        Therefore, we create:
+        KDM Throws.to must point to a DataElement. Therefore, the generator
+        creates a StorableUnit and links it to the exception class using
+        code::HasType.
+
+        Expected structure:
 
             raise ActionElement
               ├── StorableUnit RepositoryError_exception
-              │     └── HasType -> RepositoryError
-              └── Throws -> RepositoryError_exception
+              │     └── code::HasType -> RepositoryError
+              └── action::Throws -> RepositoryError_exception
         """
 
         if source is None or exception_type is None:

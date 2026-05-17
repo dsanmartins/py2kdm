@@ -1,6 +1,6 @@
 # CLI Usage
 
-This document describes how to run the `py2kdm` toolchain from the command line.
+This document describes how to run the complete `py2kdm` toolchain from the command line.
 
 `py2kdm` is organized as a two-stage pipeline:
 
@@ -20,7 +20,7 @@ kdm_pyecore_generator
 KDM 1.4 XMI model
 ```
 
-The first subproject extracts an intermediate JSON model from Python source code. The second subproject transforms that JSON model into a KDM 1.4 XMI file.
+The first subproject, `python_kdm_extractor`, analyzes Python source code and generates an intermediate JSON model. The second subproject, `kdm_pyecore_generator`, transforms that JSON model into a KDM 1.4 XMI file using PyEcore.
 
 ---
 
@@ -31,52 +31,100 @@ A typical repository layout is:
 ```text
 py2kdm/
 ├── python_kdm_extractor/
+│   ├── main.py
+│   ├── extractor/
+│   └── output/
 ├── kdm_pyecore_generator/
+│   ├── src/
+│   ├── input/
+│   ├── output/
+│   ├── metamodels/
+│   └── tests/
 ├── docs/
 ├── README.md
 └── mkdocs.yml
 ```
 
-The commands in this document assume that they are executed from the root directory of the corresponding subproject unless otherwise stated.
+Unless otherwise stated, commands are shown from the root directory of `py2kdm`.
 
 ---
 
 ## 2. Stage 1: Python source code to intermediate JSON
 
-The `python_kdm_extractor` subproject is responsible for analyzing Python source code and generating the intermediate JSON model.
+The `python_kdm_extractor` subproject extracts a JSON-compatible intermediate model from a Python project.
 
-Example command:
+Recommended execution:
 
 ```bash
-cd python_kdm_extractor
-python src/main.py \
-  --input examples/example_project \
-  --output output/python_model.json
+python python_kdm_extractor/main.py \
+  --input path/to/python/project \
+  --output kdm_pyecore_generator/input/python_model.json
 ```
 
-The expected output is a JSON file such as:
+Example:
+
+```bash
+python python_kdm_extractor/main.py \
+  --input examples/example_project \
+  --output kdm_pyecore_generator/input/python_model.json
+```
+
+The expected output is:
 
 ```text
-output/python_model.json
+kdm_pyecore_generator/input/python_model.json
 ```
 
 This JSON file is the contract consumed by the KDM generator.
 
-If the extractor uses different command-line arguments in the current implementation, use the local extractor help command:
+### Backward-compatible extractor usage
+
+The extractor also supports the older positional form:
 
 ```bash
-python src/main.py --help
+cd python_kdm_extractor
+python main.py path/to/python/project
 ```
 
-or inspect the extractor README for the exact options.
+By default, this writes:
+
+```text
+python_kdm_extractor/output/python_model.json
+```
+
+However, the recommended workflow is to use `--input` and `--output`, because it makes the pipeline explicit and avoids manually moving the generated JSON file.
+
+### Extractor help
+
+```bash
+python python_kdm_extractor/main.py --help
+```
 
 ---
 
 ## 3. Stage 2: Intermediate JSON to KDM 1.4 XMI
 
-The `kdm_pyecore_generator` subproject reads the intermediate JSON model and generates a KDM 1.4 XMI file using PyEcore.
+The `kdm_pyecore_generator` subproject reads the intermediate JSON model and generates a KDM 1.4 XMI file.
 
-Default execution:
+Recommended execution:
+
+```bash
+python kdm_pyecore_generator/src/main.py \
+  --input kdm_pyecore_generator/input/python_model.json \
+  --output kdm_pyecore_generator/output/example_project.kdm.xmi
+```
+
+The final KDM model will be available at:
+
+```text
+kdm_pyecore_generator/output/example_project.kdm.xmi
+```
+
+---
+
+## 4. KDM generator default execution
+
+From inside `kdm_pyecore_generator`, the generator can also be executed with defaults:
 
 ```bash
 cd kdm_pyecore_generator
@@ -93,15 +141,15 @@ Metamodel:    metamodels/kdm_1_4.ecore
 
 ---
 
-## 4. Generator CLI options
+## 5. KDM generator CLI options
 
-The generator supports configurable input, output and metamodel paths.
+The KDM generator supports configurable input, output and metamodel paths.
 
 ```bash
-python src/main.py \
-  --input input/python_model.json \
-  --output output/example_project.kdm.xmi \
-  --metamodel metamodels/kdm_1_4.ecore
+python kdm_pyecore_generator/src/main.py \
+  --input kdm_pyecore_generator/input/python_model.json \
+  --output kdm_pyecore_generator/output/example_project.kdm.xmi \
+  --metamodel kdm_pyecore_generator/metamodels/kdm_1_4.ecore
 ```
 
 ### `--input`
@@ -111,7 +159,8 @@ Path to the intermediate JSON model.
 Example:
 
 ```bash
-python src/main.py --input input/python_model.json
+python kdm_pyecore_generator/src/main.py \
+  --input kdm_pyecore_generator/input/python_model.json
 ```
 
 ### `--output`
@@ -121,9 +170,9 @@ Path where the generated KDM XMI file will be written.
 Example:
 
 ```bash
-python src/main.py \
-  --input input/python_model.json \
-  --output output/example_project.kdm.xmi
+python kdm_pyecore_generator/src/main.py \
+  --input kdm_pyecore_generator/input/python_model.json \
+  --output kdm_pyecore_generator/output/example_project.kdm.xmi
 ```
 
 ### `--metamodel`
@@ -133,8 +182,8 @@ Path to the KDM 1.4 Ecore metamodel.
 Example:
 
 ```bash
-python src/main.py \
-  --metamodel metamodels/kdm_1_4.ecore
+python kdm_pyecore_generator/src/main.py \
+  --metamodel kdm_pyecore_generator/metamodels/kdm_1_4.ecore
 ```
 
 ### `--no-validation`
@@ -144,42 +193,41 @@ Disables JSON-level and KDM-level validation.
 Example:
 
 ```bash
-python src/main.py --no-validation
+python kdm_pyecore_generator/src/main.py --no-validation
 ```
 
-This option should only be used for debugging. In normal use, validation should remain enabled.
+This option should only be used for debugging. During normal development, validation should remain enabled.
 
 ---
 
-## 5. Complete two-stage execution
+## 6. Complete two-stage execution
 
-A complete execution can be performed as follows:
+A complete execution from the root directory of `py2kdm` is:
 
 ```bash
-# Stage 1: Extract intermediate JSON from Python source code
-cd python_kdm_extractor
-python src/main.py \
+# Stage 1: Extract intermediate JSON from a Python project
+python python_kdm_extractor/main.py \
   --input examples/example_project \
-  --output ../kdm_pyecore_generator/input/python_model.json
+  --output kdm_pyecore_generator/input/python_model.json
 
 # Stage 2: Generate KDM 1.4 XMI from the JSON model
-cd ../kdm_pyecore_generator
-python src/main.py \
-  --input input/python_model.json \
-  --output output/example_project.kdm.xmi
+python kdm_pyecore_generator/src/main.py \
+  --input kdm_pyecore_generator/input/python_model.json \
+  --output kdm_pyecore_generator/output/example_project.kdm.xmi
 ```
 
-The final KDM model will be available at:
+The generated artifacts are:
 
 ```text
+kdm_pyecore_generator/input/python_model.json
 kdm_pyecore_generator/output/example_project.kdm.xmi
 ```
 
 ---
 
-## 6. Running with fixture JSON models
+## 7. Running with fixture JSON models
 
-The generator can be executed using small JSON fixtures. This is useful for testing specific Python constructs without running the extractor.
+The KDM generator can be executed using small JSON fixtures. This is useful for testing specific Python constructs without running the extractor.
 
 Example:
 
@@ -201,9 +249,35 @@ This allows isolated testing of cases such as:
 
 ---
 
-## 7. Expected generator output
+## 8. Expected extractor output
 
-When the generator runs successfully, it prints validation reports and a summary.
+When the extractor runs successfully, it prints a short summary such as:
+
+```text
+Model generated at kdm_pyecore_generator/input/python_model.json
+Project name: example_project
+Python files analyzed: ...
+Elements: ...
+Relationships: ...
+```
+
+The generated JSON contains the intermediate model sections:
+
+```text
+projectName
+language
+files
+elements
+relationships
+symbol_table
+summary
+```
+
+---
+
+## 9. Expected KDM generator output
+
+When the generator runs successfully, it prints validation reports and a generation summary.
 
 Example summary:
 
@@ -222,13 +296,13 @@ External libraries: ...
 External targets: ...
 ```
 
-The `Callable body blocks` count corresponds to the number of generated `BlockUnit` elements representing method/function bodies.
+The `Callable body blocks` count corresponds to the number of generated `BlockUnit` elements representing method and function bodies.
 
 ---
 
-## 8. Validation behavior
+## 10. Validation behavior
 
-By default, the generator runs two validation stages.
+The KDM generator runs two validation stages by default.
 
 ### JSON-level validation
 
@@ -257,7 +331,7 @@ RuntimeError: KDM validation failed. See validation report above.
 
 ---
 
-## 9. Running tests
+## 11. Running tests
 
 The generator test suite is executed with `pytest`.
 
@@ -277,13 +351,17 @@ The tests cover:
 - fixture-based edge cases;
 - CLI input/output behavior.
 
+If tests are later added to `python_kdm_extractor`, run them from the corresponding subproject directory.
+
 ---
 
-## 10. Checking serialization stability manually
+## 12. Checking serialization stability manually
 
 Stable serialization can be checked manually by generating the same model twice and comparing the outputs.
 
 ```bash
+cd kdm_pyecore_generator
+
 python src/main.py
 cp output/example_project.kdm.xmi output/run1.kdm.xmi
 
@@ -297,9 +375,9 @@ If `diff` produces no output, serialization is stable.
 
 ---
 
-## 11. Inspecting the generated KDM
+## 13. Inspecting the generated KDM
 
-Useful commands for inspecting the generated XMI:
+Useful commands for inspecting the generated XMI from inside `kdm_pyecore_generator`:
 
 ### Check callable body blocks
 
@@ -329,28 +407,42 @@ The last command should return no results.
 
 ---
 
-## 12. Recommended development workflow
+## 14. Recommended development workflow
 
-A typical development workflow is:
+A typical complete development workflow from the root directory of `py2kdm` is:
 
 ```bash
-# Run generator
-python src/main.py
+# Compile extractor files
+cd python_kdm_extractor
+python -m py_compile main.py
+python -m py_compile extractor/*.py
+cd ..
 
-# Run tests
+# Compile generator files and run tests
+cd kdm_pyecore_generator
+python -m py_compile src/*.py
 pytest -q
+cd ..
 
-# Check generated model manually if needed
-grep -n -E 'action:BlockUnit|action:TryUnit|action:Reads|action:Throws' output/example_project.kdm.xmi
+# Run full pipeline
+python python_kdm_extractor/main.py \
+  --input examples/example_project \
+  --output kdm_pyecore_generator/input/python_model.json
 
-# Check Git state
-git status
+python kdm_pyecore_generator/src/main.py \
+  --input kdm_pyecore_generator/input/python_model.json \
+  --output kdm_pyecore_generator/output/example_project.kdm.xmi
+
+# Build documentation
+mkdocs build
 ```
 
 Before committing, ensure that:
 
+- the extractor runs without errors;
 - the generator runs without validation errors;
 - all tests pass;
+- MkDocs builds without warnings;
 - generated cache files are not staged;
 - temporary outputs are ignored when appropriate.
 
@@ -360,14 +452,15 @@ Recommended ignored files include:
 __pycache__/
 *.pyc
 .pytest_cache/
-output/test_fixtures/
-output/run1.kdm.xmi
-output/run2.kdm.xmi
+site/
+kdm_pyecore_generator/output/test_fixtures/
+kdm_pyecore_generator/output/run1.kdm.xmi
+kdm_pyecore_generator/output/run2.kdm.xmi
 ```
 
 ---
 
-## 13. Common issues
+## 15. Common issues
 
 ### `AttributeError: 'KDMFactory' object has no attribute 'create_block_unit'`
 
@@ -401,24 +494,41 @@ Read the validation report printed before the traceback. It usually indicates on
 - a `TryUnit` has a `CatchUnit` without `ExceptionFlow`;
 - a callable has executable actions directly under `MethodUnit` or `CallableUnit` instead of under `BlockUnit`.
 
----
+### Extractor input path does not exist
 
-## 14. Summary
+If the extractor reports that the input project path does not exist, check whether the command is being executed from the expected directory. Prefer absolute paths or run the command from the root directory of `py2kdm`.
 
-The CLI supports both default generation and custom input/output paths. The recommended usage is:
+Example:
 
 ```bash
-python src/main.py \
-  --input input/python_model.json \
-  --output output/example_project.kdm.xmi
+python python_kdm_extractor/main.py \
+  --input /absolute/path/to/python/project \
+  --output kdm_pyecore_generator/input/python_model.json
 ```
 
-For tests and isolated cases, use fixture JSON models:
+---
+
+## 16. Summary
+
+The complete `py2kdm` CLI workflow is:
 
 ```bash
+python python_kdm_extractor/main.py \
+  --input examples/example_project \
+  --output kdm_pyecore_generator/input/python_model.json
+
+python kdm_pyecore_generator/src/main.py \
+  --input kdm_pyecore_generator/input/python_model.json \
+  --output kdm_pyecore_generator/output/example_project.kdm.xmi
+```
+
+For isolated KDM generator tests, use fixture JSON models:
+
+```bash
+cd kdm_pyecore_generator
 python src/main.py \
   --input tests/fixtures/return_literal.json \
   --output output/test_fixtures/return_literal.kdm.xmi
 ```
 
-The generator should be executed with validation enabled during normal development.
+During normal development, the KDM generator should be executed with validation enabled.

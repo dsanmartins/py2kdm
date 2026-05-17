@@ -2,14 +2,31 @@ class SummaryBuilder:
     """
     Builds a statistical summary of the intermediate project model.
 
-    The summary is useful for quickly validating the extraction process
-    and checking whether the model contains the expected number of modules,
-    classes, methods, functions, calls, elements, relationships, and body nodes.
+    The summary is useful for validating the extraction process quickly and
+    checking whether the model contains the expected number of modules, classes,
+    methods, functions, calls, elements, relationships and body nodes.
+
+    The generated summary is stored in:
+
+        project_model["summary"]
+
+    It is not used as the main transformation input for KDM generation, but it
+    provides useful diagnostics for tests, debugging and reporting.
     """
 
     def build_summary(self, project_model: dict):
         """
         Builds and attaches a summary to the project model.
+
+        Parameters
+        ----------
+        project_model:
+            Intermediate project model produced by the extractor.
+
+        Returns
+        -------
+        dict
+            The same project model enriched with project_model["summary"].
         """
 
         summary = {
@@ -38,7 +55,7 @@ class SummaryBuilder:
             "context_variables": 0,
             "resolved_context_variables": 0,
             "elements": len(project_model.get("elements", [])),
-            "relationships": len(project_model.get("relationships", []))
+            "relationships": len(project_model.get("relationships", [])),
         }
 
         for file_model in project_model.get("files", []):
@@ -56,7 +73,7 @@ class SummaryBuilder:
                 self._count_calls(function_model, summary)
                 self._count_body_nodes(
                     function_model.get("body", []),
-                    summary
+                    summary,
                 )
 
             for class_model in file_model.get("classes", []):
@@ -75,7 +92,7 @@ class SummaryBuilder:
                     self._count_calls(method_model, summary)
                     self._count_body_nodes(
                         method_model.get("body", []),
-                        summary
+                        summary,
                     )
 
         project_model["summary"] = summary
@@ -84,7 +101,11 @@ class SummaryBuilder:
 
     def _count_calls(self, callable_model: dict, summary: dict):
         """
-        Counts calls inside a function or method.
+        Counts and classifies calls inside a function or method.
+
+        The method distinguishes internal, external, builtin, builtin type
+        method, external type method, constructor, ambiguous and unresolved
+        calls.
         """
 
         for call_model in callable_model.get("calls", []):
@@ -117,7 +138,7 @@ class SummaryBuilder:
 
             elif classification in {
                 "internal_ambiguous",
-                "constructor_ambiguous"
+                "constructor_ambiguous",
             }:
                 summary["ambiguous_calls"] += 1
 
@@ -128,8 +149,9 @@ class SummaryBuilder:
         """
         Counts body nodes recursively.
 
-        Body nodes include control structures, statements, and exception handlers
-        contained in the hierarchical body representation of functions and methods.
+        Body nodes include control structures, statements and exception
+        handlers contained in the hierarchical body representation of functions
+        and methods.
         """
 
         for body_node in body_nodes:
@@ -148,17 +170,17 @@ class SummaryBuilder:
 
             self._count_body_nodes(
                 body_node.get("body", []),
-                summary
+                summary,
             )
 
             self._count_body_nodes(
                 body_node.get("orelse", []),
-                summary
+                summary,
             )
 
             self._count_body_nodes(
                 body_node.get("finalbody", []),
-                summary
+                summary,
             )
 
             for handler in body_node.get("handlers", []):
@@ -167,12 +189,12 @@ class SummaryBuilder:
 
                 self._count_body_nodes(
                     handler.get("body", []),
-                    summary
+                    summary,
                 )
 
     def _count_parameters(self, callable_model: dict, summary: dict):
         """
-        Counts parameters and annotated parameters.
+        Counts parameters, annotated parameters and resolved parameters.
         """
 
         for parameter in callable_model.get("parameters", []):
@@ -190,6 +212,13 @@ class SummaryBuilder:
     def _count_context_variables(self, callable_model: dict, summary: dict):
         """
         Counts variables introduced by context managers.
+
+        Example
+        -------
+        with open(...) as file:
+            file.write(...)
+
+        The variable `file` is counted as a context variable.
         """
 
         for variable in callable_model.get("context_variables", []):

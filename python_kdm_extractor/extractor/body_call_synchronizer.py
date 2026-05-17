@@ -3,13 +3,46 @@ import hashlib
 
 class BodyCallSynchronizer:
     """
-    Synchronizes call statements inside the hierarchical body representation
-    with the resolved flat calls stored in callable_model["calls"].
+    Synchronizes flat call models with calls embedded in hierarchical body nodes.
+
+    During extraction, calls appear in two places:
+
+    1. As a flat list in each callable model:
+
+        callable_model["calls"]
+
+    2. Inside hierarchical body nodes, for example:
+
+        body_node["call"]
+        body_node["value_call"]
+        body_node["value_calls"]
+        body_node["condition_calls"]
+        body_node["iter_calls"]
+        body_node["exception_calls"]
+        with_item["context_calls"]
+
+    CallResolver enriches the flat calls with semantic information such as
+    classification, target_id, receiver_type and candidate_targets. This
+    synchronizer copies that information back into the corresponding body calls.
+
+    This is required because kdm_pyecore_generator builds the executable KDM
+    action structure from the hierarchical body representation, not only from
+    the flat call list.
     """
 
     def sync_project_body_calls(self, project_model: dict):
         """
-        Synchronizes body calls for all functions and methods in the project.
+        Synchronizes body calls for all functions and methods in a project.
+
+        Parameters
+        ----------
+        project_model:
+            Intermediate project model produced by the extractor.
+
+        Returns
+        -------
+        dict
+            The same project model, enriched in place.
         """
 
         for file_model in project_model.get("files", []):
@@ -27,7 +60,13 @@ class BodyCallSynchronizer:
 
     def _sync_callable_body_calls(self, callable_model: dict):
         """
-        Synchronizes calls inside the body of a function or method.
+        Synchronizes all body calls inside a single function or method.
+
+        The process has three steps:
+
+        1. Assign stable ids to flat calls.
+        2. Build an index of flat calls by name and line.
+        3. Recursively synchronize calls inside body nodes.
         """
 
         self._assign_call_ids(callable_model)
@@ -36,12 +75,16 @@ class BodyCallSynchronizer:
 
         self._sync_body_nodes(
             callable_model.get("body", []),
-            call_index
+            call_index,
         )
 
     def _assign_call_ids(self, callable_model: dict):
         """
-        Assigns stable IDs to flat calls inside callable_model["calls"].
+        Assigns stable ids to flat calls inside callable_model["calls"].
+
+        Calls are identified by callable id, call name, source line and
+        occurrence index. The occurrence index avoids collisions when the same
+        call appears multiple times on the same line.
         """
 
         occurrence_counter = {}
@@ -62,12 +105,17 @@ class BodyCallSynchronizer:
                     callable_model.get("id"),
                     call_name,
                     line,
-                    occurrence_index
+                    occurrence_index,
                 )
 
     def _build_call_index(self, callable_model: dict):
         """
-        Builds an index of flat calls by name and line.
+        Builds an index of flat calls by call name and source line.
+
+        Returns
+        -------
+        dict
+            Mapping from (call_name, line) to a list of call models.
         """
 
         call_index = {}
@@ -75,7 +123,7 @@ class BodyCallSynchronizer:
         for call_model in callable_model.get("calls", []):
             key = (
                 call_model.get("name"),
-                call_model.get("line")
+                call_model.get("line"),
             )
 
             call_index.setdefault(key, []).append(call_model)
@@ -84,7 +132,7 @@ class BodyCallSynchronizer:
 
     def _sync_body_nodes(self, body_nodes: list, call_index: dict):
         """
-        Recursively synchronizes body nodes.
+        Recursively synchronizes calls inside hierarchical body nodes.
         """
 
         for body_node in body_nodes:
@@ -94,54 +142,54 @@ class BodyCallSynchronizer:
             self._sync_single_embedded_call(
                 body_node,
                 "value_call",
-                call_index
+                call_index,
             )
 
             self._sync_call_list(
                 body_node,
                 "value_calls",
-                call_index
+                call_index,
             )
 
             self._sync_call_list(
                 body_node,
                 "condition_calls",
-                call_index
+                call_index,
             )
 
             self._sync_call_list(
                 body_node,
                 "iter_calls",
-                call_index
+                call_index,
             )
 
             self._sync_call_list(
                 body_node,
                 "exception_calls",
-                call_index
+                call_index,
             )
 
             self._sync_with_item_context_calls(body_node, call_index)
 
             self._sync_body_nodes(
                 body_node.get("body", []),
-                call_index
+                call_index,
             )
 
             self._sync_body_nodes(
                 body_node.get("orelse", []),
-                call_index
+                call_index,
             )
 
             self._sync_body_nodes(
                 body_node.get("finalbody", []),
-                call_index
+                call_index,
             )
 
             for handler in body_node.get("handlers", []):
                 self._sync_body_nodes(
                     handler.get("body", []),
-                    call_index
+                    call_index,
                 )
 
     def _sync_call_statement(self, body_node: dict, call_index: dict):
@@ -164,17 +212,23 @@ class BodyCallSynchronizer:
         body_node["call_sync_status"] = "matched"
         body_node["call"] = self._merge_call_information(
             body_call,
-            matched_call
+            matched_call,
         )
 
     def _sync_single_embedded_call(
         self,
         body_node: dict,
         call_field: str,
-        call_index: dict
+        call_index: dict,
     ):
         """
         Synchronizes a single embedded call field.
+
+        Example
+        -------
+        value_call in an assignment:
+
+            user = User()
         """
 
         body_call = body_node.get(call_field)
@@ -192,17 +246,23 @@ class BodyCallSynchronizer:
         body_node[f"{call_field}_sync_status"] = "matched"
         body_node[call_field] = self._merge_call_information(
             body_call,
-            matched_call
+            matched_call,
         )
 
     def _sync_call_list(
         self,
         body_node: dict,
         call_field: str,
-        call_index: dict
+        call_index: dict,
     ):
         """
         Synchronizes a list of embedded calls.
+
+        Examples
+        --------
+        - value_calls inside return expressions.
+        - condition_calls inside if or while conditions.
+        - exception_calls inside raise expressions.
         """
 
         calls = body_node.get(call_field)
@@ -237,8 +297,10 @@ class BodyCallSynchronizer:
         """
         Synchronizes context calls inside with items.
 
-        Example:
+        Example
+        -------
         with open(...) as file:
+            ...
         """
 
         if body_node.get("control_type") not in {"with", "async_with"}:
@@ -256,7 +318,7 @@ class BodyCallSynchronizer:
             for body_call in calls:
                 matched_call = self._find_matching_flat_call(
                     body_call,
-                    call_index
+                    call_index,
                 )
 
                 if matched_call is None:
@@ -278,12 +340,15 @@ class BodyCallSynchronizer:
 
     def _find_matching_flat_call(self, body_call: dict, call_index: dict):
         """
-        Finds the corresponding flat call using name and line.
+        Finds the corresponding flat call using name and source line.
+
+        The first available candidate is consumed with pop(0), which preserves
+        occurrence order when several identical calls appear on the same line.
         """
 
         key = (
             body_call.get("name"),
-            body_call.get("line")
+            body_call.get("line"),
         )
 
         candidates = call_index.get(key, [])
@@ -295,7 +360,10 @@ class BodyCallSynchronizer:
 
     def _merge_call_information(self, body_call: dict, matched_call: dict):
         """
-        Copies resolution information from the flat call into the body call.
+        Copies resolution information from a flat call into a body call.
+
+        The body call keeps its original syntactic information, while semantic
+        fields produced by CallResolver are copied from the matched flat call.
         """
 
         merged_call = dict(body_call)
@@ -328,7 +396,7 @@ class BodyCallSynchronizer:
             "resolved_from_cls",
             "resolved_from_context_manager",
             "context_variable",
-            "context_factory"
+            "context_factory",
         ]
 
         for field in fields_to_copy:
@@ -342,10 +410,13 @@ class BodyCallSynchronizer:
         callable_id: str,
         call_name: str,
         line: int,
-        occurrence_index: int
+        occurrence_index: int,
     ):
         """
-        Builds a stable call ID.
+        Builds a stable call id.
+
+        The id is based on the callable id, call name, source line and
+        occurrence index.
         """
 
         raw_key = f"{callable_id}|{call_name}|{line}|{occurrence_index}"

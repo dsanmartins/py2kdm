@@ -6,11 +6,48 @@ from extractor.external_type_registry import ExternalTypeRegistry
 
 class CallResolver:
     """
-    Resolves and classifies function, method, constructor, external,
-    built-in, ambiguous, self, inherited, and local-variable calls.
+    Resolves calls and type-related references in the intermediate JSON model.
+
+    This resolver enriches call models created by CallAnalyzer with semantic
+    resolution information. It classifies and resolves:
+
+    - built-in function calls, such as print(...);
+    - constructor calls, such as User(...);
+    - internal function calls;
+    - internal method calls;
+    - calls on self and self attributes;
+    - calls on local variables;
+    - calls on annotated parameters;
+    - calls inherited through base classes;
+    - calls through super();
+    - calls on built-in types, such as list.append or str.strip;
+    - calls on known external types, such as logging.Logger.info;
+    - calls on variables introduced by context managers;
+    - ambiguous and unresolved calls.
+
+    The resolver does not create KDM elements directly. It only enriches the
+    intermediate JSON model with fields such as classification, resolved,
+    target_id, candidate_targets, receiver_type and type_resolution. These
+    fields are later consumed by kdm_pyecore_generator.
     """
 
     def __init__(self, symbol_table):
+        """
+        Initializes the call resolver.
+
+        Parameters
+        ----------
+        symbol_table:
+            SymbolTable containing modules, classes, functions and methods
+            extracted from the analyzed project.
+
+        Notes
+        -----
+        Python built-in names are collected from the standard builtins module.
+        Class model indexes are built later from the full project model to
+        support inheritance-aware method resolution.
+        """
+
         self.symbol_table = symbol_table
         self.builtin_names = set(dir(builtins))
 
@@ -19,8 +56,18 @@ class CallResolver:
 
     def resolve_project_calls(self, project_model: dict):
         """
-        Traverses the full project model and resolves all calls found
-        inside functions and methods.
+        Resolves calls, parameter types, local variable types, instance
+        attribute types and context-manager variables for the whole project.
+
+        Parameters
+        ----------
+        project_model:
+            Intermediate project model produced by the Python extractor.
+
+        Returns
+        -------
+        dict
+            The same project model enriched in place with resolution metadata.
         """
 
         self._build_class_model_index(project_model)
@@ -269,6 +316,20 @@ class CallResolver:
     ):
         """
         Resolves a single call model.
+
+        The resolution strategy depends on the call kind:
+
+        - function_call:
+            may resolve to a builtin function, internal function, constructor,
+            imported symbol or cls() constructor call.
+
+        - method_call:
+            may resolve to an imported receiver, self method, self attribute
+            method, parameter method, local variable method, builtin type
+            method, external type method, chained builtin call, context manager
+            variable call, class method or inherited method.
+
+        Unknown call kinds are marked as unresolved.
         """
 
         call_kind = call_model.get("kind")
@@ -300,8 +361,21 @@ class CallResolver:
         imports: list
     ):
         """
-        Resolves calls such as:
+        Resolves function-like calls.
 
+        The call may be classified as:
+
+        - builtin function;
+        - constructor call;
+        - ambiguous constructor call;
+        - internal function call;
+        - ambiguous internal function call;
+        - imported internal class or function;
+        - external imported call;
+        - unresolved call.
+
+        Examples
+        --------
         print(...)
         UserService(...)
         validate_user(...)
@@ -423,13 +497,23 @@ class CallResolver:
         class_model: dict = None
     ):
         """
-        Resolves method calls such as:
+        Resolves method calls.
 
-        json.dumps(...)
-        logging.getLogger(...)
-        self.repository.save(...)
-        self._write_to_disk(...)
-        service.create_user(...)
+        Supported examples include:
+
+        - json.dumps(...)
+        - logging.getLogger(...)
+        - self.repository.save(...)
+        - self._write_to_disk(...)
+        - service.create_user(...)
+        - user.to_dict()
+        - name.strip().title()
+        - file.write(...)
+        - super().to_dict()
+
+        The method applies several resolution strategies in priority order,
+        from more precise receiver-based resolution to more general fallback
+        resolution by method name.
         """
 
         receiver = call_model.get("receiver")

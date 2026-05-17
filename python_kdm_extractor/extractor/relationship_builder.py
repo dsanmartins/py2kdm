@@ -1,21 +1,58 @@
 import hashlib
 
+
 class RelationshipBuilder:
     """
-    Builds global relationships from the intermediate project model.
+    Builds project-level relationships from the intermediate project model.
 
-    The generated relationships are useful for later mapping the model
-    to KDM/EMF because KDM represents not only code elements but also
-    semantic links among them.
+    This component enriches the intermediate JSON model with a global
+    relationship list. These relationships summarize structural and semantic
+    links among extracted elements.
+
+    It creates relationships such as:
+
+    - project contains module;
+    - module contains class or function;
+    - class contains method;
+    - module imports internal or external elements;
+    - class inherits from base class;
+    - class uses or instantiates attribute types;
+    - callable calls functions, methods, constructors, builtins or external APIs;
+    - callable contains hierarchical body elements;
+    - body nodes contain nested body nodes.
+
+    The generated relationship list is not the final KDM model. It is an
+    intermediate semantic representation that can support later model
+    transformations, analysis, debugging and validation.
     """
 
     def __init__(self):
+        """
+        Initializes the relationship builder.
+
+        relationships:
+            List of generated relationship dictionaries.
+
+        relationship_keys:
+            Set used to avoid duplicate relationships.
+        """
+
         self.relationships = []
         self.relationship_keys = set()
 
     def build_relationships(self, project_model: dict):
         """
-        Builds relationships for the full project model.
+        Builds all project-level relationships.
+
+        Parameters
+        ----------
+        project_model:
+            Intermediate project model produced by the extractor.
+
+        Returns
+        -------
+        dict
+            The same project model enriched with a `relationships` list.
         """
 
         self.relationships = []
@@ -33,8 +70,8 @@ class RelationshipBuilder:
                 file_model.get("id"),
                 {
                     "source_kind": "project",
-                    "target_kind": "module"
-                }
+                    "target_kind": "module",
+                },
             )
 
             self._build_module_relationships(file_model)
@@ -48,16 +85,18 @@ class RelationshipBuilder:
         relationship_type: str,
         source: str,
         target: str,
-        metadata: dict = None
+        metadata: dict = None,
     ):
         """
         Creates a relationship with a stable identifier and avoids duplicates.
 
         The identity of a relationship is based on:
-        - relationship type
-        - source
-        - target
-        - relevant metadata such as line and call name
+
+        - relationship type;
+        - source;
+        - target;
+        - relevant metadata such as line, call name, import type,
+          attribute name and base class.
         """
 
         if not source or not target:
@@ -69,7 +108,7 @@ class RelationshipBuilder:
             relationship_type,
             source,
             target,
-            metadata
+            metadata,
         )
 
         if relationship_key in self.relationship_keys:
@@ -81,7 +120,7 @@ class RelationshipBuilder:
             "id": self._build_relationship_id(relationship_key),
             "type": relationship_type,
             "source": source,
-            "target": target
+            "target": target,
         }
 
         relationship.update(metadata)
@@ -93,12 +132,12 @@ class RelationshipBuilder:
         relationship_type: str,
         source: str,
         target: str,
-        metadata: dict
+        metadata: dict,
     ):
         """
         Builds a canonical key for a relationship.
 
-        This key is used both for deduplication and for stable ID generation.
+        This key is used both for deduplication and for stable id generation.
         """
 
         relevant_parts = [
@@ -109,14 +148,14 @@ class RelationshipBuilder:
             str(metadata.get("call_name", "")),
             str(metadata.get("import_type", "")),
             str(metadata.get("attribute_name", "")),
-            str(metadata.get("base", ""))
+            str(metadata.get("base", "")),
         ]
 
         return "|".join(relevant_parts)
 
     def _build_relationship_id(self, relationship_key: str):
         """
-        Builds a stable ID from the relationship key using a short hash.
+        Builds a stable relationship id using a short SHA1 digest.
         """
 
         digest = hashlib.sha1(
@@ -127,7 +166,9 @@ class RelationshipBuilder:
 
     def _build_module_relationships(self, file_model: dict):
         """
-        Builds relationships involving a module.
+        Builds relationships involving a Python module.
+
+        This includes imports, classes and module-level functions.
         """
 
         module_id = file_model.get("id")
@@ -144,8 +185,8 @@ class RelationshipBuilder:
                 function_model.get("id"),
                 {
                     "source_kind": "module",
-                    "target_kind": "function"
-                }
+                    "target_kind": "function",
+                },
             )
 
             self._build_callable_relationships(function_model)
@@ -153,6 +194,9 @@ class RelationshipBuilder:
     def _build_class_relationships(self, module_id: str, class_model: dict):
         """
         Builds relationships for a class.
+
+        This includes module-class containment, inheritance, instance attribute
+        relationships and method containment.
         """
 
         class_id = class_model.get("id")
@@ -163,8 +207,8 @@ class RelationshipBuilder:
             class_id,
             {
                 "source_kind": "module",
-                "target_kind": "class"
-            }
+                "target_kind": "class",
+            },
         )
 
         self._build_inheritance_relationships(class_model)
@@ -178,15 +222,16 @@ class RelationshipBuilder:
                 method_model.get("id"),
                 {
                     "source_kind": "class",
-                    "target_kind": "method"
-                }
+                    "target_kind": "method",
+                },
             )
 
             self._build_callable_relationships(method_model)
 
     def _build_import_relationships(self, file_model: dict, module_id: str):
         """
-        Builds import relationships from a module to imported internal or external elements.
+        Builds import relationships from a module to imported internal or
+        external elements.
         """
 
         for import_model in file_model.get("imports", []):
@@ -209,8 +254,8 @@ class RelationshipBuilder:
                         "target_type": import_model.get("target_type"),
                         "target_qualified_name": import_model.get(
                             "target_qualified_name"
-                        )
-                    }
+                        ),
+                    },
                 )
                 continue
 
@@ -226,8 +271,8 @@ class RelationshipBuilder:
                         "classification": "external",
                         "import_type": "import",
                         "module": target,
-                        "alias": import_model.get("alias")
-                    }
+                        "alias": import_model.get("alias"),
+                    },
                 )
 
             elif import_type == "from_import":
@@ -251,13 +296,13 @@ class RelationshipBuilder:
                         "import_type": "from_import",
                         "module": module,
                         "name": name,
-                        "alias": import_model.get("alias")
-                    }
+                        "alias": import_model.get("alias"),
+                    },
                 )
 
     def _build_inheritance_relationships(self, class_model: dict):
         """
-        Builds inheritance relationships from classes to their bases.
+        Builds inheritance relationships from a class to its base classes.
         """
 
         class_id = class_model.get("id")
@@ -271,19 +316,21 @@ class RelationshipBuilder:
                 class_id,
                 f"class_or_external:{base}",
                 {
-                    "base": base
-                }
+                    "base": base,
+                },
             )
 
     def _build_instance_attribute_relationships(self, class_model: dict):
         """
         Builds relationships derived from instance attributes.
 
-        Example:
+        Example
+        -------
         self.repository = UserRepository()
 
-        Produces:
-        UserService --uses--> UserRepository
+        Produces
+        --------
+        UserService --uses---------> UserRepository
         UserService --instantiates--> UserRepository
         """
 
@@ -307,8 +354,8 @@ class RelationshipBuilder:
                 {
                     "via": attribute.get("full_name"),
                     "line": attribute.get("line"),
-                    "attribute_name": attribute.get("name")
-                }
+                    "attribute_name": attribute.get("name"),
+                },
             )
 
             if assigned_type:
@@ -320,14 +367,14 @@ class RelationshipBuilder:
                         "via": attribute.get("full_name"),
                         "line": attribute.get("line"),
                         "attribute_name": attribute.get("name"),
-                        "assigned_type": assigned_type
-                    }
+                        "assigned_type": assigned_type,
+                    },
                 )
 
     def _build_callable_relationships(self, callable_model: dict):
         """
-        Builds call, instantiation, and body containment relationships
-        from functions or methods.
+        Builds call, instantiation and body containment relationships for a
+        function or method.
         """
 
         source_id = callable_model.get("id")
@@ -341,7 +388,11 @@ class RelationshipBuilder:
                 self._build_constructor_relationship(source_id, call_model)
                 continue
 
-            if classification in {"internal","builtin","builtin_type_method","external_type_method"} and target_id:
+            if (
+                classification
+                in {"internal", "builtin", "builtin_type_method", "external_type_method"}
+                and target_id
+            ):
                 self._new_relationship(
                     "calls",
                     source_id,
@@ -350,8 +401,8 @@ class RelationshipBuilder:
                         "line": call_model.get("line"),
                         "call_name": call_model.get("name"),
                         "classification": classification,
-                        "call_kind": kind
-                    }
+                        "call_kind": kind,
+                    },
                 )
 
             elif classification == "external":
@@ -364,14 +415,14 @@ class RelationshipBuilder:
                         "call_name": call_model.get("name"),
                         "classification": "external",
                         "call_kind": kind,
-                        "import_source": call_model.get("import_source")
-                    }
+                        "import_source": call_model.get("import_source"),
+                    },
                 )
 
             elif classification in {
                 "internal_ambiguous",
                 "constructor_ambiguous",
-                "internal_candidate"
+                "internal_candidate",
             }:
                 self._new_relationship(
                     "calls_unresolved",
@@ -382,8 +433,8 @@ class RelationshipBuilder:
                         "call_name": call_model.get("name"),
                         "classification": classification,
                         "call_kind": kind,
-                        "candidate_targets": call_model.get("candidate_targets", [])
-                    }
+                        "candidate_targets": call_model.get("candidate_targets", []),
+                    },
                 )
 
             else:
@@ -395,26 +446,28 @@ class RelationshipBuilder:
                         "line": call_model.get("line"),
                         "call_name": call_model.get("name"),
                         "classification": classification or "unresolved",
-                        "call_kind": kind
-                    }
+                        "call_kind": kind,
+                    },
                 )
 
         self._build_body_relationships(
             callable_model.get("body", []),
             parent_id=source_id,
-            parent_kind=callable_model.get("type")
+            parent_kind=callable_model.get("type"),
         )
-
 
     def _build_body_relationships(
         self,
         body_nodes: list,
         parent_id: str,
         parent_kind: str,
-        branch: str = "body"
+        branch: str = "body",
     ):
         """
         Builds containment relationships for nested body elements.
+
+        Body containment relationships preserve the hierarchical structure
+        produced by BodyExtractor.
         """
 
         for body_node in body_nodes:
@@ -431,29 +484,29 @@ class RelationshipBuilder:
                     "source_kind": parent_kind,
                     "target_kind": body_node.get("type"),
                     "branch": branch,
-                    "line": body_node.get("line_start")
-                }
+                    "line": body_node.get("line_start"),
+                },
             )
 
             self._build_body_relationships(
                 body_node.get("body", []),
                 parent_id=body_node_id,
                 parent_kind=body_node.get("type"),
-                branch="body"
+                branch="body",
             )
 
             self._build_body_relationships(
                 body_node.get("orelse", []),
                 parent_id=body_node_id,
                 parent_kind=body_node.get("type"),
-                branch="orelse"
+                branch="orelse",
             )
 
             self._build_body_relationships(
                 body_node.get("finalbody", []),
                 parent_id=body_node_id,
                 parent_kind=body_node.get("type"),
-                branch="finalbody"
+                branch="finalbody",
             )
 
             for handler in body_node.get("handlers", []):
@@ -470,28 +523,29 @@ class RelationshipBuilder:
                         "source_kind": body_node.get("type"),
                         "target_kind": "exception_handler",
                         "branch": "handlers",
-                        "line": handler.get("line_start")
-                    }
+                        "line": handler.get("line_start"),
+                    },
                 )
 
                 self._build_body_relationships(
                     handler.get("body", []),
                     parent_id=handler_id,
                     parent_kind="exception_handler",
-                    branch="body"
+                    branch="body",
                 )
-
 
     def _build_constructor_relationship(self, source_id: str, call_model: dict):
         """
         Builds relationships for constructor calls.
 
-        Example:
+        Example
+        -------
         UserRepository()
 
-        Produces:
+        Produces
+        --------
         method --instantiates--> class
-        method --calls--> class
+        method --calls---------> class
         """
 
         target_id = call_model.get("target_id")
@@ -507,7 +561,7 @@ class RelationshipBuilder:
                     "call_name": call_model.get("name"),
                     "class_name": call_model.get("class_name"),
                     "resolved_from_cls": call_model.get("resolved_from_cls", False),
-                }
+                },
             )
 
             self._new_relationship(
@@ -518,8 +572,8 @@ class RelationshipBuilder:
                     "line": call_model.get("line"),
                     "call_name": call_model.get("name"),
                     "classification": classification,
-                    "call_kind": "constructor_call"
-                }
+                    "call_kind": "constructor_call",
+                },
             )
 
         elif classification == "constructor_ambiguous":
@@ -530,8 +584,8 @@ class RelationshipBuilder:
                 {
                     "line": call_model.get("line"),
                     "call_name": call_model.get("name"),
-                    "candidate_targets": call_model.get("candidate_targets", [])
-                }
+                    "candidate_targets": call_model.get("candidate_targets", []),
+                },
             )
 
         else:
@@ -542,6 +596,6 @@ class RelationshipBuilder:
                 {
                     "line": call_model.get("line"),
                     "call_name": call_model.get("name"),
-                    "classification": classification or "unresolved"
-                }
+                    "classification": classification or "unresolved",
+                },
             )
