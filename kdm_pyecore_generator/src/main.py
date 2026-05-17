@@ -1,4 +1,6 @@
 from pathlib import Path
+import argparse
+
 from pyecore.resources import URI
 
 from kdm_loader import KDMLoader
@@ -21,19 +23,48 @@ from exception_relation_resolver import ExceptionRelationResolver
 from kdm_validator import KDMValidator
 
 
-KDM_ECORE_PATH = "metamodels/kdm_1_4.ecore"
-JSON_INPUT_PATH = "input/python_model.json"
-OUTPUT_PATH = "output/example_project.kdm.xmi"
+DEFAULT_KDM_ECORE_PATH = "metamodels/kdm_1_4.ecore"
+DEFAULT_JSON_INPUT_PATH = "input/python_model.json"
+DEFAULT_OUTPUT_PATH = "output/example_project.kdm.xmi"
 
 
-def main():
-    Path("output").mkdir(exist_ok=True)
+def generate_kdm(
+    json_input_path: str = DEFAULT_JSON_INPUT_PATH,
+    output_path: str = DEFAULT_OUTPUT_PATH,
+    kdm_ecore_path: str = DEFAULT_KDM_ECORE_PATH,
+    validate: bool = True,
+):
+    """
+    Generates a KDM model from a JSON intermediate model.
+
+    Parameters
+    ----------
+    json_input_path:
+        Path to the JSON input model.
+
+    output_path:
+        Path where the generated KDM XMI will be saved.
+
+    kdm_ecore_path:
+        Path to the KDM 1.4 Ecore metamodel.
+
+    validate:
+        Whether to run JSON-level and KDM-level validations.
+
+    Returns
+    -------
+    dict
+        Summary information about the generated model.
+    """
+
+    output_path = Path(output_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # ------------------------------------------------------------
     # 1. Load KDM 1.4 metamodel
     # ------------------------------------------------------------
 
-    loader = KDMLoader(KDM_ECORE_PATH)
+    loader = KDMLoader(kdm_ecore_path)
     resource_set, root_package = loader.load()
 
     resolver = ClassifierResolver(root_package)
@@ -43,7 +74,7 @@ def main():
     # 2. Load JSON intermediate model
     # ------------------------------------------------------------
 
-    json_loader = JSONModelLoader(JSON_INPUT_PATH)
+    json_loader = JSONModelLoader(json_input_path)
     data = json_loader.load()
 
     project_name = data.get("projectName", "UnknownProject")
@@ -129,17 +160,10 @@ def main():
         inventory_builder=inventory_builder,
     )
 
-    # This creates ActionElement nodes and fills reference_resolver.action_index.
     reference_resolver.add_call_relations(data)
 
     # ------------------------------------------------------------
     # 8b. Map body control structures and non-call statements
-    #
-    # This step creates:
-    # - ActionElement for ordinary statements/control structures
-    # - TryUnit for try blocks
-    # - CatchUnit for except blocks
-    # - FinallyUnit for finalbody blocks
     # ------------------------------------------------------------
 
     body_action_mapper = BodyActionMapper(
@@ -154,9 +178,6 @@ def main():
 
     # ------------------------------------------------------------
     # 8c. Create Python builtins model
-    #
-    # Builtin exceptions such as ValueError or OSError are created here
-    # when they are needed by the exception resolver.
     # ------------------------------------------------------------
 
     builtin_model = factory.create_code_model("PythonBuiltins")
@@ -164,12 +185,6 @@ def main():
 
     # ------------------------------------------------------------
     # 8d. Resolve exception semantics
-    #
-    # This step creates:
-    # - raise X(...)  -> action::Throws -> StorableUnit X_exception
-    # - X_exception   -> code::HasType  -> ClassUnit X
-    # - TryUnit       -> action::ExceptionFlow -> CatchUnit
-    # - TryUnit       -> action::ExitFlow      -> FinallyUnit
     # ------------------------------------------------------------
 
     exception_relation_resolver = ExceptionRelationResolver(
@@ -215,12 +230,6 @@ def main():
 
     # ------------------------------------------------------------
     # 9c. Resolve return values
-    #
-    # More standard KDM 1.4 modeling:
-    # - return x        -> action::Reads -> StorableUnit x
-    # - return literal  -> action::Reads -> StorableUnit literal
-    #                      and StorableUnit literal -> code::HasValue -> Value
-    # - return f(...)   -> action::Reads -> temporary StorableUnit result
     # ------------------------------------------------------------
 
     return_relation_resolver = ReturnRelationResolver(
@@ -241,54 +250,109 @@ def main():
     reference_resolver.add_import_relations(data)
 
     # ------------------------------------------------------------
-    # 11. Validate JSON-level unresolved calls
+    # 11. Validate generated model
     # ------------------------------------------------------------
 
-    validator = BasicValidator()
-    report = validator.validate_unresolved_calls(data, mapper.id_index)
-    report.print_report()
+    if validate:
+        validator = BasicValidator()
+        report = validator.validate_unresolved_calls(data, mapper.id_index)
+        report.print_report()
+
+        kdm_validator = KDMValidator()
+        kdm_report = kdm_validator.validate(segment)
+        kdm_report.print_report()
+
+        if kdm_report.has_errors():
+            raise RuntimeError("KDM validation failed. See validation report above.")
 
     # ------------------------------------------------------------
-    # 12. Validate generated KDM model
+    # 12. Save XMI
     # ------------------------------------------------------------
 
-    kdm_validator = KDMValidator()
-    kdm_report = kdm_validator.validate(segment)
-    kdm_report.print_report()
-
-    if kdm_report.has_errors():
-        raise RuntimeError("KDM validation failed. See validation report above.")
-
-    # ------------------------------------------------------------
-    # 13. Save XMI
-    # ------------------------------------------------------------
-
-    output_resource = resource_set.create_resource(URI(OUTPUT_PATH))
+    output_resource = resource_set.create_resource(URI(str(output_path)))
     output_resource.append(segment)
     output_resource.save()
 
     # ------------------------------------------------------------
-    # 14. Summary
+    # 13. Summary
     # ------------------------------------------------------------
 
-    print(f"\nKDM model generated at: {OUTPUT_PATH}")
-    print(f"Indexed internal KDM elements: {len(mapper.id_index)}")
-    print(f"Typable elements: {len(mapper.typable_elements)}")
-    print(f"Value elements: {len(mapper.value_elements)}")
+    summary = {
+        "output_path": str(output_path),
+        "indexed_internal_elements": len(mapper.id_index),
+        "typable_elements": len(mapper.typable_elements),
+        "value_elements": len(mapper.value_elements),
+        "statement_body_actions": len(body_action_mapper.statement_action_index),
+        "finally_units": len(body_action_mapper.finally_action_index),
+        "inventory_model_generated": inventory_builder.inventory_model is not None,
+        "source_files": len(inventory_builder.source_files),
+        "external_model_generated": external_builder.external_code_model is not None,
+        "external_libraries": len(external_builder.library_units),
+        "external_targets": len(external_builder.external_targets),
+    }
 
-    print(f"Statement/body actions: {len(body_action_mapper.statement_action_index)}")
-    print(f"Finally units: {len(body_action_mapper.finally_action_index)}")
+    return summary
 
-    if inventory_builder.inventory_model is not None:
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Generate a KDM 1.4 XMI model from a JSON intermediate model."
+    )
+
+    parser.add_argument(
+        "--input",
+        default=DEFAULT_JSON_INPUT_PATH,
+        help=f"Path to the JSON input model. Default: {DEFAULT_JSON_INPUT_PATH}",
+    )
+
+    parser.add_argument(
+        "--output",
+        default=DEFAULT_OUTPUT_PATH,
+        help=f"Path to the generated KDM XMI file. Default: {DEFAULT_OUTPUT_PATH}",
+    )
+
+    parser.add_argument(
+        "--metamodel",
+        default=DEFAULT_KDM_ECORE_PATH,
+        help=f"Path to the KDM 1.4 Ecore metamodel. Default: {DEFAULT_KDM_ECORE_PATH}",
+    )
+
+    parser.add_argument(
+        "--no-validation",
+        action="store_true",
+        help="Disable JSON-level and KDM-level validation.",
+    )
+
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+
+    summary = generate_kdm(
+        json_input_path=args.input,
+        output_path=args.output,
+        kdm_ecore_path=args.metamodel,
+        validate=not args.no_validation,
+    )
+
+    print(f"\nKDM model generated at: {summary['output_path']}")
+    print(f"Indexed internal KDM elements: {summary['indexed_internal_elements']}")
+    print(f"Typable elements: {summary['typable_elements']}")
+    print(f"Value elements: {summary['value_elements']}")
+    print(f"Statement/body actions: {summary['statement_body_actions']}")
+    print(f"Finally units: {summary['finally_units']}")
+
+    if summary["inventory_model_generated"]:
         print("InventoryModel generated.")
-        print(f"Source files: {len(inventory_builder.source_files)}")
+        print(f"Source files: {summary['source_files']}")
     else:
         print("No InventoryModel was generated.")
 
-    if external_builder.external_code_model is not None:
+    if summary["external_model_generated"]:
         print("ExternalLibraries_CodeModel generated.")
-        print(f"External libraries: {len(external_builder.library_units)}")
-        print(f"External targets: {len(external_builder.external_targets)}")
+        print(f"External libraries: {summary['external_libraries']}")
+        print(f"External targets: {summary['external_targets']}")
     else:
         print("No external model was required.")
 
