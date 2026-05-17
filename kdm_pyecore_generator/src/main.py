@@ -15,10 +15,10 @@ from type_relation_resolver import TypeRelationResolver
 from value_resolver import ValueResolver
 from value_relation_resolver import ValueRelationResolver
 from access_relation_resolver import AccessRelationResolver
+from return_relation_resolver import ReturnRelationResolver
 from body_action_mapper import BodyActionMapper
 from exception_relation_resolver import ExceptionRelationResolver
 from kdm_validator import KDMValidator
-
 
 
 KDM_ECORE_PATH = "metamodels/kdm_1_4.ecore"
@@ -134,6 +134,12 @@ def main():
 
     # ------------------------------------------------------------
     # 8b. Map body control structures and non-call statements
+    #
+    # This step creates:
+    # - ActionElement for ordinary statements/control structures
+    # - TryUnit for try blocks
+    # - CatchUnit for except blocks
+    # - FinallyUnit for finalbody blocks
     # ------------------------------------------------------------
 
     body_action_mapper = BodyActionMapper(
@@ -146,8 +152,25 @@ def main():
 
     body_action_mapper.map_body_actions(data)
 
+    # ------------------------------------------------------------
+    # 8c. Create Python builtins model
+    #
+    # Builtin exceptions such as ValueError or OSError are created here
+    # when they are needed by the exception resolver.
+    # ------------------------------------------------------------
+
     builtin_model = factory.create_code_model("PythonBuiltins")
     segment.model.append(builtin_model)
+
+    # ------------------------------------------------------------
+    # 8d. Resolve exception semantics
+    #
+    # This step creates:
+    # - raise X(...)  -> action::Throws -> StorableUnit X_exception
+    # - X_exception   -> code::HasType  -> ClassUnit X
+    # - TryUnit       -> action::ExceptionFlow -> CatchUnit
+    # - TryUnit       -> action::ExitFlow      -> FinallyUnit
+    # ------------------------------------------------------------
 
     exception_relation_resolver = ExceptionRelationResolver(
         factory=factory,
@@ -155,6 +178,7 @@ def main():
         statement_action_index=body_action_mapper.statement_action_index,
         builtin_model=builtin_model,
         external_index=external_builder.external_targets,
+        finally_action_index=body_action_mapper.finally_action_index,
     )
 
     exception_relation_resolver.resolve(data)
@@ -188,6 +212,26 @@ def main():
     )
 
     access_relation_resolver.add_access_relations(data)
+
+    # ------------------------------------------------------------
+    # 9c. Resolve return values
+    #
+    # More standard KDM 1.4 modeling:
+    # - return x        -> action::Reads -> StorableUnit x
+    # - return literal  -> action::Reads -> StorableUnit literal
+    #                      and StorableUnit literal -> code::HasValue -> Value
+    # - return f(...)   -> action::Reads -> temporary StorableUnit result
+    # ------------------------------------------------------------
+
+    return_relation_resolver = ReturnRelationResolver(
+        factory=factory,
+        statement_action_index=body_action_mapper.statement_action_index,
+        action_index=reference_resolver.action_index,
+        storable_index=mapper.storable_index,
+        id_index=mapper.id_index,
+    )
+
+    return_relation_resolver.resolve(data)
 
     # ------------------------------------------------------------
     # 10. Resolve Extends and Imports
@@ -231,6 +275,9 @@ def main():
     print(f"Indexed internal KDM elements: {len(mapper.id_index)}")
     print(f"Typable elements: {len(mapper.typable_elements)}")
     print(f"Value elements: {len(mapper.value_elements)}")
+
+    print(f"Statement/body actions: {len(body_action_mapper.statement_action_index)}")
+    print(f"Finally units: {len(body_action_mapper.finally_action_index)}")
 
     if inventory_builder.inventory_model is not None:
         print("InventoryModel generated.")

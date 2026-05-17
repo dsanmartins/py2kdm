@@ -13,8 +13,14 @@ class BodyActionMapper:
         self.inventory_builder = inventory_builder
         self.language = language
 
-        # Index for statement/control ActionElements
+        # Index for statement/control ActionElements.
+        # It also stores TryUnit and CatchUnit instances created from body nodes.
         self.statement_action_index = {}
+
+        # Index for synthetic FinallyUnit nodes.
+        # Key: try body id
+        # Value: FinallyUnit
+        self.finally_action_index = {}
 
     def map_body_actions(self, data: dict):
         for file_model in data.get("files", []):
@@ -65,7 +71,7 @@ class BodyActionMapper:
 
         # Option B:
         # condition_calls, value_calls, exception_calls and context_calls
-        # are moved under the ActionElement that semantically owns them.
+        # are moved under the ActionElement/TryUnit/CatchUnit that owns them.
         self._map_expression_calls(item, next_parent)
 
         # Nested expression calls:
@@ -106,17 +112,79 @@ class BodyActionMapper:
                 parent_kdm=next_parent,
             )
 
-        for child in item.get("finalbody", []):
+        self._map_finalbody(
+            item=item,
+            callable_model=callable_model,
+            file_model=file_model,
+            parent_kdm=next_parent,
+        )
+
+    # ------------------------------------------------------------
+    # Final body mapping
+    # ------------------------------------------------------------
+
+    def _map_finalbody(
+        self,
+        item: dict,
+        callable_model: dict,
+        file_model: dict,
+        parent_kdm,
+    ):
+        finalbody = item.get("finalbody", [])
+
+        if not finalbody:
+            return
+
+        # Only try nodes should own a finalbody in the current JSON model.
+        if not (
+            item.get("type") == "control_structure"
+            and item.get("control_type") == "try"
+        ):
+            for child in finalbody:
+                self._map_body_item(
+                    item=child,
+                    callable_model=callable_model,
+                    file_model=file_model,
+                    parent_kdm=parent_kdm,
+                )
+            return
+
+        finally_action = self.factory.create_finally_unit("finally")
+
+        synthetic_finally_item = {
+            "id": f"{item.get('id')}:finally",
+            "type": "finally_block",
+            "statement_type": None,
+            "control_type": "finally",
+            "line_start": item.get("line_start"),
+            "line_end": item.get("line_end"),
+        }
+
+        self._add_or_update_action(
+            action=finally_action,
+            item=synthetic_finally_item,
+            file_model=file_model,
+            parent_kdm=parent_kdm,
+        )
+
+        if item.get("id"):
+            self.finally_action_index[item.get("id")] = finally_action
+
+        for child in finalbody:
             self._map_body_item(
                 item=child,
                 callable_model=callable_model,
                 file_model=file_model,
-                parent_kdm=next_parent,
+                parent_kdm=finally_action,
             )
+
+    # ------------------------------------------------------------
+    # Expression call mapping
+    # ------------------------------------------------------------
 
     def _map_expression_calls(self, item: dict, owner_action):
         """
-        Moves expression-level calls to the ActionElement that owns them.
+        Moves expression-level calls to the action element that owns them.
 
         Examples:
         - condition_calls -> if / while
@@ -190,6 +258,10 @@ class BodyActionMapper:
 
         if action not in parent_kdm.codeElement:
             parent_kdm.codeElement.append(action)
+
+    # ------------------------------------------------------------
+    # Action creation / reuse
+    # ------------------------------------------------------------
 
     def _get_or_create_action_for_body_item(
         self,
@@ -296,22 +368,26 @@ class BodyActionMapper:
         node_type = item.get("type")
         control_type = item.get("control_type")
 
+        if node_type == "control_structure" and control_type == "try":
+            return self.factory.create_try_unit("try")
+
+        if node_type == "exception_handler":
+            return self.factory.create_catch_unit("except")
+
+        if node_type == "finally_block":
+            return self.factory.create_finally_unit("finally")
+
         if node_type == "control_structure":
             name = control_type or "control_structure"
             kind = control_type or "control_structure"
+            return self.factory.create_action_element(name=name, kind=kind)
 
-        elif node_type == "exception_handler":
-            name = "except"
-            kind = "exception_handler"
-
-        elif statement_type:
+        if statement_type:
             name = statement_type
             kind = statement_type
+            return self.factory.create_action_element(name=name, kind=kind)
 
-        else:
-            return None
-
-        return self.factory.create_action_element(name=name, kind=kind)
+        return None
 
     def _add_or_update_action(
         self,
@@ -330,6 +406,10 @@ class BodyActionMapper:
         if item_id:
             self.statement_action_index[item_id] = action
 
+    # ------------------------------------------------------------
+    # Source and metadata
+    # ------------------------------------------------------------
+
     def _add_source_region(self, action, statement: dict, file_model: dict):
         if self.factory.has_feature(action, "source") and len(action.source) > 0:
             return
@@ -346,22 +426,28 @@ class BodyActionMapper:
         )
 
     def _add_statement_metadata(self, action, item: dict):
+        """
+        Adds only traceability metadata from the JSON body node.
+
+        Semantic information such as return values, exception flows,
+        reads/writes, calls, and types is represented using KDM elements
+        and relations, not temporary attributes.
+        """
+
         metadata = {
             "body_id": item.get("id"),
-            "body_type": item.get("type"),
-            "statement_type": item.get("statement_type"),
-            "control_type": item.get("control_type"),
-            "condition": item.get("condition"),
-            "target": item.get("target"),
-            "iter": item.get("iter"),
-            "exception": item.get("exception"),
-            "value": item.get("value"),
         }
 
-        targets = item.get("targets")
+        # Keep body_type only when it is not already obvious from the KDM metaclass.
+        item_type = item.get("type")
 
-        if targets:
-            metadata["targets"] = ",".join(targets)
+        if item_type not in {
+            "control_structure",
+            "exception_handler",
+            "finally_block",
+            "statement",
+        }:
+            metadata["body_type"] = item_type
 
         self.factory.add_attributes_from_dict(action, metadata)
 
@@ -372,6 +458,10 @@ class BodyActionMapper:
         return self.inventory_builder.get_source_file_by_path(
             file_model.get("path")
         )
+
+    # ------------------------------------------------------------
+    # Same-line nested call mapping
+    # ------------------------------------------------------------
 
     def _attach_same_line_orphan_calls(
         self,

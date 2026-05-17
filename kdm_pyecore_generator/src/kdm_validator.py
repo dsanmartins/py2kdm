@@ -32,6 +32,54 @@ class KDMValidationReport:
 
 
 class KDMValidator:
+    """
+    Validator for the generated KDM model.
+
+    This validator checks:
+    - structural consistency of source/inventory elements;
+    - KDM relation targets;
+    - absence of obsolete temporary attributes;
+    - semantic consistency for calls, creates, reads, writes, returns,
+      raises, try/catch/finally flows;
+    - generator-specific consistency rules:
+      duplicate attributes, duplicate source regions and duplicate child actions.
+    """
+
+    OBSOLETE_ERROR_ATTRIBUTES = {
+        # Removed in Step 4A / 4B
+        "resolved",
+        "target_id",
+        "statement_type",
+        "body_type",
+        "control_type",
+        "condition",
+        "target",
+        "iter",
+        "exception",
+        "value",
+        "targets",
+
+        # Old temporary/debug metadata
+        "line",
+        "line_start",
+        "line_end",
+        "path",
+        "language",
+        "assigned_value",
+        "assigned_type",
+        "resolved_type_qualified_name",
+        "annotation",
+        "function",
+        "method",
+        "class_name",
+        "base_name",
+        "source_class",
+
+        # Generic ActionRelationship kind="catches"/"returns" should not appear.
+        # KDM-specific relations should be used instead.
+        "kind",
+    }
+
     def __init__(self):
         self.report = KDMValidationReport()
 
@@ -41,14 +89,27 @@ class KDMValidator:
         all_elements = list(self._walk(segment))
 
         self._collect_stats(all_elements)
+
         self._validate_inventory(segment)
         self._validate_source_regions(all_elements)
+
+        # Generator-specific consistency checks
+        self._validate_no_duplicate_attributes(all_elements)
+        self._validate_no_duplicate_source_refs(all_elements)
+        self._validate_no_duplicate_child_actions(all_elements)
+
+        # KDM semantic checks
         self._validate_has_type(all_elements)
         self._validate_has_value(all_elements)
         self._validate_calls_and_creates(all_elements)
         self._validate_reads_writes(all_elements)
-        self._validate_no_obsolete_attributes(all_elements)
+        self._validate_throws(all_elements)
+        self._validate_returns(all_elements)
+        self._validate_try_catch_finally_flows(all_elements)
         self._validate_imports_and_extends(all_elements)
+
+        # Step 4 cleanup rule
+        self._validate_no_obsolete_attributes(all_elements)
 
         return self.report
 
@@ -67,14 +128,12 @@ class KDMValidator:
         if root is None:
             return
 
-        # Ignore primitive values or non-Ecore objects
         if not hasattr(root, "eClass"):
             return
 
         yield root
 
         for feature in root.eClass.eAllStructuralFeatures():
-            # Only traverse containment references
             if not getattr(feature, "containment", False):
                 continue
 
@@ -83,8 +142,6 @@ class KDMValidator:
             if value is None:
                 continue
 
-            # PyEcore containment-many references behave like collections,
-            # but they are not always plain Python lists.
             if hasattr(value, "__iter__") and not isinstance(value, (str, bytes)):
                 for child in value:
                     if hasattr(child, "eClass"):
@@ -102,6 +159,9 @@ class KDMValidator:
         ]
 
     def _is_instance_of(self, element, class_name: str):
+        if element is None or not hasattr(element, "eClass"):
+            return False
+
         eclass = element.eClass
 
         if eclass.name == class_name:
@@ -116,6 +176,39 @@ class KDMValidator:
     def _get_name(self, element):
         if self._has_feature(element, "name"):
             return getattr(element, "name", None)
+        return None
+
+    def _has_attribute(self, element, tag: str, value: str) -> bool:
+        if not self._has_feature(element, "attribute"):
+            return False
+
+        for attribute in element.attribute:
+            if getattr(attribute, "tag", None) != tag:
+                continue
+
+            if getattr(attribute, "value", None) == str(value):
+                return True
+
+        return False
+
+    def _has_attribute_tag(self, element, tag: str) -> bool:
+        if not self._has_feature(element, "attribute"):
+            return False
+
+        for attribute in element.attribute:
+            if getattr(attribute, "tag", None) == tag:
+                return True
+
+        return False
+
+    def _get_attribute_value(self, element, tag: str):
+        if not self._has_feature(element, "attribute"):
+            return None
+
+        for attribute in element.attribute:
+            if getattr(attribute, "tag", None) == tag:
+                return getattr(attribute, "value", None)
+
         return None
 
     # ------------------------------------------------------------
@@ -141,6 +234,9 @@ class KDMValidator:
             "ParameterUnit",
             "StorableUnit",
             "ActionElement",
+            "TryUnit",
+            "CatchUnit",
+            "FinallyUnit",
             "SourceRef",
             "SourceRegion",
             "Imports",
@@ -149,6 +245,9 @@ class KDMValidator:
             "Creates",
             "Reads",
             "Writes",
+            "Throws",
+            "ExceptionFlow",
+            "ExitFlow",
             "HasType",
             "HasValue",
             "Value",
@@ -213,14 +312,104 @@ class KDMValidator:
                     "SourceRegion has neither file reference nor path."
                 )
 
-            start_line = getattr(region, "startLine", None) if self._has_feature(region, "startLine") else None
-            end_line = getattr(region, "endLine", None) if self._has_feature(region, "endLine") else None
+            start_line = (
+                getattr(region, "startLine", None)
+                if self._has_feature(region, "startLine")
+                else None
+            )
+            end_line = (
+                getattr(region, "endLine", None)
+                if self._has_feature(region, "endLine")
+                else None
+            )
 
             if start_line is not None and end_line is not None:
                 if int(start_line) > int(end_line):
                     self.report.add_error(
                         f"SourceRegion has startLine > endLine: {start_line} > {end_line}."
                     )
+
+    # ------------------------------------------------------------
+    # Step 5 generator-specific consistency validations
+    # ------------------------------------------------------------
+
+    def _validate_no_duplicate_attributes(self, all_elements):
+        for element in all_elements:
+            if not self._has_feature(element, "attribute"):
+                continue
+
+            seen = set()
+
+            for attribute in element.attribute:
+                key = (
+                    getattr(attribute, "tag", None),
+                    getattr(attribute, "value", None),
+                )
+
+                if key in seen:
+                    self.report.add_error(
+                        f"Duplicate Attribute on {element.eClass.name} "
+                        f"'{self._get_name(element)}': tag='{key[0]}', value='{key[1]}'."
+                    )
+
+                seen.add(key)
+
+    def _validate_no_duplicate_source_refs(self, all_elements):
+        for element in all_elements:
+            if not self._has_feature(element, "source"):
+                continue
+
+            seen = set()
+
+            for source_ref in element.source:
+                if not self._has_feature(source_ref, "region"):
+                    continue
+
+                for region in source_ref.region:
+                    key = (
+                        getattr(region, "path", None),
+                        getattr(region, "startLine", None),
+                        getattr(region, "endLine", None),
+                        getattr(region, "startPosition", None),
+                        getattr(region, "endPosition", None),
+                    )
+
+                    if key in seen:
+                        self.report.add_error(
+                            f"Duplicate SourceRegion on {element.eClass.name} "
+                            f"'{self._get_name(element)}': {key}."
+                        )
+
+                    seen.add(key)
+
+    def _validate_no_duplicate_child_actions(self, all_elements):
+        for element in all_elements:
+            if not self._has_feature(element, "codeElement"):
+                continue
+
+            seen = set()
+
+            for child in element.codeElement:
+                if not self._is_instance_of(child, "ActionElement"):
+                    continue
+
+                key = (
+                    child.eClass.name,
+                    self._get_name(child),
+                    getattr(child, "kind", None)
+                    if self._has_feature(child, "kind")
+                    else None,
+                    self._get_attribute_value(child, "original_id"),
+                    self._get_attribute_value(child, "body_id"),
+                )
+
+                if key in seen:
+                    self.report.add_error(
+                        f"Duplicate child action under {element.eClass.name} "
+                        f"'{self._get_name(element)}': {key}."
+                    )
+
+                seen.add(key)
 
     # ------------------------------------------------------------
     # Type relations
@@ -285,16 +474,14 @@ class KDMValidator:
             if element.eClass.name != "ActionElement":
                 continue
 
-            kind = getattr(element, "kind", None) if self._has_feature(element, "kind") else None
+            kind = (
+                getattr(element, "kind", None)
+                if self._has_feature(element, "kind")
+                else None
+            )
 
             if kind == "constructor_call":
-                has_creates = False
-
-                if self._has_feature(element, "actionRelation"):
-                    for relation in element.actionRelation:
-                        if relation.eClass.name == "Creates":
-                            has_creates = True
-                            break
+                has_creates = self._has_action_relation(element, "Creates")
 
                 if not has_creates:
                     self.report.add_warning(
@@ -322,6 +509,139 @@ class KDMValidator:
                 )
 
     # ------------------------------------------------------------
+    # Throws / raise
+    # ------------------------------------------------------------
+
+    def _validate_throws(self, all_elements):
+        for element in all_elements:
+            if element.eClass.name == "Throws":
+                target = getattr(element, "to", None)
+
+                if target is None:
+                    self.report.add_error("Throws relation without target.")
+                    continue
+
+                if not self._is_instance_of(target, "StorableUnit"):
+                    self.report.add_error(
+                        f"Throws target must be StorableUnit, got {target.eClass.name}."
+                    )
+
+        for element in all_elements:
+            if element.eClass.name != "ActionElement":
+                continue
+
+            kind = (
+                getattr(element, "kind", None)
+                if self._has_feature(element, "kind")
+                else None
+            )
+
+            if kind != "raise":
+                continue
+
+            has_throws = self._has_action_relation(element, "Throws")
+            has_rethrow = self._has_attribute(element, "exception_flow", "rethrow")
+
+            if not has_throws and not has_rethrow:
+                self.report.add_error(
+                    "Raise ActionElement must have Throws or exception_flow='rethrow'."
+                )
+
+    # ------------------------------------------------------------
+    # Return
+    # ------------------------------------------------------------
+
+    def _validate_returns(self, all_elements):
+        for element in all_elements:
+            if element.eClass.name != "ActionElement":
+                continue
+
+            kind = (
+                getattr(element, "kind", None)
+                if self._has_feature(element, "kind")
+                else None
+            )
+
+            if kind != "return":
+                continue
+
+            has_reads = self._has_action_relation(element, "Reads")
+            has_void = self._has_attribute(element, "return_flow", "void")
+            has_unresolved = self._has_attribute_tag(
+                element,
+                "unresolved_return_value",
+            )
+
+            if not has_reads and not has_void and not has_unresolved:
+                self.report.add_error(
+                    "Return ActionElement must have Reads, "
+                    "return_flow='void', or unresolved_return_value."
+                )
+
+    # ------------------------------------------------------------
+    # Try / Catch / Finally
+    # ------------------------------------------------------------
+
+    def _validate_try_catch_finally_flows(self, all_elements):
+        for element in all_elements:
+            if element.eClass.name != "TryUnit":
+                continue
+
+            catch_units = []
+            finally_units = []
+
+            if self._has_feature(element, "codeElement"):
+                for child in element.codeElement:
+                    if child.eClass.name == "CatchUnit":
+                        catch_units.append(child)
+
+                    if child.eClass.name == "FinallyUnit":
+                        finally_units.append(child)
+
+            exception_flow_targets = self._get_action_relation_targets(
+                element,
+                "ExceptionFlow",
+            )
+
+            exit_flow_targets = self._get_action_relation_targets(
+                element,
+                "ExitFlow",
+            )
+
+            for catch_unit in catch_units:
+                if catch_unit not in exception_flow_targets:
+                    self.report.add_error(
+                        "CatchUnit contained in TryUnit must be targeted by ExceptionFlow."
+                    )
+
+            for finally_unit in finally_units:
+                if finally_unit not in exit_flow_targets:
+                    self.report.add_error(
+                        "FinallyUnit contained in TryUnit must be targeted by ExitFlow."
+                    )
+
+        for element in all_elements:
+            if element.eClass.name == "ExceptionFlow":
+                target = getattr(element, "to", None)
+
+                if target is None:
+                    self.report.add_error("ExceptionFlow relation without target.")
+                elif target.eClass.name != "CatchUnit":
+                    self.report.add_error(
+                        f"ExceptionFlow target must be CatchUnit, got {target.eClass.name}."
+                    )
+
+            if element.eClass.name == "ExitFlow":
+                target = getattr(element, "to", None)
+
+                if target is None:
+                    self.report.add_error("ExitFlow relation without target.")
+                elif target.eClass.name != "FinallyUnit":
+                    self.report.add_error(
+                        f"ExitFlow target must be FinallyUnit, got {target.eClass.name}."
+                    )
+
+    # ------------------------------------------------------------
     # Imports / Extends
     # ------------------------------------------------------------
 
@@ -340,31 +660,45 @@ class KDMValidator:
     # ------------------------------------------------------------
 
     def _validate_no_obsolete_attributes(self, all_elements):
-        obsolete_tags = {
-            "line",
-            "line_start",
-            "line_end",
-            "path",
-            "language",
-            "assigned_value",
-            "assigned_type",
-            "resolved_type_qualified_name",
-            "annotation",
-            "kind",
-            "function",
-            "method",
-            "class_name",
-            "base_name",
-            "source_class",
-        }
-
         for element in all_elements:
             if element.eClass.name != "Attribute":
                 continue
 
             tag = getattr(element, "tag", None)
+            value = getattr(element, "value", None)
 
-            if tag in obsolete_tags:
-                self.report.add_warning(
-                    f"Obsolete Attribute found: tag='{tag}', value='{getattr(element, 'value', None)}'."
+            if tag in self.OBSOLETE_ERROR_ATTRIBUTES:
+                self.report.add_error(
+                    f"Obsolete Attribute found: tag='{tag}', value='{value}'."
                 )
+
+    # ------------------------------------------------------------
+    # Generic relation helpers
+    # ------------------------------------------------------------
+
+    def _has_action_relation(self, element, relation_type: str) -> bool:
+        if not self._has_feature(element, "actionRelation"):
+            return False
+
+        for relation in element.actionRelation:
+            if relation.eClass.name == relation_type:
+                return True
+
+        return False
+
+    def _get_action_relation_targets(self, element, relation_type: str):
+        targets = set()
+
+        if not self._has_feature(element, "actionRelation"):
+            return targets
+
+        for relation in element.actionRelation:
+            if relation.eClass.name != relation_type:
+                continue
+
+            target = getattr(relation, "to", None)
+
+            if target is not None:
+                targets.add(target)
+
+        return targets

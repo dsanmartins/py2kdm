@@ -56,7 +56,7 @@ class ReferenceResolver:
                 file_item=source_file,
             )
 
-            self._add_call_metadata(action, call)
+            self._add_call_traceability_metadata(action, call)
 
             source.codeElement.append(action)
 
@@ -69,6 +69,8 @@ class ReferenceResolver:
                 else:
                     calls_relation = self.factory.create_calls_relation(target)
                     action.actionRelation.append(calls_relation)
+            else:
+                self._add_unresolved_call_metadata(action, call)
 
     def _is_constructor_call(self, call: dict):
         return (
@@ -76,16 +78,39 @@ class ReferenceResolver:
             or call.get("kind") == "constructor_call"
         )
 
-    def _add_call_metadata(self, action, call: dict):
+    def _add_call_traceability_metadata(self, action, call: dict):
+        """
+        Adds only technical traceability attributes.
+
+        Semantic resolution is represented by action::Calls or action::Creates,
+        not by temporary attributes such as resolved or target_id.
+        """
+
         metadata = {
             "original_id": call.get("id"),
             "classification": call.get("classification"),
-            "resolved": call.get("resolved"),
-            "target_id": call.get("target_id"),
             "occurrence_index": call.get("occurrence_index"),
         }
 
         self.factory.add_attributes_from_dict(action, metadata)
+
+    def _add_unresolved_call_metadata(self, action, call: dict):
+        """
+        Adds explicit unresolved metadata only when the call target could not
+        be represented as a KDM relation.
+        """
+
+        self.factory.add_attribute(
+            action,
+            "resolution_status",
+            "unresolved",
+        )
+
+        self.factory.add_attribute(
+            action,
+            "unresolved_target_name",
+            call.get("name"),
+        )
 
     def _resolve_call_target(self, call: dict):
         target_id = call.get("target_id")
@@ -172,7 +197,7 @@ class ReferenceResolver:
 
         if len(candidates) > 1:
             # For now, pick the first candidate.
-            # Later we can improve this using imports.
+            # Later this can be improved using imports.
             return candidates[0]
 
         # 3. Builtin/external base classes
@@ -216,15 +241,20 @@ class ReferenceResolver:
                 file_item=source_file,
             )
 
-            self._add_import_metadata(imports_relation, import_model)
+            self._add_import_traceability_metadata(imports_relation, import_model)
 
             source_unit.codeRelation.append(imports_relation)
 
-    def _add_import_metadata(self, relation, import_model: dict):
+    def _add_import_traceability_metadata(self, relation, import_model: dict):
+        """
+        Adds only technical traceability for imports.
+
+        Semantic resolution is represented by code::Imports.
+        Therefore, target_id and resolved are not serialized.
+        """
+
         metadata = {
             "classification": import_model.get("classification"),
-            "resolved": import_model.get("resolved"),
-            "target_id": import_model.get("target_id"),
         }
 
         self.factory.add_attributes_from_dict(relation, metadata)
@@ -249,11 +279,9 @@ class ReferenceResolver:
 
         return None
 
-    def _is_constructor_call(self, call: dict):
-        return (
-            call.get("classification") == "constructor"
-            or call.get("kind") == "constructor_call"
-        )
+    # ------------------------------------------------------------
+    # Indexing helpers
+    # ------------------------------------------------------------
 
     def _get_source_file(self, file_model: dict):
         if self.inventory_builder is None:

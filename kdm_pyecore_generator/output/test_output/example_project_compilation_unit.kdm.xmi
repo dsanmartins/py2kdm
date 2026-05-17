@@ -1,6 +1,0 @@
-<?xml version='1.0' encoding='UTF-8'?>
-<kdm:Segment xmlns:xmi="http://www.omg.org/XMI" xmlns:kdm="http://www.omg.org/spec/KDM/20160201/kdm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:code="http://www.omg.org/spec/KDM/20160201/code" name="example_project" xmi:version="2.0">
-  <model xsi:type="code:CodeModel" name="example_project_CodeModel">
-    <codeElement xsi:type="code:CompilationUnit" name="app.py"/>
-  </model>
-</kdm:Segment>

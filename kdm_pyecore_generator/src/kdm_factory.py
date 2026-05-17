@@ -22,37 +22,37 @@ class KDMFactory:
         self.Reads = resolver.find("Reads")
         self.Writes = resolver.find("Writes")
         self.Throws = resolver.find("Throws")
-        self.ExceptionFlow = resolver.find("ExceptionFlow")
-        self.ExitFlow = resolver.find("ExitFlow")
+
+        # Exception-related action elements and flows
         self.TryUnit = resolver.find("TryUnit")
         self.CatchUnit = resolver.find("CatchUnit")
         self.FinallyUnit = resolver.find("FinallyUnit")
-
+        self.ExceptionFlow = resolver.find("ExceptionFlow")
+        self.ExitFlow = resolver.find("ExitFlow")
 
         # Code relationships
         self.Extends = resolver.find("Extends")
         self.Imports = resolver.find("Imports")
-
-        # KDM annotations
-        self.Attribute = resolver.find("Attribute")
-
-        # Source package
-        self.SourceRef = resolver.find("SourceRef")
-        self.SourceRegion = resolver.find("SourceRegion")
-
         self.HasType = resolver.find("HasType")
-        self.Value = resolver.find("Value")
         self.HasValue = resolver.find("HasValue")
 
+        # Code value and datatypes
+        self.Value = resolver.find("Value")
         self.BooleanType = resolver.find("BooleanType")
         self.IntegerType = resolver.find("IntegerType")
         self.StringType = resolver.find("StringType")
         self.FloatType = resolver.find("FloatType")
         self.VoidType = resolver.find("VoidType")
         self.Datatype = resolver.find("Datatype")
+
+        # KDM annotations
+        self.Attribute = resolver.find("Attribute")
+
+        # Source package
         self.InventoryModel = resolver.find("InventoryModel")
         self.SourceFile = resolver.find("SourceFile")
-
+        self.SourceRef = resolver.find("SourceRef")
+        self.SourceRegion = resolver.find("SourceRegion")
 
     # ------------------------------------------------------------
     # Generic helpers
@@ -112,7 +112,7 @@ class KDMFactory:
         return unit
 
     # ------------------------------------------------------------
-    # Action elements and relations
+    # Action elements
     # ------------------------------------------------------------
 
     def create_action_element(self, name: str, kind: str = None):
@@ -123,6 +123,25 @@ class KDMFactory:
             action.kind = kind
 
         return action
+
+    def create_try_unit(self, name: str = "try"):
+        unit = self.TryUnit()
+        unit.name = name
+        return unit
+
+    def create_catch_unit(self, name: str = "except"):
+        unit = self.CatchUnit()
+        unit.name = name
+        return unit
+
+    def create_finally_unit(self, name: str = "finally"):
+        unit = self.FinallyUnit()
+        unit.name = name
+        return unit
+
+    # ------------------------------------------------------------
+    # Action relations
+    # ------------------------------------------------------------
 
     def create_action_relationship(self, target, kind: str):
         relation = self.ActionRelationship()
@@ -157,6 +176,51 @@ class KDMFactory:
         relation.to = target
         return relation
 
+    def create_reads_relation(self, target):
+        relation = self.Reads()
+
+        if not self.has_feature(relation, "to"):
+            raise ValueError("Reads relation does not have feature 'to'.")
+
+        relation.to = target
+        return relation
+
+    def create_writes_relation(self, target):
+        relation = self.Writes()
+
+        if not self.has_feature(relation, "to"):
+            raise ValueError("Writes relation does not have feature 'to'.")
+
+        relation.to = target
+        return relation
+
+    def create_throws_relation(self, target):
+        relation = self.Throws()
+
+        if not self.has_feature(relation, "to"):
+            raise ValueError("Throws relation does not have feature 'to'.")
+
+        relation.to = target
+        return relation
+
+    def create_exception_flow_relation(self, target):
+        relation = self.ExceptionFlow()
+
+        if not self.has_feature(relation, "to"):
+            raise ValueError("ExceptionFlow relation does not have feature 'to'.")
+
+        relation.to = target
+        return relation
+
+    def create_exit_flow_relation(self, target):
+        relation = self.ExitFlow()
+
+        if not self.has_feature(relation, "to"):
+            raise ValueError("ExitFlow relation does not have feature 'to'.")
+
+        relation.to = target
+        return relation
+
     # ------------------------------------------------------------
     # Code relations
     # ------------------------------------------------------------
@@ -175,6 +239,24 @@ class KDMFactory:
 
         if not self.has_feature(relation, "to"):
             raise ValueError("Imports relation does not have feature 'to'.")
+
+        relation.to = target
+        return relation
+
+    def create_has_type_relation(self, target):
+        relation = self.HasType()
+
+        if not self.has_feature(relation, "to"):
+            raise ValueError("HasType relation does not have feature 'to'.")
+
+        relation.to = target
+        return relation
+
+    def create_has_value_relation(self, target):
+        relation = self.HasValue()
+
+        if not self.has_feature(relation, "to"):
+            raise ValueError("HasValue relation does not have feature 'to'.")
 
         relation.to = target
         return relation
@@ -310,56 +392,59 @@ class KDMFactory:
         source_ref.region.append(region)
         element.source.append(source_ref)
 
-    def create_has_type_relation(self, target):
-        relation = self.HasType()
-
-        if not self.has_feature(relation, "to"):
-            raise ValueError("HasType relation does not have feature 'to'.")
-
-        relation.to = target
-        return relation
-
+    # ------------------------------------------------------------
+    # Datatypes and values
+    # ------------------------------------------------------------
 
     def create_boolean_type(self, name: str = "bool"):
         datatype = self.BooleanType()
         datatype.name = name
         return datatype
 
-
     def create_integer_type(self, name: str = "int"):
         datatype = self.IntegerType()
         datatype.name = name
         return datatype
-
 
     def create_string_type(self, name: str = "str"):
         datatype = self.StringType()
         datatype.name = name
         return datatype
 
-
     def create_float_type(self, name: str = "float"):
         datatype = self.FloatType()
         datatype.name = name
         return datatype
-
 
     def create_void_type(self, name: str = "None"):
         datatype = self.VoidType()
         datatype.name = name
         return datatype
 
-
     def create_generic_datatype(self, name: str):
         datatype = self.Datatype()
         datatype.name = name
         return datatype
 
+    def create_value(self, name: str = None, value=None):
+        value_element = self.Value()
+
+        if name is not None and self.has_feature(value_element, "name"):
+            value_element.name = str(name)
+
+        if value is not None and self.has_feature(value_element, "value"):
+            value_element.value = str(value)
+
+        return value_element
+
+    # ------------------------------------------------------------
+    # Inventory model
+    # ------------------------------------------------------------
+
     def create_inventory_model(self, name: str):
         model = self.InventoryModel()
         model.name = name
         return model
-
 
     def create_source_file(
         self,
@@ -383,54 +468,3 @@ class KDMFactory:
             source_file.encoding = encoding
 
         return source_file
-
-    def create_value(self, name: str = None, value=None):
-        value_element = self.Value()
-
-        if name is not None and self.has_feature(value_element, "name"):
-            value_element.name = str(name)
-
-        if value is not None and self.has_feature(value_element, "value"):
-            value_element.value = str(value)
-
-        return value_element
-
-
-    def create_has_value_relation(self, target):
-        relation = self.HasValue()
-
-        if not self.has_feature(relation, "to"):
-            raise ValueError("HasValue relation does not have feature 'to'.")
-
-        relation.to = target
-        return relation
-
-    def create_reads_relation(self, target):
-        relation = self.Reads()
-
-        if not self.has_feature(relation, "to"):
-            raise ValueError("Reads relation does not have feature 'to'.")
-
-        relation.to = target
-        return relation
-
-
-    def create_writes_relation(self, target):
-        relation = self.Writes()
-
-        if not self.has_feature(relation, "to"):
-            raise ValueError("Writes relation does not have feature 'to'.")
-
-        relation.to = target
-        return relation
-
-
-    def create_throws_relation(self, target):
-        relation = self.Throws()
-
-        if not self.has_feature(relation, "to"):
-            raise ValueError("Throws relation does not have feature 'to'.")
-
-        relation.to = target
-
-        return relation

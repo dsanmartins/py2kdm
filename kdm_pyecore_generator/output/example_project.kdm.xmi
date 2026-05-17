@@ -57,14 +57,8 @@
           </source>
           <attribute tag="original_id" value="call:5f6134b7f614"/>
           <attribute tag="classification" value="constructor"/>
-          <attribute tag="resolved" value="True"/>
-          <attribute tag="target_id" value="class:example_project.services.user_service.UserService"/>
           <attribute tag="occurrence_index" value="0"/>
           <attribute tag="body_id" value="body:fc30e9a16f28"/>
-          <attribute tag="body_type" value="statement"/>
-          <attribute tag="statement_type" value="assignment"/>
-          <attribute tag="value" value="UserService"/>
-          <attribute tag="targets" value="service"/>
           <actionRelation xsi:type="action:Creates" to="//@model.1/@codeElement.1/@codeElement.1"/>
           <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.0"/>
         </codeElement>
@@ -74,14 +68,8 @@
           </source>
           <attribute tag="original_id" value="call:168e4cd102ea"/>
           <attribute tag="classification" value="internal"/>
-          <attribute tag="resolved" value="True"/>
-          <attribute tag="target_id" value="method:example_project.services.user_service.UserService.create_user"/>
           <attribute tag="occurrence_index" value="0"/>
           <attribute tag="body_id" value="body:51e9d79fc92d"/>
-          <attribute tag="body_type" value="statement"/>
-          <attribute tag="statement_type" value="assignment"/>
-          <attribute tag="value" value="service.create_user"/>
-          <attribute tag="targets" value="user"/>
           <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.5"/>
           <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.2"/>
           <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.0"/>
@@ -92,12 +80,8 @@
           </source>
           <attribute tag="original_id" value="call:5532047c1c10"/>
           <attribute tag="classification" value="internal"/>
-          <attribute tag="resolved" value="True"/>
-          <attribute tag="target_id" value="method:example_project.services.user_service.UserService.process_users"/>
           <attribute tag="occurrence_index" value="0"/>
           <attribute tag="body_id" value="body:02827cfb969a"/>
-          <attribute tag="body_type" value="statement"/>
-          <attribute tag="statement_type" value="call"/>
           <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.6"/>
           <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.0"/>
         </codeElement>
@@ -107,12 +91,8 @@
           </source>
           <attribute tag="original_id" value="call:512061ca9b5c"/>
           <attribute tag="classification" value="internal"/>
-          <attribute tag="resolved" value="True"/>
-          <attribute tag="target_id" value="method:example_project.services.user_service.UserService.retry_save"/>
           <attribute tag="occurrence_index" value="0"/>
           <attribute tag="body_id" value="body:1b0f37756d40"/>
-          <attribute tag="body_type" value="statement"/>
-          <attribute tag="statement_type" value="call"/>
           <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.7"/>
           <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.0"/>
         </codeElement>
@@ -122,14 +102,8 @@
           </source>
           <attribute tag="original_id" value="call:84c589f53b30"/>
           <attribute tag="classification" value="internal"/>
-          <attribute tag="resolved" value="True"/>
-          <attribute tag="target_id" value="method:example_project.services.user_service.UserService.export_user"/>
           <attribute tag="occurrence_index" value="0"/>
           <attribute tag="body_id" value="body:6fe7b1c300c4"/>
-          <attribute tag="body_type" value="statement"/>
-          <attribute tag="statement_type" value="assignment"/>
-          <attribute tag="value" value="service.export_user"/>
-          <attribute tag="targets" value="exported"/>
           <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.8"/>
           <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.3"/>
           <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.0"/>
@@ -140,12 +114,8 @@
           </source>
           <attribute tag="original_id" value="call:6b8862b1672a"/>
           <attribute tag="classification" value="builtin"/>
-          <attribute tag="resolved" value="True"/>
-          <attribute tag="target_id" value="builtin:print"/>
           <attribute tag="occurrence_index" value="0"/>
           <attribute tag="body_id" value="body:37e3437f68b6"/>
-          <attribute tag="body_type" value="statement"/>
-          <attribute tag="statement_type" value="call"/>
           <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.0"/>
         </codeElement>
         <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
@@ -153,16 +123,11 @@
             <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="7" endLine="10"/>
           </source>
           <attribute tag="body_id" value="body:f1fb14436395"/>
-          <attribute tag="body_type" value="statement"/>
-          <attribute tag="statement_type" value="assignment"/>
-          <attribute tag="targets" value="user_data"/>
           <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1"/>
         </codeElement>
       </codeElement>
       <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.1/@codeElement.1">
         <attribute tag="classification" value="internal"/>
-        <attribute tag="resolved" value="True"/>
-        <attribute tag="target_id" value="class:example_project.services.user_service.UserService"/>
       </codeRelation>
     </codeElement>
     <codeElement xsi:type="code:CompilationUnit" name="services/user_service.py">
@@ -206,12 +171,8 @@
             </source>
             <attribute tag="original_id" value="call:680768ae41b5"/>
             <attribute tag="classification" value="builtin"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="builtin:print"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="body_id" value="body:7cfe3057bf89"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="call"/>
             <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.0"/>
           </codeElement>
         </codeElement>
@@ -271,14 +232,8 @@
             </source>
             <attribute tag="original_id" value="call:3a7ee81eac44"/>
             <attribute tag="classification" value="constructor"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="class:example_project.repository.user_repository.UserRepository"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="body_id" value="body:ad18a74ff050"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="UserRepository"/>
-            <attribute tag="targets" value="self.repository"/>
             <actionRelation xsi:type="action:Creates" to="//@model.1/@codeElement.3/@codeElement.1"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.1"/>
           </codeElement>
@@ -288,13 +243,8 @@
             </source>
             <attribute tag="original_id" value="call:bf512e211586"/>
             <attribute tag="classification" value="external"/>
-            <attribute tag="resolved" value="False"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="body_id" value="body:bb65520e34c2"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="logging.getLogger"/>
-            <attribute tag="targets" value="self.logger"/>
             <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.0/@codeElement.1"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.2"/>
           </codeElement>
@@ -303,10 +253,6 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="26" endLine="26"/>
             </source>
             <attribute tag="body_id" value="body:90380aa99d8e"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="3"/>
-            <attribute tag="targets" value="self.max_attempts"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.3"/>
           </codeElement>
         </codeElement>
@@ -346,12 +292,8 @@
             </source>
             <attribute tag="original_id" value="call:2b9f4d9f9482"/>
             <attribute tag="classification" value="internal"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="function:example_project.utils.validators.validate_positive_id"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="body_id" value="body:818c5ff76630"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="call"/>
             <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.2/@codeElement.3"/>
           </codeElement>
           <codeElement xsi:type="action:ActionElement" name="normalize_name" kind="function_call">
@@ -360,14 +302,8 @@
             </source>
             <attribute tag="original_id" value="call:76f7a6fb5c2f"/>
             <attribute tag="classification" value="internal"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="function:example_project.utils.validators.normalize_name"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="body_id" value="body:6fea2bea893a"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="normalize_name"/>
-            <attribute tag="targets" value="normalized_name"/>
             <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.2/@codeElement.2"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.2"/>
           </codeElement>
@@ -377,14 +313,8 @@
             </source>
             <attribute tag="original_id" value="call:bc00e92de19d"/>
             <attribute tag="classification" value="constructor"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="class:example_project.models.user.User"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="body_id" value="body:5d8aa3f93b7d"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="User"/>
-            <attribute tag="targets" value="user"/>
             <actionRelation xsi:type="action:Creates" to="//@model.1/@codeElement.4/@codeElement.1"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
           </codeElement>
@@ -394,12 +324,8 @@
             </source>
             <attribute tag="original_id" value="call:064bd1d1979b"/>
             <attribute tag="classification" value="internal"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="method:example_project.repository.user_repository.UserRepository.save"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="body_id" value="body:dc54f5ffcc4b"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="call"/>
             <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.4"/>
             <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.1"/>
           </codeElement>
@@ -409,12 +335,8 @@
             </source>
             <attribute tag="original_id" value="call:1861d557465e"/>
             <attribute tag="classification" value="internal"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="method:example_project.services.user_service.BaseService.log_action"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="body_id" value="body:561a6920271e"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="call"/>
             <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.1/@codeElement.0/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="action:ActionElement" name="print" kind="function_call">
@@ -423,12 +345,8 @@
             </source>
             <attribute tag="original_id" value="call:1caebb161fe3"/>
             <attribute tag="classification" value="builtin"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="builtin:print"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="body_id" value="body:d5c4f8030626"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="call"/>
             <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.0"/>
           </codeElement>
           <codeElement xsi:type="action:ActionElement" name="if" kind="if">
@@ -436,17 +354,12 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="29" endLine="30"/>
             </source>
             <attribute tag="body_id" value="body:505822b26beb"/>
-            <attribute tag="body_type" value="control_structure"/>
-            <attribute tag="control_type" value="if"/>
-            <attribute tag="condition" value="not is_valid_user_data"/>
             <codeElement xsi:type="action:ActionElement" name="is_valid_user_data" kind="function_call">
               <source language="python">
                 <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="29" endLine="29"/>
               </source>
               <attribute tag="original_id" value="call:7833841bc6a8"/>
               <attribute tag="classification" value="internal"/>
-              <attribute tag="resolved" value="True"/>
-              <attribute tag="target_id" value="function:example_project.utils.validators.is_valid_user_data"/>
               <attribute tag="occurrence_index" value="0"/>
               <attribute tag="expression_role" value="condition_call"/>
               <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.2/@codeElement.1"/>
@@ -456,17 +369,12 @@
                 <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="30" endLine="30"/>
               </source>
               <attribute tag="body_id" value="body:082b8330ad59"/>
-              <attribute tag="body_type" value="statement"/>
-              <attribute tag="statement_type" value="raise"/>
-              <attribute tag="exception" value="ValueError"/>
               <codeElement xsi:type="action:ActionElement" name="ValueError" kind="function_call">
                 <source language="python">
                   <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="30" endLine="30"/>
                 </source>
                 <attribute tag="original_id" value="call:7d94cb65950f"/>
                 <attribute tag="classification" value="builtin"/>
-                <attribute tag="resolved" value="True"/>
-                <attribute tag="target_id" value="builtin:ValueError"/>
                 <attribute tag="occurrence_index" value="0"/>
                 <attribute tag="expression_role" value="exception_call"/>
                 <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.1"/>
@@ -484,9 +392,7 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="46" endLine="46"/>
             </source>
             <attribute tag="body_id" value="body:2f12124468f8"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="return"/>
-            <attribute tag="value" value="user"/>
+            <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
           </codeElement>
         </codeElement>
         <codeElement xsi:type="code:MethodUnit" name="process_users">
@@ -513,14 +419,8 @@
             </source>
             <attribute tag="original_id" value="call:1a55957da163"/>
             <attribute tag="classification" value="internal"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="method:example_project.repository.user_repository.UserRepository.find_active_users"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="body_id" value="body:d3af879cbbbe"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="self.repository.find_active_users"/>
-            <attribute tag="targets" value="active_users"/>
             <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.6"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.6/@codeElement.1"/>
             <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.1"/>
@@ -531,47 +431,29 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="51" endLine="59"/>
             </source>
             <attribute tag="body_id" value="body:aded2f78e84b"/>
-            <attribute tag="body_type" value="control_structure"/>
-            <attribute tag="control_type" value="for"/>
-            <attribute tag="target" value="user"/>
-            <attribute tag="iter" value="active_users"/>
             <codeElement xsi:type="action:ActionElement" name="if" kind="if">
               <source language="python">
                 <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="52" endLine="59"/>
               </source>
               <attribute tag="body_id" value="body:95fe3a3007a4"/>
-              <attribute tag="body_type" value="control_structure"/>
-              <attribute tag="control_type" value="if"/>
-              <attribute tag="condition" value="user.active"/>
               <codeElement xsi:type="action:ActionElement" name="for" kind="for">
                 <source language="python">
                   <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="53" endLine="57"/>
                 </source>
                 <attribute tag="body_id" value="body:6902d1c9b8c3"/>
-                <attribute tag="body_type" value="control_structure"/>
-                <attribute tag="control_type" value="for"/>
-                <attribute tag="target" value="role"/>
-                <attribute tag="iter" value="user.roles"/>
                 <codeElement xsi:type="action:ActionElement" name="if" kind="if">
                   <source language="python">
                     <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="54" endLine="57"/>
                   </source>
                   <attribute tag="body_id" value="body:4f89d13e452f"/>
-                  <attribute tag="body_type" value="control_structure"/>
-                  <attribute tag="control_type" value="if"/>
-                  <attribute tag="condition" value="role == 'admin'"/>
                   <codeElement xsi:type="action:ActionElement" name="self.logger.info" kind="method_call">
                     <source language="python">
                       <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="55" endLine="55"/>
                     </source>
                     <attribute tag="original_id" value="call:c3c9b3037717"/>
                     <attribute tag="classification" value="external_type_method"/>
-                    <attribute tag="resolved" value="True"/>
-                    <attribute tag="target_id" value="external_type:logging.Logger.info"/>
                     <attribute tag="occurrence_index" value="0"/>
                     <attribute tag="body_id" value="body:4a9aa59c6b6f"/>
-                    <attribute tag="body_type" value="statement"/>
-                    <attribute tag="statement_type" value="call"/>
                     <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.4/@codeElement.0"/>
                     <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.2"/>
                   </codeElement>
@@ -581,12 +463,8 @@
                     </source>
                     <attribute tag="original_id" value="call:a54f47e9e900"/>
                     <attribute tag="classification" value="builtin"/>
-                    <attribute tag="resolved" value="True"/>
-                    <attribute tag="target_id" value="builtin:print"/>
                     <attribute tag="occurrence_index" value="0"/>
                     <attribute tag="body_id" value="body:608a88d948f8"/>
-                    <attribute tag="body_type" value="statement"/>
-                    <attribute tag="statement_type" value="call"/>
                     <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.0"/>
                   </codeElement>
                 </codeElement>
@@ -596,8 +474,6 @@
                   <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="59" endLine="59"/>
                 </source>
                 <attribute tag="body_id" value="body:57c8f9ce1fc2"/>
-                <attribute tag="body_type" value="statement"/>
-                <attribute tag="statement_type" value="continue"/>
               </codeElement>
             </codeElement>
           </codeElement>
@@ -606,9 +482,7 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="61" endLine="61"/>
             </source>
             <attribute tag="body_id" value="body:ec4eed8c013f"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="return"/>
-            <attribute tag="value" value="active_users"/>
+            <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.6/@codeElement.1"/>
           </codeElement>
         </codeElement>
         <codeElement xsi:type="code:MethodUnit" name="retry_save">
@@ -644,10 +518,6 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="64" endLine="64"/>
             </source>
             <attribute tag="body_id" value="body:fe113f9a15c9"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="0"/>
-            <attribute tag="targets" value="attempts"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.3"/>
           </codeElement>
           <codeElement xsi:type="action:ActionElement" name="while" kind="while">
@@ -655,28 +525,19 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="66" endLine="74"/>
             </source>
             <attribute tag="body_id" value="body:a1a3692bcbfc"/>
-            <attribute tag="body_type" value="control_structure"/>
-            <attribute tag="control_type" value="while"/>
-            <attribute tag="condition" value="attempts &lt; self.max_attempts"/>
-            <codeElement xsi:type="action:ActionElement" name="try" kind="try">
+            <codeElement xsi:type="action:TryUnit" name="try">
               <source language="python">
                 <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="67" endLine="74"/>
               </source>
               <attribute tag="body_id" value="body:b8119aa3e66b"/>
-              <attribute tag="body_type" value="control_structure"/>
-              <attribute tag="control_type" value="try"/>
               <codeElement xsi:type="action:ActionElement" name="self.repository.save" kind="method_call">
                 <source language="python">
                   <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="68" endLine="68"/>
                 </source>
                 <attribute tag="original_id" value="call:08765c3fec3f"/>
                 <attribute tag="classification" value="internal"/>
-                <attribute tag="resolved" value="True"/>
-                <attribute tag="target_id" value="method:example_project.repository.user_repository.UserRepository.save"/>
                 <attribute tag="occurrence_index" value="0"/>
                 <attribute tag="body_id" value="body:fd7957fab240"/>
-                <attribute tag="body_type" value="statement"/>
-                <attribute tag="statement_type" value="call"/>
                 <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.4"/>
                 <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.1"/>
               </codeElement>
@@ -685,28 +546,22 @@
                   <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="69" endLine="69"/>
                 </source>
                 <attribute tag="body_id" value="body:416ae346214a"/>
-                <attribute tag="body_type" value="statement"/>
-                <attribute tag="statement_type" value="break"/>
               </codeElement>
-              <codeElement xsi:type="action:ActionElement" name="except" kind="exception_handler">
+              <codeElement xsi:type="action:CatchUnit" name="except">
                 <source language="python">
                   <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="70" endLine="72"/>
                 </source>
                 <attribute tag="body_id" value="body:c2fc9530dc5f"/>
-                <attribute tag="body_type" value="exception_handler"/>
-                <attribute tag="exception" value="RepositoryError"/>
+                <attribute tag="exception_type_name" value="RepositoryError"/>
+                <attribute tag="exception_target_name" value="RepositoryError"/>
                 <codeElement xsi:type="action:ActionElement" name="self.logger.warning" kind="method_call">
                   <source language="python">
                     <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="71" endLine="71"/>
                   </source>
                   <attribute tag="original_id" value="call:c671d1cdc105"/>
                   <attribute tag="classification" value="external_type_method"/>
-                  <attribute tag="resolved" value="True"/>
-                  <attribute tag="target_id" value="external_type:logging.Logger.warning"/>
                   <attribute tag="occurrence_index" value="0"/>
                   <attribute tag="body_id" value="body:05fa2e71d6b4"/>
-                  <attribute tag="body_type" value="statement"/>
-                  <attribute tag="statement_type" value="call"/>
                   <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.4/@codeElement.1"/>
                   <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.2"/>
                   <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.2"/>
@@ -716,8 +571,6 @@
                     </source>
                     <attribute tag="original_id" value="call:9b4d9fdb1409"/>
                     <attribute tag="classification" value="builtin"/>
-                    <attribute tag="resolved" value="True"/>
-                    <attribute tag="target_id" value="builtin:str"/>
                     <attribute tag="occurrence_index" value="0"/>
                     <attribute tag="expression_role" value="nested_expression_call"/>
                     <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.2"/>
@@ -728,30 +581,33 @@
                     <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="72" endLine="72"/>
                   </source>
                   <attribute tag="body_id" value="body:bdd1095c3a7b"/>
-                  <attribute tag="body_type" value="statement"/>
-                  <attribute tag="statement_type" value="assignment"/>
-                  <attribute tag="targets" value="attempts"/>
                   <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.3"/>
                   <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.3"/>
                 </codeElement>
-                <actionRelation xsi:type="action:ActionRelationship" to="//@model.1/@codeElement.3/@codeElement.0">
-                  <attribute tag="kind" value="catches"/>
-                </actionRelation>
+                <codeElement xsi:type="code:ParameterUnit" name="exception_RepositoryError">
+                  <attribute tag="role" value="caught_exception"/>
+                  <attribute tag="exception_type_name" value="RepositoryError"/>
+                  <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.3/@codeElement.0"/>
+                </codeElement>
               </codeElement>
-              <codeElement xsi:type="action:ActionElement" name="print" kind="function_call">
+              <codeElement xsi:type="action:FinallyUnit" name="finally">
                 <source language="python">
-                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="74" endLine="74"/>
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="67" endLine="74"/>
                 </source>
-                <attribute tag="original_id" value="call:cbf56c1a72b6"/>
-                <attribute tag="classification" value="builtin"/>
-                <attribute tag="resolved" value="True"/>
-                <attribute tag="target_id" value="builtin:print"/>
-                <attribute tag="occurrence_index" value="0"/>
-                <attribute tag="body_id" value="body:7a968d0f641d"/>
-                <attribute tag="body_type" value="statement"/>
-                <attribute tag="statement_type" value="call"/>
-                <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.0"/>
+                <attribute tag="body_id" value="body:b8119aa3e66b:finally"/>
+                <codeElement xsi:type="action:ActionElement" name="print" kind="function_call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="74" endLine="74"/>
+                  </source>
+                  <attribute tag="original_id" value="call:cbf56c1a72b6"/>
+                  <attribute tag="classification" value="builtin"/>
+                  <attribute tag="occurrence_index" value="0"/>
+                  <attribute tag="body_id" value="body:7a968d0f641d"/>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.0"/>
+                </codeElement>
               </codeElement>
+              <actionRelation xsi:type="action:ExceptionFlow" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.5/@codeElement.0/@codeElement.2"/>
+              <actionRelation xsi:type="action:ExitFlow" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.5/@codeElement.0/@codeElement.3"/>
             </codeElement>
           </codeElement>
           <codeElement xsi:type="action:ActionElement" name="return" kind="return">
@@ -759,9 +615,7 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="76" endLine="76"/>
             </source>
             <attribute tag="body_id" value="body:db7f2d9e0e0c"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="return"/>
-            <attribute tag="value" value="attempts"/>
+            <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.3"/>
           </codeElement>
         </codeElement>
         <codeElement xsi:type="code:MethodUnit" name="export_user">
@@ -792,14 +646,8 @@
             </source>
             <attribute tag="original_id" value="call:eb9eb54da9d2"/>
             <attribute tag="classification" value="internal"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="method:example_project.models.user.User.to_dict"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="body_id" value="body:add6b800eb85"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="user.to_dict"/>
-            <attribute tag="targets" value="user_dict"/>
             <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.11"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.8/@codeElement.2"/>
             <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
@@ -809,20 +657,21 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="80" endLine="80"/>
             </source>
             <attribute tag="body_id" value="body:8829e55a3806"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="return"/>
-            <attribute tag="value" value="json.dumps"/>
             <codeElement xsi:type="action:ActionElement" name="json.dumps" kind="method_call">
               <source language="python">
                 <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="80" endLine="80"/>
               </source>
               <attribute tag="original_id" value="call:147c36e7daf1"/>
               <attribute tag="classification" value="external"/>
-              <attribute tag="resolved" value="False"/>
               <attribute tag="occurrence_index" value="0"/>
               <attribute tag="expression_role" value="value_call"/>
               <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.5/@codeElement.0"/>
             </codeElement>
+            <codeElement xsi:type="code:StorableUnit" name="return_value_of_json_dumps">
+              <attribute tag="role" value="returned_call_result"/>
+              <attribute tag="source_call_name" value="json.dumps"/>
+            </codeElement>
+            <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.8/@codeElement.4/@codeElement.1"/>
           </codeElement>
         </codeElement>
         <codeElement xsi:type="code:MethodUnit" name="build_guest_user">
@@ -837,21 +686,21 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="84" endLine="84"/>
             </source>
             <attribute tag="body_id" value="body:ea1f111a5390"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="return"/>
-            <attribute tag="value" value="User"/>
             <codeElement xsi:type="action:ActionElement" name="User" kind="constructor_call">
               <source language="python">
                 <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="84" endLine="84"/>
               </source>
               <attribute tag="original_id" value="call:8bda42aeeb2c"/>
               <attribute tag="classification" value="constructor"/>
-              <attribute tag="resolved" value="True"/>
-              <attribute tag="target_id" value="class:example_project.models.user.User"/>
               <attribute tag="occurrence_index" value="0"/>
               <attribute tag="expression_role" value="value_call"/>
               <actionRelation xsi:type="action:Creates" to="//@model.1/@codeElement.4/@codeElement.1"/>
             </codeElement>
+            <codeElement xsi:type="code:StorableUnit" name="return_value_of_User">
+              <attribute tag="role" value="returned_call_result"/>
+              <attribute tag="source_call_name" value="User"/>
+            </codeElement>
+            <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.9/@codeElement.0/@codeElement.1"/>
           </codeElement>
         </codeElement>
         <codeElement xsi:type="code:MethodUnit" name="from_repository">
@@ -888,14 +737,8 @@
             </source>
             <attribute tag="original_id" value="call:7584c1d4ad9b"/>
             <attribute tag="classification" value="constructor"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="class:example_project.services.user_service.UserService"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="body_id" value="body:8e7f25e66a27"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="cls"/>
-            <attribute tag="targets" value="service"/>
             <actionRelation xsi:type="action:Creates" to="//@model.1/@codeElement.1/@codeElement.1"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.10/@codeElement.2"/>
           </codeElement>
@@ -904,10 +747,6 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="89" endLine="89"/>
             </source>
             <attribute tag="body_id" value="body:11c7c81e4879"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="repository"/>
-            <attribute tag="targets" value="service.repository"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.10/@codeElement.3"/>
             <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.1"/>
           </codeElement>
@@ -916,50 +755,34 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="90" endLine="90"/>
             </source>
             <attribute tag="body_id" value="body:87f5b5d86959"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="return"/>
-            <attribute tag="value" value="service"/>
+            <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.10/@codeElement.2"/>
           </codeElement>
         </codeElement>
         <codeRelation xsi:type="code:Extends" to="//@model.1/@codeElement.1/@codeElement.0"/>
       </codeElement>
       <codeRelation xsi:type="code:Imports" to="//@model.2/@codeElement.0">
         <attribute tag="classification" value="external"/>
-        <attribute tag="resolved" value="False"/>
       </codeRelation>
       <codeRelation xsi:type="code:Imports" to="//@model.2/@codeElement.5">
         <attribute tag="classification" value="external"/>
-        <attribute tag="resolved" value="False"/>
       </codeRelation>
       <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.4/@codeElement.1">
         <attribute tag="classification" value="internal"/>
-        <attribute tag="resolved" value="True"/>
-        <attribute tag="target_id" value="class:example_project.models.user.User"/>
       </codeRelation>
       <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.3/@codeElement.1">
         <attribute tag="classification" value="internal"/>
-        <attribute tag="resolved" value="True"/>
-        <attribute tag="target_id" value="class:example_project.repository.user_repository.UserRepository"/>
       </codeRelation>
       <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.3/@codeElement.0">
         <attribute tag="classification" value="internal"/>
-        <attribute tag="resolved" value="True"/>
-        <attribute tag="target_id" value="class:example_project.repository.user_repository.RepositoryError"/>
       </codeRelation>
       <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.2/@codeElement.1">
         <attribute tag="classification" value="internal"/>
-        <attribute tag="resolved" value="True"/>
-        <attribute tag="target_id" value="function:example_project.utils.validators.is_valid_user_data"/>
       </codeRelation>
       <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.2/@codeElement.2">
         <attribute tag="classification" value="internal"/>
-        <attribute tag="resolved" value="True"/>
-        <attribute tag="target_id" value="function:example_project.utils.validators.normalize_name"/>
       </codeRelation>
       <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.2/@codeElement.3">
         <attribute tag="classification" value="internal"/>
-        <attribute tag="resolved" value="True"/>
-        <attribute tag="target_id" value="function:example_project.utils.validators.validate_positive_id"/>
       </codeRelation>
     </codeElement>
     <codeElement xsi:type="code:CompilationUnit" name="utils/validators.py">
@@ -985,17 +808,21 @@
             <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="2" endLine="3"/>
           </source>
           <attribute tag="body_id" value="body:82728e8e4bb9"/>
-          <attribute tag="body_type" value="control_structure"/>
-          <attribute tag="control_type" value="if"/>
-          <attribute tag="condition" value="name is None"/>
           <codeElement xsi:type="action:ActionElement" name="return" kind="return">
             <source language="python">
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="3" endLine="3"/>
             </source>
             <attribute tag="body_id" value="body:aa0f3e0fc1e6"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="return"/>
-            <attribute tag="value" value="False"/>
+            <codeElement xsi:type="code:StorableUnit" name="return_literal_False">
+              <attribute tag="role" value="returned_literal"/>
+              <attribute tag="literal_value" value="False"/>
+              <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.2/@codeElement.0/@codeElement.1/@codeElement.0/@codeElement.1"/>
+            </codeElement>
+            <codeElement xsi:type="code:Value" name="value_False">
+              <attribute tag="role" value="literal_value"/>
+              <attribute tag="literal_value" value="False"/>
+            </codeElement>
+            <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.2/@codeElement.0/@codeElement.1/@codeElement.0/@codeElement.0"/>
           </codeElement>
         </codeElement>
         <codeElement xsi:type="action:ActionElement" name="if" kind="if">
@@ -1003,17 +830,12 @@
             <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="5" endLine="6"/>
           </source>
           <attribute tag="body_id" value="body:a43176454102"/>
-          <attribute tag="body_type" value="control_structure"/>
-          <attribute tag="control_type" value="if"/>
-          <attribute tag="condition" value="len == 0"/>
           <codeElement xsi:type="action:ActionElement" name="len" kind="function_call">
             <source language="python">
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="5" endLine="5"/>
             </source>
             <attribute tag="original_id" value="call:335aae5f4b37"/>
             <attribute tag="classification" value="builtin"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="builtin:len"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="expression_role" value="condition_call"/>
             <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.3"/>
@@ -1024,8 +846,6 @@
             </source>
             <attribute tag="original_id" value="call:b2e84168bd52"/>
             <attribute tag="classification" value="builtin_type_method"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="builtin_type:str.strip"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="expression_role" value="condition_call"/>
             <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.4"/>
@@ -1035,9 +855,16 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="6" endLine="6"/>
             </source>
             <attribute tag="body_id" value="body:64dbd4917e28"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="return"/>
-            <attribute tag="value" value="False"/>
+            <codeElement xsi:type="code:StorableUnit" name="return_literal_False">
+              <attribute tag="role" value="returned_literal"/>
+              <attribute tag="literal_value" value="False"/>
+              <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.2/@codeElement.0/@codeElement.2/@codeElement.2/@codeElement.1"/>
+            </codeElement>
+            <codeElement xsi:type="code:Value" name="value_False">
+              <attribute tag="role" value="literal_value"/>
+              <attribute tag="literal_value" value="False"/>
+            </codeElement>
+            <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.2/@codeElement.0/@codeElement.2/@codeElement.2/@codeElement.0"/>
           </codeElement>
         </codeElement>
         <codeElement xsi:type="action:ActionElement" name="return" kind="return">
@@ -1045,9 +872,16 @@
             <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="8" endLine="8"/>
           </source>
           <attribute tag="body_id" value="body:4ed98f482b3b"/>
-          <attribute tag="body_type" value="statement"/>
-          <attribute tag="statement_type" value="return"/>
-          <attribute tag="value" value="True"/>
+          <codeElement xsi:type="code:StorableUnit" name="return_literal_True">
+            <attribute tag="role" value="returned_literal"/>
+            <attribute tag="literal_value" value="True"/>
+            <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.2/@codeElement.0/@codeElement.3/@codeElement.1"/>
+          </codeElement>
+          <codeElement xsi:type="code:Value" name="value_True">
+            <attribute tag="role" value="literal_value"/>
+            <attribute tag="literal_value" value="True"/>
+          </codeElement>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.2/@codeElement.0/@codeElement.3/@codeElement.0"/>
         </codeElement>
       </codeElement>
       <codeElement xsi:type="code:CallableUnit" name="is_valid_user_data">
@@ -1073,9 +907,6 @@
             <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="12" endLine="12"/>
           </source>
           <attribute tag="body_id" value="body:ff3ab89d233c"/>
-          <attribute tag="body_type" value="statement"/>
-          <attribute tag="statement_type" value="assignment"/>
-          <attribute tag="targets" value="required_fields"/>
           <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.2/@codeElement.1/@codeElement.1"/>
         </codeElement>
         <codeElement xsi:type="action:ActionElement" name="for" kind="for">
@@ -1083,26 +914,26 @@
             <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="14" endLine="16"/>
           </source>
           <attribute tag="body_id" value="body:7b0db63f1ff0"/>
-          <attribute tag="body_type" value="control_structure"/>
-          <attribute tag="control_type" value="for"/>
-          <attribute tag="target" value="field"/>
-          <attribute tag="iter" value="required_fields"/>
           <codeElement xsi:type="action:ActionElement" name="if" kind="if">
             <source language="python">
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="15" endLine="16"/>
             </source>
             <attribute tag="body_id" value="body:69de27a58dfb"/>
-            <attribute tag="body_type" value="control_structure"/>
-            <attribute tag="control_type" value="if"/>
-            <attribute tag="condition" value="field not in user_data"/>
             <codeElement xsi:type="action:ActionElement" name="return" kind="return">
               <source language="python">
                 <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="16" endLine="16"/>
               </source>
               <attribute tag="body_id" value="body:1d2160bedfee"/>
-              <attribute tag="body_type" value="statement"/>
-              <attribute tag="statement_type" value="return"/>
-              <attribute tag="value" value="False"/>
+              <codeElement xsi:type="code:StorableUnit" name="return_literal_False">
+                <attribute tag="role" value="returned_literal"/>
+                <attribute tag="literal_value" value="False"/>
+                <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.2/@codeElement.1/@codeElement.3/@codeElement.0/@codeElement.0/@codeElement.1"/>
+              </codeElement>
+              <codeElement xsi:type="code:Value" name="value_False">
+                <attribute tag="role" value="literal_value"/>
+                <attribute tag="literal_value" value="False"/>
+              </codeElement>
+              <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.2/@codeElement.1/@codeElement.3/@codeElement.0/@codeElement.0/@codeElement.0"/>
             </codeElement>
           </codeElement>
         </codeElement>
@@ -1111,17 +942,12 @@
             <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="18" endLine="18"/>
           </source>
           <attribute tag="body_id" value="body:33271aa0ef18"/>
-          <attribute tag="body_type" value="statement"/>
-          <attribute tag="statement_type" value="return"/>
-          <attribute tag="value" value="is_valid_name"/>
           <codeElement xsi:type="action:ActionElement" name="is_valid_name" kind="function_call">
             <source language="python">
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="18" endLine="18"/>
             </source>
             <attribute tag="original_id" value="call:1a086d5e874d"/>
             <attribute tag="classification" value="internal"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="function:example_project.utils.validators.is_valid_name"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="expression_role" value="value_call"/>
             <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.2/@codeElement.0"/>
@@ -1132,13 +958,16 @@
             </source>
             <attribute tag="original_id" value="call:343403dd3bd2"/>
             <attribute tag="classification" value="builtin_type_method"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="builtin_type:dict.get"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="expression_role" value="value_call"/>
             <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.5"/>
             <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1"/>
           </codeElement>
+          <codeElement xsi:type="code:StorableUnit" name="return_value_of_is_valid_name">
+            <attribute tag="role" value="returned_call_result"/>
+            <attribute tag="source_call_name" value="is_valid_name"/>
+          </codeElement>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.2/@codeElement.1/@codeElement.4/@codeElement.2"/>
         </codeElement>
       </codeElement>
       <codeElement xsi:type="code:CallableUnit" name="normalize_name">
@@ -1157,17 +986,12 @@
             <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="22" endLine="22"/>
           </source>
           <attribute tag="body_id" value="body:0a151892952c"/>
-          <attribute tag="body_type" value="statement"/>
-          <attribute tag="statement_type" value="return"/>
-          <attribute tag="value" value="name.strip.title"/>
           <codeElement xsi:type="action:ActionElement" name="name.strip.title" kind="method_call">
             <source language="python">
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="22" endLine="22"/>
             </source>
             <attribute tag="original_id" value="call:3cc229043a44"/>
             <attribute tag="classification" value="builtin_type_method"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="builtin_type:str.title"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="expression_role" value="value_call"/>
             <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.6"/>
@@ -1178,13 +1002,16 @@
             </source>
             <attribute tag="original_id" value="call:fa6a19c6e7b6"/>
             <attribute tag="classification" value="builtin_type_method"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="builtin_type:str.strip"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="expression_role" value="value_call"/>
             <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.4"/>
             <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.2"/>
           </codeElement>
+          <codeElement xsi:type="code:StorableUnit" name="return_value_of_name_strip_title">
+            <attribute tag="role" value="returned_call_result"/>
+            <attribute tag="source_call_name" value="name.strip.title"/>
+          </codeElement>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.2/@codeElement.2/@codeElement.1/@codeElement.2"/>
         </codeElement>
       </codeElement>
       <codeElement xsi:type="code:CallableUnit" name="validate_positive_id">
@@ -1203,25 +1030,17 @@
             <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="26" endLine="27"/>
           </source>
           <attribute tag="body_id" value="body:9be7701860d2"/>
-          <attribute tag="body_type" value="control_structure"/>
-          <attribute tag="control_type" value="if"/>
-          <attribute tag="condition" value="user_id &lt;= 0"/>
           <codeElement xsi:type="action:ActionElement" name="raise" kind="raise">
             <source language="python">
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="27" endLine="27"/>
             </source>
             <attribute tag="body_id" value="body:b00f2ea0b42c"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="raise"/>
-            <attribute tag="exception" value="ValueError"/>
             <codeElement xsi:type="action:ActionElement" name="ValueError" kind="function_call">
               <source language="python">
                 <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="27" endLine="27"/>
               </source>
               <attribute tag="original_id" value="call:f507b5ec4cdb"/>
               <attribute tag="classification" value="builtin"/>
-              <attribute tag="resolved" value="True"/>
-              <attribute tag="target_id" value="builtin:ValueError"/>
               <attribute tag="occurrence_index" value="0"/>
               <attribute tag="expression_role" value="exception_call"/>
               <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.1"/>
@@ -1239,9 +1058,16 @@
             <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="29" endLine="29"/>
           </source>
           <attribute tag="body_id" value="body:caca69ceffe7"/>
-          <attribute tag="body_type" value="statement"/>
-          <attribute tag="statement_type" value="return"/>
-          <attribute tag="value" value="True"/>
+          <codeElement xsi:type="code:StorableUnit" name="return_literal_True">
+            <attribute tag="role" value="returned_literal"/>
+            <attribute tag="literal_value" value="True"/>
+            <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.2/@codeElement.3/@codeElement.2/@codeElement.1"/>
+          </codeElement>
+          <codeElement xsi:type="code:Value" name="value_True">
+            <attribute tag="role" value="literal_value"/>
+            <attribute tag="literal_value" value="True"/>
+          </codeElement>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.2/@codeElement.3/@codeElement.2/@codeElement.0"/>
         </codeElement>
       </codeElement>
     </codeElement>
@@ -1307,13 +1133,8 @@
             </source>
             <attribute tag="original_id" value="call:6324ac9a7b03"/>
             <attribute tag="classification" value="external"/>
-            <attribute tag="resolved" value="False"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="body_id" value="body:ceca439a154d"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="Path"/>
-            <attribute tag="targets" value="self.path"/>
             <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.1/@codeElement.0"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.2"/>
           </codeElement>
@@ -1322,9 +1143,6 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="15" endLine="15"/>
             </source>
             <attribute tag="body_id" value="body:020a5f47b852"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="targets" value="self.users"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.1"/>
           </codeElement>
         </codeElement>
@@ -1349,12 +1167,8 @@
             </source>
             <attribute tag="original_id" value="call:e53b582591a2"/>
             <attribute tag="classification" value="builtin_type_method"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="builtin_type:list.append"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="body_id" value="body:02d4355b2fcd"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="call"/>
             <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.7"/>
             <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.1"/>
           </codeElement>
@@ -1364,12 +1178,8 @@
             </source>
             <attribute tag="original_id" value="call:416b4491d0a1"/>
             <attribute tag="classification" value="internal"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="method:example_project.repository.user_repository.UserRepository._write_to_disk"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="body_id" value="body:95a88f9f5fa8"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="call"/>
             <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.7"/>
           </codeElement>
           <codeElement xsi:type="action:ActionElement" name="if" kind="if">
@@ -1377,25 +1187,17 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="19" endLine="20"/>
             </source>
             <attribute tag="body_id" value="body:2192faa11352"/>
-            <attribute tag="body_type" value="control_structure"/>
-            <attribute tag="control_type" value="if"/>
-            <attribute tag="condition" value="user is None"/>
             <codeElement xsi:type="action:ActionElement" name="raise" kind="raise">
               <source language="python">
                 <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="20" endLine="20"/>
               </source>
               <attribute tag="body_id" value="body:9e6cdfaa46e0"/>
-              <attribute tag="body_type" value="statement"/>
-              <attribute tag="statement_type" value="raise"/>
-              <attribute tag="exception" value="RepositoryError"/>
               <codeElement xsi:type="action:ActionElement" name="RepositoryError" kind="constructor_call">
                 <source language="python">
                   <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="20" endLine="20"/>
                 </source>
                 <attribute tag="original_id" value="call:7e357c49593a"/>
                 <attribute tag="classification" value="constructor"/>
-                <attribute tag="resolved" value="True"/>
-                <attribute tag="target_id" value="class:example_project.repository.user_repository.RepositoryError"/>
                 <attribute tag="occurrence_index" value="0"/>
                 <attribute tag="expression_role" value="exception_call"/>
                 <actionRelation xsi:type="action:Creates" to="//@model.1/@codeElement.3/@codeElement.0"/>
@@ -1413,9 +1215,16 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="24" endLine="24"/>
             </source>
             <attribute tag="body_id" value="body:b0715e4dd238"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="return"/>
-            <attribute tag="value" value="True"/>
+            <codeElement xsi:type="code:StorableUnit" name="return_literal_True">
+              <attribute tag="role" value="returned_literal"/>
+              <attribute tag="literal_value" value="True"/>
+              <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.4/@codeElement.5/@codeElement.1"/>
+            </codeElement>
+            <codeElement xsi:type="code:Value" name="value_True">
+              <attribute tag="role" value="literal_value"/>
+              <attribute tag="literal_value" value="True"/>
+            </codeElement>
+            <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.4/@codeElement.5/@codeElement.0"/>
           </codeElement>
         </codeElement>
         <codeElement xsi:type="code:MethodUnit" name="find_by_id">
@@ -1438,26 +1247,17 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="27" endLine="29"/>
             </source>
             <attribute tag="body_id" value="body:da5a9ac5d877"/>
-            <attribute tag="body_type" value="control_structure"/>
-            <attribute tag="control_type" value="for"/>
-            <attribute tag="target" value="user"/>
-            <attribute tag="iter" value="self.users"/>
             <codeElement xsi:type="action:ActionElement" name="if" kind="if">
               <source language="python">
                 <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="28" endLine="29"/>
               </source>
               <attribute tag="body_id" value="body:6aceef858bca"/>
-              <attribute tag="body_type" value="control_structure"/>
-              <attribute tag="control_type" value="if"/>
-              <attribute tag="condition" value="user.user_id == user_id"/>
               <codeElement xsi:type="action:ActionElement" name="return" kind="return">
                 <source language="python">
                   <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="29" endLine="29"/>
                 </source>
                 <attribute tag="body_id" value="body:a6c5556d18c7"/>
-                <attribute tag="body_type" value="statement"/>
-                <attribute tag="statement_type" value="return"/>
-                <attribute tag="value" value="user"/>
+                <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
               </codeElement>
             </codeElement>
           </codeElement>
@@ -1466,9 +1266,16 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="31" endLine="31"/>
             </source>
             <attribute tag="body_id" value="body:62133c30c3cd"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="return"/>
-            <attribute tag="value" value="None"/>
+            <codeElement xsi:type="code:StorableUnit" name="return_literal_None">
+              <attribute tag="role" value="returned_literal"/>
+              <attribute tag="literal_value" value="None"/>
+              <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.5/@codeElement.3/@codeElement.1"/>
+            </codeElement>
+            <codeElement xsi:type="code:Value" name="value_None">
+              <attribute tag="role" value="literal_value"/>
+              <attribute tag="literal_value" value="None"/>
+            </codeElement>
+            <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.5/@codeElement.3/@codeElement.0"/>
           </codeElement>
         </codeElement>
         <codeElement xsi:type="code:MethodUnit" name="find_active_users">
@@ -1494,9 +1301,6 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="34" endLine="34"/>
             </source>
             <attribute tag="body_id" value="body:0e66762cd583"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="targets" value="active_users"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.6/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="action:ActionElement" name="for" kind="for">
@@ -1504,30 +1308,19 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="36" endLine="40"/>
             </source>
             <attribute tag="body_id" value="body:1fc7d5afabbb"/>
-            <attribute tag="body_type" value="control_structure"/>
-            <attribute tag="control_type" value="for"/>
-            <attribute tag="target" value="user"/>
-            <attribute tag="iter" value="self.users"/>
             <codeElement xsi:type="action:ActionElement" name="if" kind="if">
               <source language="python">
                 <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="37" endLine="40"/>
               </source>
               <attribute tag="body_id" value="body:6fbe2600470a"/>
-              <attribute tag="body_type" value="control_structure"/>
-              <attribute tag="control_type" value="if"/>
-              <attribute tag="condition" value="user.active"/>
               <codeElement xsi:type="action:ActionElement" name="active_users.append" kind="method_call">
                 <source language="python">
                   <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="38" endLine="38"/>
                 </source>
                 <attribute tag="original_id" value="call:2f88e41877f9"/>
                 <attribute tag="classification" value="builtin_type_method"/>
-                <attribute tag="resolved" value="True"/>
-                <attribute tag="target_id" value="builtin_type:list.append"/>
                 <attribute tag="occurrence_index" value="0"/>
                 <attribute tag="body_id" value="body:edb33c87c73f"/>
-                <attribute tag="body_type" value="statement"/>
-                <attribute tag="statement_type" value="call"/>
                 <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.7"/>
                 <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.6/@codeElement.1"/>
               </codeElement>
@@ -1536,8 +1329,6 @@
                   <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="40" endLine="40"/>
                 </source>
                 <attribute tag="body_id" value="body:fb7f77cfeeca"/>
-                <attribute tag="body_type" value="statement"/>
-                <attribute tag="statement_type" value="continue"/>
               </codeElement>
             </codeElement>
           </codeElement>
@@ -1546,9 +1337,7 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="42" endLine="42"/>
             </source>
             <attribute tag="body_id" value="body:e42f735359f9"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="return"/>
-            <attribute tag="value" value="active_users"/>
+            <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.6/@codeElement.1"/>
           </codeElement>
         </codeElement>
         <codeElement xsi:type="code:MethodUnit" name="_write_to_disk">
@@ -1574,28 +1363,22 @@
             <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.2/@codeElement.0"/>
             <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.7/@codeElement.3/@codeElement.0/@codeElement.0"/>
           </codeElement>
-          <codeElement xsi:type="action:ActionElement" name="try" kind="try">
+          <codeElement xsi:type="action:TryUnit" name="try">
             <source language="python">
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="45" endLine="52"/>
             </source>
             <attribute tag="body_id" value="body:f43ab03f476b"/>
-            <attribute tag="body_type" value="control_structure"/>
-            <attribute tag="control_type" value="try"/>
             <codeElement xsi:type="action:ActionElement" name="with" kind="with">
               <source language="python">
                 <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="46" endLine="48"/>
               </source>
               <attribute tag="body_id" value="body:32123d426484"/>
-              <attribute tag="body_type" value="control_structure"/>
-              <attribute tag="control_type" value="with"/>
               <codeElement xsi:type="action:ActionElement" name="open" kind="function_call">
                 <source language="python">
                   <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="46" endLine="46"/>
                 </source>
                 <attribute tag="original_id" value="call:e07ecbe138ac"/>
                 <attribute tag="classification" value="builtin"/>
-                <attribute tag="resolved" value="True"/>
-                <attribute tag="target_id" value="builtin:open"/>
                 <attribute tag="occurrence_index" value="0"/>
                 <attribute tag="expression_role" value="context_call"/>
                 <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.8"/>
@@ -1606,11 +1389,8 @@
                 </source>
                 <attribute tag="original_id" value="call:71068a84f4ed"/>
                 <attribute tag="classification" value="external"/>
-                <attribute tag="resolved" value="False"/>
                 <attribute tag="occurrence_index" value="0"/>
                 <attribute tag="body_id" value="body:5fe412a1ce84"/>
-                <attribute tag="body_type" value="statement"/>
-                <attribute tag="statement_type" value="call"/>
                 <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.5/@codeElement.1"/>
                 <codeElement xsi:type="action:ActionElement" name="user.to_dict" kind="method_call">
                   <source language="python">
@@ -1618,8 +1398,6 @@
                   </source>
                   <attribute tag="original_id" value="call:cefa238a2a51"/>
                   <attribute tag="classification" value="internal"/>
-                  <attribute tag="resolved" value="True"/>
-                  <attribute tag="target_id" value="method:example_project.models.user.User.to_dict"/>
                   <attribute tag="occurrence_index" value="0"/>
                   <attribute tag="expression_role" value="nested_expression_call"/>
                   <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.11"/>
@@ -1631,39 +1409,30 @@
                 </source>
                 <attribute tag="original_id" value="call:f328a5f08a24"/>
                 <attribute tag="classification" value="external_type_method"/>
-                <attribute tag="resolved" value="True"/>
-                <attribute tag="target_id" value="external_type:io.TextIOWrapper.write"/>
                 <attribute tag="occurrence_index" value="0"/>
                 <attribute tag="body_id" value="body:f109dfa03d49"/>
-                <attribute tag="body_type" value="statement"/>
-                <attribute tag="statement_type" value="call"/>
                 <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.6/@codeElement.0"/>
                 <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.7/@codeElement.2"/>
               </codeElement>
             </codeElement>
-            <codeElement xsi:type="action:ActionElement" name="except" kind="exception_handler">
+            <codeElement xsi:type="action:CatchUnit" name="except">
               <source language="python">
                 <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="49" endLine="50"/>
               </source>
               <attribute tag="body_id" value="body:c84edd875b4c"/>
-              <attribute tag="body_type" value="exception_handler"/>
-              <attribute tag="exception" value="OSError"/>
+              <attribute tag="exception_type_name" value="OSError"/>
+              <attribute tag="exception_target_name" value="OSError"/>
               <codeElement xsi:type="action:ActionElement" name="raise" kind="raise">
                 <source language="python">
                   <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="50" endLine="50"/>
                 </source>
                 <attribute tag="body_id" value="body:ab287500b341"/>
-                <attribute tag="body_type" value="statement"/>
-                <attribute tag="statement_type" value="raise"/>
-                <attribute tag="exception" value="RepositoryError"/>
                 <codeElement xsi:type="action:ActionElement" name="RepositoryError" kind="constructor_call">
                   <source language="python">
                     <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="50" endLine="50"/>
                   </source>
                   <attribute tag="original_id" value="call:59fd74c68050"/>
                   <attribute tag="classification" value="constructor"/>
-                  <attribute tag="resolved" value="True"/>
-                  <attribute tag="target_id" value="class:example_project.repository.user_repository.RepositoryError"/>
                   <attribute tag="occurrence_index" value="0"/>
                   <attribute tag="expression_role" value="exception_call"/>
                   <actionRelation xsi:type="action:Creates" to="//@model.1/@codeElement.3/@codeElement.0"/>
@@ -1674,8 +1443,6 @@
                   </source>
                   <attribute tag="original_id" value="call:833a08d91e13"/>
                   <attribute tag="classification" value="builtin"/>
-                  <attribute tag="resolved" value="True"/>
-                  <attribute tag="target_id" value="builtin:str"/>
                   <attribute tag="occurrence_index" value="0"/>
                   <attribute tag="expression_role" value="exception_call"/>
                   <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.2"/>
@@ -1687,24 +1454,30 @@
                 </codeElement>
                 <actionRelation xsi:type="action:Throws" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.7/@codeElement.3/@codeElement.1/@codeElement.0/@codeElement.2"/>
               </codeElement>
-              <actionRelation xsi:type="action:ActionRelationship" to="//@model.3/@codeElement.1">
-                <attribute tag="kind" value="catches"/>
-              </actionRelation>
+              <codeElement xsi:type="code:ParameterUnit" name="exception_OSError">
+                <attribute tag="role" value="caught_exception"/>
+                <attribute tag="exception_type_name" value="OSError"/>
+                <codeRelation xsi:type="code:HasType" to="//@model.3/@codeElement.1"/>
+              </codeElement>
             </codeElement>
-            <codeElement xsi:type="action:ActionElement" name="print" kind="function_call">
+            <codeElement xsi:type="action:FinallyUnit" name="finally">
               <source language="python">
-                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="52" endLine="52"/>
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="45" endLine="52"/>
               </source>
-              <attribute tag="original_id" value="call:c182fe76e77c"/>
-              <attribute tag="classification" value="builtin"/>
-              <attribute tag="resolved" value="True"/>
-              <attribute tag="target_id" value="builtin:print"/>
-              <attribute tag="occurrence_index" value="0"/>
-              <attribute tag="body_id" value="body:1dd9747acf9d"/>
-              <attribute tag="body_type" value="statement"/>
-              <attribute tag="statement_type" value="call"/>
-              <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.0"/>
+              <attribute tag="body_id" value="body:f43ab03f476b:finally"/>
+              <codeElement xsi:type="action:ActionElement" name="print" kind="function_call">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="52" endLine="52"/>
+                </source>
+                <attribute tag="original_id" value="call:c182fe76e77c"/>
+                <attribute tag="classification" value="builtin"/>
+                <attribute tag="occurrence_index" value="0"/>
+                <attribute tag="body_id" value="body:1dd9747acf9d"/>
+                <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.0"/>
+              </codeElement>
             </codeElement>
+            <actionRelation xsi:type="action:ExceptionFlow" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.7/@codeElement.3/@codeElement.1"/>
+            <actionRelation xsi:type="action:ExitFlow" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.7/@codeElement.3/@codeElement.2"/>
           </codeElement>
         </codeElement>
         <codeElement xsi:type="code:MethodUnit" name="count">
@@ -1723,36 +1496,32 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="55" endLine="55"/>
             </source>
             <attribute tag="body_id" value="body:09ed2de087e2"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="return"/>
-            <attribute tag="value" value="len"/>
             <codeElement xsi:type="action:ActionElement" name="len" kind="function_call">
               <source language="python">
                 <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="55" endLine="55"/>
               </source>
               <attribute tag="original_id" value="call:c369f6fb9934"/>
               <attribute tag="classification" value="builtin"/>
-              <attribute tag="resolved" value="True"/>
-              <attribute tag="target_id" value="builtin:len"/>
               <attribute tag="occurrence_index" value="0"/>
               <attribute tag="expression_role" value="value_call"/>
               <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.3"/>
             </codeElement>
+            <codeElement xsi:type="code:StorableUnit" name="return_value_of_len">
+              <attribute tag="role" value="returned_call_result"/>
+              <attribute tag="source_call_name" value="len"/>
+            </codeElement>
+            <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.3/@codeElement.1/@codeElement.8/@codeElement.1/@codeElement.1"/>
           </codeElement>
         </codeElement>
       </codeElement>
       <codeRelation xsi:type="code:Imports" to="//@model.2/@codeElement.5">
         <attribute tag="classification" value="external"/>
-        <attribute tag="resolved" value="False"/>
       </codeRelation>
       <codeRelation xsi:type="code:Imports" to="//@model.2/@codeElement.1/@codeElement.0">
         <attribute tag="classification" value="external"/>
-        <attribute tag="resolved" value="False"/>
       </codeRelation>
       <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.4/@codeElement.1">
         <attribute tag="classification" value="internal"/>
-        <attribute tag="resolved" value="True"/>
-        <attribute tag="target_id" value="class:example_project.models.user.User"/>
       </codeRelation>
     </codeElement>
     <codeElement xsi:type="code:CompilationUnit" name="models/user.py">
@@ -1791,8 +1560,7 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="5" endLine="7"/>
             </source>
             <attribute tag="body_id" value="body:eef8abfb0e41"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="return"/>
+            <attribute tag="return_flow" value="void"/>
           </codeElement>
         </codeElement>
       </codeElement>
@@ -1881,10 +1649,6 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="14" endLine="14"/>
             </source>
             <attribute tag="body_id" value="body:32cb33934dfe"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="user_id"/>
-            <attribute tag="targets" value="self.user_id"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.1"/>
             <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.1"/>
           </codeElement>
@@ -1893,10 +1657,6 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="15" endLine="15"/>
             </source>
             <attribute tag="body_id" value="body:b18888efe24c"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="name"/>
-            <attribute tag="targets" value="self.name"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.2"/>
             <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.2"/>
           </codeElement>
@@ -1905,10 +1665,6 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="16" endLine="16"/>
             </source>
             <attribute tag="body_id" value="body:9c168b36785e"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="active"/>
-            <attribute tag="targets" value="self.active"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.6"/>
             <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.6"/>
           </codeElement>
@@ -1917,9 +1673,6 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="17" endLine="17"/>
             </source>
             <attribute tag="body_id" value="body:7988ef6a1a2b"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="targets" value="self.roles"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.4"/>
           </codeElement>
           <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
@@ -1927,10 +1680,6 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="18" endLine="18"/>
             </source>
             <attribute tag="body_id" value="body:de65e261902c"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="0"/>
-            <attribute tag="targets" value="self.pending_tasks"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.5"/>
           </codeElement>
         </codeElement>
@@ -1954,21 +1703,14 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="21" endLine="22"/>
             </source>
             <attribute tag="body_id" value="body:f64029aae52e"/>
-            <attribute tag="body_type" value="control_structure"/>
-            <attribute tag="control_type" value="if"/>
-            <attribute tag="condition" value="role not in self.roles"/>
             <codeElement xsi:type="action:ActionElement" name="self.roles.append" kind="method_call">
               <source language="python">
                 <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="22" endLine="22"/>
               </source>
               <attribute tag="original_id" value="call:db107b66111a"/>
               <attribute tag="classification" value="builtin_type_method"/>
-              <attribute tag="resolved" value="True"/>
-              <attribute tag="target_id" value="builtin_type:list.append"/>
               <attribute tag="occurrence_index" value="0"/>
               <attribute tag="body_id" value="body:decae4583bc6"/>
-              <attribute tag="body_type" value="statement"/>
-              <attribute tag="statement_type" value="call"/>
               <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.7"/>
               <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.4"/>
             </codeElement>
@@ -1990,10 +1732,6 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="25" endLine="25"/>
             </source>
             <attribute tag="body_id" value="body:943fd83d78b3"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="False"/>
-            <attribute tag="targets" value="self.active"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.6"/>
           </codeElement>
         </codeElement>
@@ -2017,9 +1755,7 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="28" endLine="28"/>
             </source>
             <attribute tag="body_id" value="body:35315d6104e8"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="return"/>
-            <attribute tag="value" value="role in self.roles"/>
+            <attribute tag="unresolved_return_value" value="role in self.roles"/>
           </codeElement>
         </codeElement>
         <codeElement xsi:type="code:MethodUnit" name="to_dict">
@@ -2066,14 +1802,8 @@
             </source>
             <attribute tag="original_id" value="call:26dbe8e13726"/>
             <attribute tag="classification" value="internal"/>
-            <attribute tag="resolved" value="True"/>
-            <attribute tag="target_id" value="method:example_project.models.user.BaseEntity.to_dict"/>
             <attribute tag="occurrence_index" value="0"/>
             <attribute tag="body_id" value="body:0d9abb1686c9"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="super.to_dict"/>
-            <attribute tag="targets" value="data"/>
             <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.4/@codeElement.0/@codeElement.1"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.11/@codeElement.5"/>
             <codeElement xsi:type="action:ActionElement" name="super" kind="function_call">
@@ -2082,8 +1812,6 @@
               </source>
               <attribute tag="original_id" value="call:88550428e0e1"/>
               <attribute tag="classification" value="builtin"/>
-              <attribute tag="resolved" value="True"/>
-              <attribute tag="target_id" value="builtin:super"/>
               <attribute tag="occurrence_index" value="0"/>
               <attribute tag="expression_role" value="nested_expression_call"/>
               <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.9"/>
@@ -2094,10 +1822,6 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="32" endLine="32"/>
             </source>
             <attribute tag="body_id" value="body:55acbf2f3cc0"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="self.user_id"/>
-            <attribute tag="targets" value="data"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.11/@codeElement.5"/>
             <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.1"/>
           </codeElement>
@@ -2106,10 +1830,6 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="33" endLine="33"/>
             </source>
             <attribute tag="body_id" value="body:3927359cbf2a"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="self.name"/>
-            <attribute tag="targets" value="data"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.11/@codeElement.5"/>
             <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.2"/>
           </codeElement>
@@ -2118,10 +1838,6 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="34" endLine="34"/>
             </source>
             <attribute tag="body_id" value="body:29779b071b15"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="self.active"/>
-            <attribute tag="targets" value="data"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.11/@codeElement.5"/>
             <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.6"/>
           </codeElement>
@@ -2130,10 +1846,6 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="35" endLine="35"/>
             </source>
             <attribute tag="body_id" value="body:3c73b071a045"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="assignment"/>
-            <attribute tag="value" value="self.roles"/>
-            <attribute tag="targets" value="data"/>
             <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.11/@codeElement.5"/>
             <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.4"/>
           </codeElement>
@@ -2142,9 +1854,7 @@
               <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="36" endLine="36"/>
             </source>
             <attribute tag="body_id" value="body:c2dfc201ea78"/>
-            <attribute tag="body_type" value="statement"/>
-            <attribute tag="statement_type" value="return"/>
-            <attribute tag="value" value="data"/>
+            <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.4/@codeElement.1/@codeElement.11/@codeElement.5"/>
           </codeElement>
         </codeElement>
         <codeRelation xsi:type="code:Extends" to="//@model.1/@codeElement.4/@codeElement.0"/>

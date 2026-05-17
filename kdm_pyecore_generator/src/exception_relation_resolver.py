@@ -4,14 +4,18 @@ class ExceptionRelationResolver:
 
     Current implementation:
 
-    - raise X(...)  -> action:Throws -> X
-    - except X:     -> generic ActionRelationship with attribute kind="catches"
+    - raise X(...)  -> action:Throws -> StorableUnit X_exception
+                       and X_exception --HasType--> X
+
+    - try/except    -> TryUnit --ExceptionFlow--> CatchUnit
+
+    - try/finally   -> TryUnit --ExitFlow--> FinallyUnit
 
     Notes:
     - KDM has a standard Throws relation.
-    - KDM does not define a direct Catches relation. The more precise KDM
-      modeling for catch blocks is TryUnit/CatchUnit plus ExceptionFlow.
-      For now, we keep catches as a generic ActionRelationship.
+    - KDM does not define a direct Catches relation.
+    - Catch blocks are modeled as CatchUnit elements connected from TryUnit
+      through ExceptionFlow.
     """
 
     def __init__(
@@ -22,6 +26,7 @@ class ExceptionRelationResolver:
         builtin_model=None,
         builtin_index=None,
         external_index=None,
+        finally_action_index=None,
     ):
         self.factory = factory
         self.id_index = id_index
@@ -29,6 +34,7 @@ class ExceptionRelationResolver:
         self.builtin_model = builtin_model
         self.builtin_index = builtin_index or {}
         self.external_index = external_index or {}
+        self.finally_action_index = finally_action_index or {}
 
     def resolve(self, data: dict):
         for file_model in data.get("files", []):
@@ -46,6 +52,10 @@ class ExceptionRelationResolver:
     def _resolve_body_item(self, item: dict):
         item_type = item.get("type")
         statement_type = item.get("statement_type")
+        control_type = item.get("control_type")
+
+        if item_type == "control_structure" and control_type == "try":
+            self._resolve_try_flows(item)
 
         if statement_type == "raise":
             self._resolve_raise(item)
@@ -66,6 +76,186 @@ class ExceptionRelationResolver:
             self._resolve_body_item(handler)
 
     # ------------------------------------------------------------
+    # Try / catch / finally flow resolution
+    # ------------------------------------------------------------
+
+    def _resolve_try_flows(self, item: dict):
+        try_action = self.statement_action_index.get(item.get("id"))
+
+        if try_action is None:
+            return
+
+        for handler in item.get("handlers", []):
+            catch_action = self.statement_action_index.get(handler.get("id"))
+
+            if catch_action is None:
+                continue
+
+            self._create_exception_flow_relation(
+                source=try_action,
+                target=catch_action,
+            )
+
+            self._annotate_catch_unit(
+                catch_action=catch_action,
+                handler=handler,
+            )
+
+        finally_action = self.finally_action_index.get(item.get("id"))
+
+        if finally_action is not None:
+            self._create_exit_flow_relation(
+                source=try_action,
+                target=finally_action,
+            )
+
+    def _create_exception_flow_relation(self, source, target):
+        if source is None or target is None:
+            return
+
+        if self._has_action_relation(
+            source=source,
+            target=target,
+            relation_type="ExceptionFlow",
+        ):
+            return
+
+        relation = self.factory.create_exception_flow_relation(target)
+
+        if relation is None:
+            return
+
+        if self.factory.has_feature(source, "actionRelation"):
+            source.actionRelation.append(relation)
+
+    def _create_exit_flow_relation(self, source, target):
+        if source is None or target is None:
+            return
+
+        if self._has_action_relation(
+            source=source,
+            target=target,
+            relation_type="ExitFlow",
+        ):
+            return
+
+        relation = self.factory.create_exit_flow_relation(target)
+
+        if relation is None:
+            return
+
+        if self.factory.has_feature(source, "actionRelation"):
+            source.actionRelation.append(relation)
+
+    def _has_action_relation(self, source, target, relation_type: str) -> bool:
+        if not self.factory.has_feature(source, "actionRelation"):
+            return False
+
+        for relation in source.actionRelation:
+            if relation.eClass.name != relation_type:
+                continue
+
+            if getattr(relation, "to", None) is target:
+                return True
+
+        return False
+
+    def _annotate_catch_unit(self, catch_action, handler: dict):
+        exception_name = handler.get("exception")
+
+        if not exception_name:
+            self._add_attribute_once(
+                catch_action,
+                "exception_flow",
+                "catch_all",
+            )
+            return
+
+        exception_target = self._find_exception_by_name(exception_name)
+
+        if exception_target is None:
+            self._add_attribute_once(
+                catch_action,
+                "unresolved_exception_type",
+                exception_name,
+            )
+            return
+
+        self._add_attribute_once(
+            catch_action,
+            "exception_type_name",
+            exception_name,
+        )
+
+        self._add_attribute_once(
+            catch_action,
+            "exception_target_name",
+            getattr(exception_target, "name", exception_name),
+        )
+
+        self._get_or_create_catch_exception_parameter(
+            catch_action=catch_action,
+            exception_type=exception_target,
+            exception_name=exception_name,
+        )
+
+    def _get_or_create_catch_exception_parameter(
+        self,
+        catch_action,
+        exception_type,
+        exception_name: str,
+    ):
+        """
+        Creates a ParameterUnit inside CatchUnit to represent the exception
+        object received by the handler.
+
+        CatchUnit
+          └── ParameterUnit exception_RepositoryError
+                └── HasType -> RepositoryError
+        """
+
+        if catch_action is None or exception_type is None:
+            return None
+
+        if not self.factory.has_feature(catch_action, "codeElement"):
+            return None
+
+        parameter_name = f"exception_{exception_name}"
+
+        for child in catch_action.codeElement:
+            if getattr(child.eClass, "name", None) != "ParameterUnit":
+                continue
+
+            if getattr(child, "name", None) == parameter_name:
+                return child
+
+        parameter = self.factory.create_parameter_unit(parameter_name)
+
+        self._add_attribute_once(
+            parameter,
+            "role",
+            "caught_exception",
+        )
+
+        self._add_attribute_once(
+            parameter,
+            "exception_type_name",
+            exception_name,
+        )
+
+        catch_action.codeElement.append(parameter)
+
+        has_type = self.factory.create_has_type_relation(exception_type)
+
+        if (
+            has_type is not None
+            and self.factory.has_feature(parameter, "codeRelation")
+        ):
+            parameter.codeRelation.append(has_type)
+
+        return parameter
+
+    # ------------------------------------------------------------
     # Raise resolution
     # ------------------------------------------------------------
 
@@ -79,15 +269,8 @@ class ExceptionRelationResolver:
 
         if exception_target is None:
             # Python supports bare raise inside except blocks.
-            #
-            # Example:
-            #     except Exception:
-            #         raise
-            #
-            # This is not a new thrown type, but a rethrow of the active
-            # exception.
             if not item.get("exception") and not item.get("exception_calls"):
-                self.factory.add_attribute(
+                self._add_attribute_once(
                     raise_action,
                     "exception_flow",
                     "rethrow",
@@ -126,41 +309,17 @@ class ExceptionRelationResolver:
         return None
 
     # ------------------------------------------------------------
-    # Except resolution
+    # CatchUnit annotation only
     # ------------------------------------------------------------
 
     def _resolve_exception_handler(self, item: dict):
-        except_action = self.statement_action_index.get(item.get("id"))
+        """
+        CatchUnit is connected and annotated from TryUnit using ExceptionFlow
+        in _resolve_try_flows.
 
-        if except_action is None:
-            return
-
-        exception_name = item.get("exception")
-
-        # Bare except:
-        #
-        #     except:
-        #         ...
-        #
-        # This catches any exception, but there is no explicit target class.
-        if not exception_name:
-            self.factory.add_attribute(
-                except_action,
-                "exception_flow",
-                "catch_all",
-            )
-            return
-
-        exception_target = self._find_exception_by_name(exception_name)
-
-        if exception_target is None:
-            return
-
-        self._create_exception_relation(
-            source=except_action,
-            target=exception_target,
-            kind="catches",
-        )
+        This method intentionally does nothing to avoid duplicate attributes.
+        """
+        return
 
     # ------------------------------------------------------------
     # Target resolution
@@ -203,11 +362,6 @@ class ExceptionRelationResolver:
             if target is not None:
                 return target
 
-        # Search by KDM element name or by fully qualified id ending.
-        #
-        # Example:
-        #   exception_name = "RepositoryError"
-        #   id = "class:example_project.repository.user_repository.RepositoryError"
         for element_id, element in self.id_index.items():
             element_name = getattr(element, "name", None)
 
@@ -244,16 +398,13 @@ class ExceptionRelationResolver:
             name=exception_name
         )
 
-        if self.factory.has_feature(exception_unit, "kind"):
-            exception_unit.kind = "builtin_exception"
-
-        self.factory.add_attribute(
+        self._add_attribute_once(
             exception_unit,
             "builtin_id",
             builtin_id,
         )
 
-        self.factory.add_attribute(
+        self._add_attribute_once(
             exception_unit,
             "classification",
             "builtin",
@@ -270,48 +421,32 @@ class ExceptionRelationResolver:
         return exception_unit
 
     # ------------------------------------------------------------
-    # Relation creation
+    # Throw relation creation
     # ------------------------------------------------------------
 
     def _create_exception_relation(self, source, target, kind: str):
         if source is None or target is None:
             return
 
-        if kind == "throws":
-            exception_data = self._get_or_create_thrown_exception_data(
-                source=source,
-                exception_type=target,
-            )
+        if kind != "throws":
+            return
 
-            if exception_data is None:
-                return
+        exception_data = self._get_or_create_thrown_exception_data(
+            source=source,
+            exception_type=target,
+        )
 
-            if self._has_exception_relation(
-                source=source,
-                target=exception_data,
-                kind="throws",
-            ):
-                return
+        if exception_data is None:
+            return
 
-            relation = self.factory.create_throws_relation(exception_data)
+        if self._has_exception_relation(
+            source=source,
+            target=exception_data,
+            kind="throws",
+        ):
+            return
 
-        elif kind == "catches":
-            if self._has_exception_relation(source, target, kind):
-                return
-
-            relation = self.factory.create_action_relationship(
-                target=target,
-                kind="catches",
-            )
-
-        else:
-            if self._has_exception_relation(source, target, kind):
-                return
-
-            relation = self.factory.create_action_relationship(
-                target=target,
-                kind=kind,
-            )
+        relation = self.factory.create_throws_relation(exception_data)
 
         if relation is None:
             return
@@ -320,9 +455,9 @@ class ExceptionRelationResolver:
             source.actionRelation.append(relation)
             return
 
-        self.factory.add_attribute(
+        self._add_attribute_once(
             source,
-            f"unresolved_exception_relation_{kind}",
+            "unresolved_exception_relation_throws",
             getattr(target, "name", None),
         )
 
@@ -337,24 +472,7 @@ class ExceptionRelationResolver:
             if kind == "throws" and relation.eClass.name == "Throws":
                 return True
 
-            relation_kind = self._get_relation_kind(relation)
-
-            if relation_kind == kind:
-                return True
-
         return False
-
-    def _get_relation_kind(self, relation):
-        if self.factory.has_feature(relation, "kind"):
-            return getattr(relation, "kind", None)
-
-        if self.factory.has_feature(relation, "attribute"):
-            for attribute in relation.attribute:
-                if getattr(attribute, "tag", None) == "kind":
-                    return getattr(attribute, "value", None)
-
-        return None
-
 
     def _get_or_create_thrown_exception_data(self, source, exception_type):
         """
@@ -365,9 +483,9 @@ class ExceptionRelationResolver:
         Therefore, we create:
 
             raise ActionElement
-            ├── StorableUnit RepositoryError_exception
-            │     └── HasType -> RepositoryError
-            └── Throws -> RepositoryError_exception
+              ├── StorableUnit RepositoryError_exception
+              │     └── HasType -> RepositoryError
+              └── Throws -> RepositoryError_exception
         """
 
         if source is None or exception_type is None:
@@ -378,7 +496,6 @@ class ExceptionRelationResolver:
         if not exception_type_name:
             return None
 
-        # Reuse if it already exists under the raise action.
         if self.factory.has_feature(source, "codeElement"):
             for child in source.codeElement:
                 if getattr(child.eClass, "name", None) != "StorableUnit":
@@ -395,20 +512,13 @@ class ExceptionRelationResolver:
             name=f"{exception_type_name}_exception"
         )
 
-        # Do not set:
-        # exception_data.kind = "thrown_exception"
-        #
-        # StorableUnit.kind is an enum and only accepts:
-        # global, local, external, register, unknown.
-        #
-        # We keep the semantic role as an Attribute instead.
-        self.factory.add_attribute(
+        self._add_attribute_once(
             exception_data,
             "role",
             "thrown_exception",
         )
 
-        self.factory.add_attribute(
+        self._add_attribute_once(
             exception_data,
             "exception_type_name",
             exception_type_name,
@@ -419,7 +529,6 @@ class ExceptionRelationResolver:
         else:
             return None
 
-        # Link the thrown exception data object to its exception class/type.
         has_type = self.factory.create_has_type_relation(exception_type)
 
         if (
@@ -430,6 +539,10 @@ class ExceptionRelationResolver:
 
         return exception_data
 
+    # ------------------------------------------------------------
+    # Generic helpers
+    # ------------------------------------------------------------
+
     def _has_attribute(self, element, tag: str, value: str) -> bool:
         if not self.factory.has_feature(element, "attribute"):
             return False
@@ -438,7 +551,16 @@ class ExceptionRelationResolver:
             if getattr(attribute, "tag", None) != tag:
                 continue
 
-            if getattr(attribute, "value", None) == value:
+            if getattr(attribute, "value", None) == str(value):
                 return True
 
         return False
+
+    def _add_attribute_once(self, element, tag: str, value):
+        if value is None:
+            return
+
+        if self._has_attribute(element, tag, value):
+            return
+
+        self.factory.add_attribute(element, tag, value)
