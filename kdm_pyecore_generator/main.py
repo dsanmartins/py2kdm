@@ -3,24 +3,24 @@ import argparse
 
 from pyecore.resources import URI
 
-from kdm_loader import KDMLoader
-from classifier_resolver import ClassifierResolver
-from kdm_factory import KDMFactory
-from json_loader import JSONModelLoader
-from json_to_kdm_mapper import JsonToKDMMapper
-from reference_resolver import ReferenceResolver
-from external_model_builder import ExternalModelBuilder
-from inventory_builder import InventoryBuilder
-from validation import BasicValidator
-from type_resolver import TypeResolver
-from type_relation_resolver import TypeRelationResolver
-from value_resolver import ValueResolver
-from value_relation_resolver import ValueRelationResolver
-from access_relation_resolver import AccessRelationResolver
-from return_relation_resolver import ReturnRelationResolver
-from body_action_mapper import BodyActionMapper
-from exception_relation_resolver import ExceptionRelationResolver
-from kdm_validator import KDMValidator
+from generator.kdm_loader import KDMLoader
+from generator.classifier_resolver import ClassifierResolver
+from generator.kdm_factory import KDMFactory
+from generator.json_loader import JSONModelLoader
+from generator.json_to_kdm_mapper import JsonToKDMMapper
+from generator.reference_resolver import ReferenceResolver
+from generator.external_model_builder import ExternalModelBuilder
+from generator.inventory_builder import InventoryBuilder
+from generator.validation import BasicValidator
+from generator.type_resolver import TypeResolver
+from generator.type_relation_resolver import TypeRelationResolver
+from generator.value_resolver import ValueResolver
+from generator.value_relation_resolver import ValueRelationResolver
+from generator.access_relation_resolver import AccessRelationResolver
+from generator.return_relation_resolver import ReturnRelationResolver
+from generator.body_action_mapper import BodyActionMapper
+from generator.exception_relation_resolver import ExceptionRelationResolver
+from generator.kdm_validator import KDMValidator
 
 
 DEFAULT_KDM_ECORE_PATH = "metamodels/kdm_1_4.ecore"

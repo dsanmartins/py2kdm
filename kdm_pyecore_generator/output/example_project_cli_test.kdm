@@ -22,8 +22,6 @@
         <attribute tag="original_id" value="function:example_project.app.main"/>
         <attribute tag="json_type" value="function"/>
         <attribute tag="qualified_name" value="example_project.app.main"/>
-        <attribute tag="method_kind" value="function"/>
-        <attribute tag="is_async" value="False"/>
         <codeElement xsi:type="code:StorableUnit" name="service">
           <source language="python">
             <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="5" endLine="5"/>
@@ -180,12 +178,8 @@
           <attribute tag="original_id" value="method:example_project.models.user.BaseEntity.to_dict"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.models.user.BaseEntity.to_dict"/>
-          <attribute tag="method_kind" value="method"/>
-          <attribute tag="is_async" value="False"/>
           <codeElement xsi:type="code:ParameterUnit" name="self">
             <attribute tag="type_resolution" value="self"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.1/@codeElement.0"/>
           </codeElement>
           <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
@@ -277,31 +271,20 @@
           <attribute tag="original_id" value="method:example_project.models.user.User.__init__"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.models.user.User.__init__"/>
-          <attribute tag="method_kind" value="constructor"/>
-          <attribute tag="is_async" value="False"/>
           <codeElement xsi:type="code:ParameterUnit" name="self">
             <attribute tag="type_resolution" value="self"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.1/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="code:ParameterUnit" name="user_id">
             <attribute tag="type_resolution" value="builtin"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="1"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.5/@codeElement.2"/>
           </codeElement>
           <codeElement xsi:type="code:ParameterUnit" name="name">
             <attribute tag="type_resolution" value="builtin"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="2"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.5/@codeElement.4"/>
           </codeElement>
           <codeElement xsi:type="code:ParameterUnit" name="active">
             <attribute tag="type_resolution" value="builtin"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="3"/>
-            <attribute tag="default_value" value="True"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.5/@codeElement.3"/>
           </codeElement>
           <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
@@ -357,18 +340,12 @@
           <attribute tag="original_id" value="method:example_project.models.user.User.add_role"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.models.user.User.add_role"/>
-          <attribute tag="method_kind" value="method"/>
-          <attribute tag="is_async" value="False"/>
           <codeElement xsi:type="code:ParameterUnit" name="self">
             <attribute tag="type_resolution" value="self"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.1/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="code:ParameterUnit" name="role">
             <attribute tag="type_resolution" value="builtin"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="1"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.5/@codeElement.4"/>
           </codeElement>
           <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
@@ -404,12 +381,8 @@
           <attribute tag="original_id" value="method:example_project.models.user.User.deactivate"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.models.user.User.deactivate"/>
-          <attribute tag="method_kind" value="method"/>
-          <attribute tag="is_async" value="False"/>
           <codeElement xsi:type="code:ParameterUnit" name="self">
             <attribute tag="type_resolution" value="self"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.1/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
@@ -434,18 +407,12 @@
           <attribute tag="original_id" value="method:example_project.models.user.User.has_role"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.models.user.User.has_role"/>
-          <attribute tag="method_kind" value="method"/>
-          <attribute tag="is_async" value="False"/>
           <codeElement xsi:type="code:ParameterUnit" name="self">
             <attribute tag="type_resolution" value="self"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.1/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="code:ParameterUnit" name="role">
             <attribute tag="type_resolution" value="builtin"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="1"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.5/@codeElement.4"/>
           </codeElement>
           <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
@@ -471,12 +438,8 @@
           <attribute tag="original_id" value="method:example_project.models.user.User.to_dict"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.models.user.User.to_dict"/>
-          <attribute tag="method_kind" value="method"/>
-          <attribute tag="is_async" value="False"/>
           <codeElement xsi:type="code:ParameterUnit" name="self">
             <attribute tag="type_resolution" value="self"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.1/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="code:StorableUnit" name="data">
@@ -635,12 +598,8 @@
           <attribute tag="original_id" value="method:example_project.repository.user_repository.UserRepository.__init__"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.repository.user_repository.UserRepository.__init__"/>
-          <attribute tag="method_kind" value="constructor"/>
-          <attribute tag="is_async" value="False"/>
           <codeElement xsi:type="code:ParameterUnit" name="self">
             <attribute tag="type_resolution" value="self"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.2/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
@@ -677,18 +636,12 @@
           <attribute tag="original_id" value="method:example_project.repository.user_repository.UserRepository.save"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.repository.user_repository.UserRepository.save"/>
-          <attribute tag="method_kind" value="method"/>
-          <attribute tag="is_async" value="False"/>
           <codeElement xsi:type="code:ParameterUnit" name="self">
             <attribute tag="type_resolution" value="self"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.2/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="code:ParameterUnit" name="user">
             <attribute tag="type_resolution" value="resolved"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="1"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.1/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
@@ -774,18 +727,12 @@
           <attribute tag="original_id" value="method:example_project.repository.user_repository.UserRepository.find_by_id"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.repository.user_repository.UserRepository.find_by_id"/>
-          <attribute tag="method_kind" value="method"/>
-          <attribute tag="is_async" value="False"/>
           <codeElement xsi:type="code:ParameterUnit" name="self">
             <attribute tag="type_resolution" value="self"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.2/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="code:ParameterUnit" name="user_id">
             <attribute tag="type_resolution" value="builtin"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="1"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.5/@codeElement.2"/>
           </codeElement>
           <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
@@ -842,12 +789,8 @@
           <attribute tag="original_id" value="method:example_project.repository.user_repository.UserRepository.find_active_users"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.repository.user_repository.UserRepository.find_active_users"/>
-          <attribute tag="method_kind" value="method"/>
-          <attribute tag="is_async" value="False"/>
           <codeElement xsi:type="code:ParameterUnit" name="self">
             <attribute tag="type_resolution" value="self"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.2/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="code:StorableUnit" name="active_users">
@@ -924,18 +867,12 @@
           <attribute tag="original_id" value="method:example_project.repository.user_repository.UserRepository._write_to_disk"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.repository.user_repository.UserRepository._write_to_disk"/>
-          <attribute tag="method_kind" value="method"/>
-          <attribute tag="is_async" value="False"/>
           <codeElement xsi:type="code:ParameterUnit" name="self">
             <attribute tag="type_resolution" value="self"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.2/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="code:ParameterUnit" name="user">
             <attribute tag="type_resolution" value="resolved"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="1"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.1/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="code:StorableUnit" name="file">
@@ -1080,12 +1017,8 @@
           <attribute tag="original_id" value="method:example_project.repository.user_repository.UserRepository.count"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.repository.user_repository.UserRepository.count"/>
-          <attribute tag="method_kind" value="method"/>
-          <attribute tag="is_async" value="False"/>
           <codeElement xsi:type="code:ParameterUnit" name="self">
             <attribute tag="type_resolution" value="self"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.2/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
@@ -1143,12 +1076,8 @@
         <attribute tag="original_id" value="function:example_project.utils.validators.is_valid_name"/>
         <attribute tag="json_type" value="function"/>
         <attribute tag="qualified_name" value="example_project.utils.validators.is_valid_name"/>
-        <attribute tag="method_kind" value="function"/>
-        <attribute tag="is_async" value="False"/>
         <codeElement xsi:type="code:ParameterUnit" name="name">
           <attribute tag="type_resolution" value="builtin"/>
-          <attribute tag="parameter_kind" value="positional_or_keyword"/>
-          <attribute tag="parameter_index" value="0"/>
           <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.5/@codeElement.4"/>
         </codeElement>
         <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
@@ -1249,12 +1178,8 @@
         <attribute tag="original_id" value="function:example_project.utils.validators.is_valid_user_data"/>
         <attribute tag="json_type" value="function"/>
         <attribute tag="qualified_name" value="example_project.utils.validators.is_valid_user_data"/>
-        <attribute tag="method_kind" value="function"/>
-        <attribute tag="is_async" value="False"/>
         <codeElement xsi:type="code:ParameterUnit" name="user_data">
           <attribute tag="type_resolution" value="builtin"/>
-          <attribute tag="parameter_kind" value="positional_or_keyword"/>
-          <attribute tag="parameter_index" value="0"/>
           <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.5/@codeElement.0"/>
         </codeElement>
         <codeElement xsi:type="code:StorableUnit" name="required_fields">
@@ -1352,12 +1277,8 @@
         <attribute tag="original_id" value="function:example_project.utils.validators.normalize_name"/>
         <attribute tag="json_type" value="function"/>
         <attribute tag="qualified_name" value="example_project.utils.validators.normalize_name"/>
-        <attribute tag="method_kind" value="function"/>
-        <attribute tag="is_async" value="False"/>
         <codeElement xsi:type="code:ParameterUnit" name="name">
           <attribute tag="type_resolution" value="builtin"/>
-          <attribute tag="parameter_kind" value="positional_or_keyword"/>
-          <attribute tag="parameter_index" value="0"/>
           <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.5/@codeElement.4"/>
         </codeElement>
         <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
@@ -1409,12 +1330,8 @@
         <attribute tag="original_id" value="function:example_project.utils.validators.validate_positive_id"/>
         <attribute tag="json_type" value="function"/>
         <attribute tag="qualified_name" value="example_project.utils.validators.validate_positive_id"/>
-        <attribute tag="method_kind" value="function"/>
-        <attribute tag="is_async" value="False"/>
         <codeElement xsi:type="code:ParameterUnit" name="user_id">
           <attribute tag="type_resolution" value="builtin"/>
-          <attribute tag="parameter_kind" value="positional_or_keyword"/>
-          <attribute tag="parameter_index" value="0"/>
           <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.5/@codeElement.2"/>
         </codeElement>
         <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
@@ -1500,18 +1417,12 @@
           <attribute tag="original_id" value="method:example_project.services.user_service.BaseService.log_action"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.services.user_service.BaseService.log_action"/>
-          <attribute tag="method_kind" value="method"/>
-          <attribute tag="is_async" value="False"/>
           <codeElement xsi:type="code:ParameterUnit" name="self">
             <attribute tag="type_resolution" value="self"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.4/@codeElement.0"/>
           </codeElement>
           <codeElement xsi:type="code:ParameterUnit" name="action">
             <attribute tag="type_resolution" value="builtin"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="1"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.5/@codeElement.4"/>
           </codeElement>
           <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
@@ -1582,12 +1493,8 @@
           <attribute tag="original_id" value="method:example_project.services.user_service.UserService.__init__"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.services.user_service.UserService.__init__"/>
-          <attribute tag="method_kind" value="constructor"/>
-          <attribute tag="is_async" value="False"/>
           <codeElement xsi:type="code:ParameterUnit" name="self">
             <attribute tag="type_resolution" value="self"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.4/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
@@ -1634,18 +1541,12 @@
           <attribute tag="original_id" value="method:example_project.services.user_service.UserService.create_user"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.services.user_service.UserService.create_user"/>
-          <attribute tag="method_kind" value="method"/>
-          <attribute tag="is_async" value="False"/>
           <codeElement xsi:type="code:ParameterUnit" name="self">
             <attribute tag="type_resolution" value="self"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.4/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="code:ParameterUnit" name="user_data">
             <attribute tag="type_resolution" value="builtin"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="1"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.5/@codeElement.0"/>
           </codeElement>
           <codeElement xsi:type="code:StorableUnit" name="normalized_name">
@@ -1796,12 +1697,8 @@
           <attribute tag="original_id" value="method:example_project.services.user_service.UserService.process_users"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.services.user_service.UserService.process_users"/>
-          <attribute tag="method_kind" value="method"/>
-          <attribute tag="is_async" value="False"/>
           <codeElement xsi:type="code:ParameterUnit" name="self">
             <attribute tag="type_resolution" value="self"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.4/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="code:StorableUnit" name="active_users">
@@ -1903,18 +1800,12 @@
           <attribute tag="original_id" value="method:example_project.services.user_service.UserService.retry_save"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.services.user_service.UserService.retry_save"/>
-          <attribute tag="method_kind" value="method"/>
-          <attribute tag="is_async" value="False"/>
           <codeElement xsi:type="code:ParameterUnit" name="self">
             <attribute tag="type_resolution" value="self"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.4/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="code:ParameterUnit" name="user">
             <attribute tag="type_resolution" value="resolved"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="1"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.1/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="code:StorableUnit" name="attempts">
@@ -2052,18 +1943,12 @@
           <attribute tag="original_id" value="method:example_project.services.user_service.UserService.export_user"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.services.user_service.UserService.export_user"/>
-          <attribute tag="method_kind" value="method"/>
-          <attribute tag="is_async" value="False"/>
           <codeElement xsi:type="code:ParameterUnit" name="self">
             <attribute tag="type_resolution" value="self"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.4/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="code:ParameterUnit" name="user">
             <attribute tag="type_resolution" value="resolved"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="1"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.1/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="code:StorableUnit" name="user_dict">
@@ -2123,10 +2008,6 @@
           <attribute tag="original_id" value="method:example_project.services.user_service.UserService.build_guest_user"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.services.user_service.UserService.build_guest_user"/>
-          <attribute tag="method_kind" value="staticmethod"/>
-          <attribute tag="is_async" value="False"/>
-          <attribute tag="decorators" value="staticmethod"/>
-          <attribute tag="decorator_0" value="staticmethod"/>
           <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
             <attribute tag="role" value="callable_body"/>
             <attribute tag="callable_body_id" value="method:example_project.services.user_service.UserService.build_guest_user"/>
@@ -2163,20 +2044,12 @@
           <attribute tag="original_id" value="method:example_project.services.user_service.UserService.from_repository"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_name" value="example_project.services.user_service.UserService.from_repository"/>
-          <attribute tag="method_kind" value="classmethod"/>
-          <attribute tag="is_async" value="False"/>
-          <attribute tag="decorators" value="classmethod"/>
-          <attribute tag="decorator_0" value="classmethod"/>
           <codeElement xsi:type="code:ParameterUnit" name="cls">
             <attribute tag="type_resolution" value="cls"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="0"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.4/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="code:ParameterUnit" name="repository">
             <attribute tag="type_resolution" value="resolved"/>
-            <attribute tag="parameter_kind" value="positional_or_keyword"/>
-            <attribute tag="parameter_index" value="1"/>
             <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.2/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="code:StorableUnit" name="service">

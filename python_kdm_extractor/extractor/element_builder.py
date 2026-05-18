@@ -249,6 +249,8 @@ class ElementBuilder:
                 "target",
                 "iter",
                 "value",
+                "value_kind",
+                "value_type",
                 "exception",
                 "items",
                 "targets",
@@ -257,7 +259,10 @@ class ElementBuilder:
                 "condition_calls",
                 "iter_calls",
                 "value_call",
+                "value_call_id",
+                "value_call_sync_status",
                 "value_calls",
+                "value_calls_sync_status",
                 "exception_calls",
             ]
 

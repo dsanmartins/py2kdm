@@ -5,13 +5,14 @@ from extractor.ast_name_resolver import ASTNameResolver
 from extractor.model_id_builder import ModelIdBuilder
 from extractor.call_analyzer import CallAnalyzer
 from extractor.body_extractor import BodyExtractor
+from extractor.value_analyzer import ValueAnalyzer
 
 
 class PythonASTVisitor(ast.NodeVisitor):
     """
     Visits a Python AST and builds a file-level intermediate JSON model.
 
-    This visitor is the main AST traversal component of `python_kdm_extractor`.
+    This visitor is the main AST traversal component of python_kdm_extractor.
     It extracts structural and behavioral information from a Python source file
     and stores it in a JSON-compatible dictionary.
 
@@ -21,7 +22,8 @@ class PythonASTVisitor(ast.NodeVisitor):
     - imports and from-imports;
     - classes and inheritance information;
     - methods and module-level functions;
-    - parameters and type annotations;
+    - signatures, parameters, defaults and return annotations;
+    - decorators and method kinds;
     - class attributes;
     - instance attributes;
     - local variables;
@@ -37,15 +39,6 @@ class PythonASTVisitor(ast.NodeVisitor):
     def __init__(self, file_path: Path, project_root: Path):
         """
         Initializes the AST visitor for a single Python source file.
-
-        Parameters
-        ----------
-        file_path:
-            Path to the Python source file being analyzed.
-
-        project_root:
-            Root directory of the analyzed Python project. It is used to build
-            relative paths, module identifiers and qualified names.
         """
 
         self.file_path = file_path
@@ -55,6 +48,10 @@ class PythonASTVisitor(ast.NodeVisitor):
         self.id_builder = ModelIdBuilder(project_root, file_path)
         self.call_analyzer = CallAnalyzer()
         self.body_extractor = BodyExtractor()
+        self.value_analyzer = ValueAnalyzer(
+            self.name_resolver,
+            self.call_analyzer,
+        )
 
         self.model = {
             "id": self.id_builder.get_module_id(),
@@ -69,6 +66,10 @@ class PythonASTVisitor(ast.NodeVisitor):
 
         self.current_class = None
         self.current_function = None
+
+    # ------------------------------------------------------------
+    # Imports
+    # ------------------------------------------------------------
 
     def visit_Import(self, node):
         """
@@ -99,6 +100,7 @@ class PythonASTVisitor(ast.NodeVisitor):
         Example
         -------
         from services.user_service import UserService
+        from .repository import UserRepository
         """
 
         for alias in node.names:
@@ -108,18 +110,24 @@ class PythonASTVisitor(ast.NodeVisitor):
                     "module": node.module,
                     "name": alias.name,
                     "alias": alias.asname,
+                    "level": getattr(node, "level", 0),
                     "line": node.lineno,
                 }
             )
 
         self.generic_visit(node)
 
+    # ------------------------------------------------------------
+    # Class and callable definitions
+    # ------------------------------------------------------------
+
     def visit_ClassDef(self, node):
         """
         Extracts a Python class definition.
 
         The class model includes its id, name, qualified name, base classes,
-        methods, class attributes, instance attributes and source location.
+        decorators, methods, class attributes, instance attributes and source
+        location.
         """
 
         class_qualified_name = self.id_builder.get_class_qualified_name(node.name)
@@ -133,6 +141,7 @@ class PythonASTVisitor(ast.NodeVisitor):
                 self.name_resolver.get_name(base)
                 for base in node.bases
             ],
+            "decorators": self._extract_decorators(node),
             "methods": [],
             "attributes": [],
             "instance_attributes": [],
@@ -155,10 +164,20 @@ class PythonASTVisitor(ast.NodeVisitor):
         If the visitor is currently inside a class, the function is represented
         as a method. Otherwise, it is represented as a module-level function.
 
-        The function model includes parameters, local variables, calls, control
-        structures and executable body nodes.
+        The function model includes signature metadata, parameters, decorators,
+        local variables, calls, control structures and executable body nodes.
         """
 
+        self._visit_callable_def(node, is_async=False)
+
+    def visit_AsyncFunctionDef(self, node):
+        """
+        Extracts an async function or method definition.
+        """
+
+        self._visit_callable_def(node, is_async=True)
+
+    def _visit_callable_def(self, node, is_async: bool):
         if self.current_class is not None:
             function_id = self.id_builder.get_method_id(
                 self.current_class["name"],
@@ -174,12 +193,32 @@ class PythonASTVisitor(ast.NodeVisitor):
             qualified_name = self.id_builder.get_function_qualified_name(node.name)
             function_type = "function"
 
+        decorators = self._extract_decorators(node)
+        method_kind = self._infer_method_kind(
+            node=node,
+            function_type=function_type,
+            decorators=decorators,
+        )
+
+        parameters = self._extract_parameters(node)
+        return_annotation = self.name_resolver.get_name(node.returns) if node.returns else None
+
         function_model = {
             "id": function_id,
             "name": node.name,
             "qualified_name": qualified_name,
             "type": function_type,
-            "parameters": self._extract_parameters(node),
+            "method_kind": method_kind,
+            "is_async": is_async,
+            "decorators": decorators,
+            "return_annotation": return_annotation,
+            "signature": {
+                "parameters": parameters,
+                "return_annotation": return_annotation,
+                "is_async": is_async,
+                "method_kind": method_kind,
+            },
+            "parameters": parameters,
             "calls": [],
             "local_variables": [],
             "control_structures": [],
@@ -203,12 +242,9 @@ class PythonASTVisitor(ast.NodeVisitor):
 
         self.current_function = previous_function
 
-    def visit_AsyncFunctionDef(self, node):
-        """
-        Extracts an async function using the same model as a regular function.
-        """
-
-        self.visit_FunctionDef(node)
+    # ------------------------------------------------------------
+    # Assignments
+    # ------------------------------------------------------------
 
     def visit_Assign(self, node):
         """
@@ -223,7 +259,8 @@ class PythonASTVisitor(ast.NodeVisitor):
         """
 
         assigned_type = self._get_assigned_type_from_value(node.value)
-        assigned_value = self.name_resolver.get_name(node.value)
+        value_info = self.value_analyzer.analyze_value(node.value)
+        assigned_value = value_info.get("value")
 
         for target in node.targets:
             name = self.name_resolver.get_name(target)
@@ -239,6 +276,8 @@ class PythonASTVisitor(ast.NodeVisitor):
                         "type": "class_attribute",
                         "assigned_value": assigned_value,
                         "assigned_type": assigned_type,
+                        "value_kind": value_info.get("value_kind"),
+                        "value_type": value_info.get("value_type"),
                         "line": node.lineno,
                     }
                 )
@@ -259,6 +298,8 @@ class PythonASTVisitor(ast.NodeVisitor):
                         "assigned_value": assigned_value,
                         "assigned_type": assigned_type,
                         "resolved_type_id": None,
+                        "value_kind": value_info.get("value_kind"),
+                        "value_type": value_info.get("value_type"),
                         "line": node.lineno,
                     }
                 )
@@ -270,6 +311,8 @@ class PythonASTVisitor(ast.NodeVisitor):
                         "name": name,
                         "assigned_value": assigned_value,
                         "assigned_type": assigned_type,
+                        "value_kind": value_info.get("value_kind"),
+                        "value_type": value_info.get("value_type"),
                         "line": node.lineno,
                     }
                 )
@@ -289,7 +332,10 @@ class PythonASTVisitor(ast.NodeVisitor):
         name = self.name_resolver.get_name(node.target)
         annotation = self.name_resolver.get_name(node.annotation)
         assigned_type = self._get_assigned_type_from_value(node.value) if node.value else None
-        assigned_value = self.name_resolver.get_name(node.value) if node.value else None
+        value_info = self.value_analyzer.analyze_value(node.value)
+        assigned_value = value_info.get("value") if node.value else None
+        value_kind = value_info.get("value_kind") if node.value else None
+        value_type = value_info.get("value_type") if node.value else None
 
         if name is not None:
             # Case 1: class attribute with type annotation
@@ -300,7 +346,9 @@ class PythonASTVisitor(ast.NodeVisitor):
                         "type": "class_attribute",
                         "annotation": annotation,
                         "assigned_value": assigned_value,
-                        "assigned_type": assigned_type,
+                        "assigned_type": assigned_type or annotation,
+                        "value_kind": value_kind,
+                        "value_type": value_type,
                         "line": node.lineno,
                     }
                 )
@@ -322,6 +370,8 @@ class PythonASTVisitor(ast.NodeVisitor):
                         "assigned_value": assigned_value,
                         "assigned_type": assigned_type or annotation,
                         "resolved_type_id": None,
+                        "value_kind": value_kind,
+                        "value_type": value_type,
                         "line": node.lineno,
                     }
                 )
@@ -334,11 +384,17 @@ class PythonASTVisitor(ast.NodeVisitor):
                         "annotation": annotation,
                         "assigned_value": assigned_value,
                         "assigned_type": assigned_type or annotation,
+                        "value_kind": value_kind,
+                        "value_type": value_type,
                         "line": node.lineno,
                     }
                 )
 
         self.generic_visit(node)
+
+    # ------------------------------------------------------------
+    # Calls and control structures
+    # ------------------------------------------------------------
 
     def visit_Call(self, node):
         """
@@ -413,10 +469,6 @@ class PythonASTVisitor(ast.NodeVisitor):
     def visit_Try(self, node):
         """
         Extracts a lightweight summary of a try statement.
-
-        Detailed executable body information for try, except and finally blocks
-        is extracted by BodyExtractor. This method keeps a compact
-        control-structure summary.
         """
 
         if self.current_function is not None:
@@ -441,20 +493,14 @@ class PythonASTVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    # ------------------------------------------------------------
+    # Type and signature helpers
+    # ------------------------------------------------------------
+
     def _get_assigned_type_from_value(self, value_node):
         """
         Attempts to infer the assigned type from the right-hand side of an
         assignment.
-
-        Examples
-        --------
-        self.repository = UserRepository()  -> UserRepository
-        self.roles = []                     -> list
-        data = {}                           -> dict
-        name = "Irene"                      -> str
-        active = True                       -> bool
-        attempts = 0                        -> int
-        ratio = 0.5                         -> float
         """
 
         if value_node is None:
@@ -497,33 +543,172 @@ class PythonASTVisitor(ast.NodeVisitor):
 
     def _extract_parameters(self, node):
         """
-        Extracts function or method parameters with optional type annotations.
+        Extracts function or method parameters with annotations, defaults,
+        argument kind and source position.
 
-        Example
-        -------
-        def save(self, user: User):
-            ...
+        Supported parameter kinds:
 
-        Produces
-        --------
-        [
-            {"name": "self", "annotation": null},
-            {"name": "user", "annotation": "User"}
-        ]
+        - positional_only;
+        - positional_or_keyword;
+        - vararg;
+        - keyword_only;
+        - kwarg.
         """
 
         parameters = []
 
-        for arg in node.args.args:
+        positional_only_args = list(getattr(node.args, "posonlyargs", []))
+        positional_or_keyword_args = list(node.args.args)
+        default_values = self._align_defaults(
+            positional_only_args + positional_or_keyword_args,
+            node.args.defaults,
+        )
+
+        for index, arg in enumerate(positional_only_args):
             parameters.append(
-                {
-                    "name": arg.arg,
-                    "annotation": self.name_resolver.get_name(arg.annotation)
-                    if arg.annotation else None,
-                    "resolved_type_id": None,
-                    "resolved_type_qualified_name": None,
-                    "type_resolution": None,
-                }
+                self._build_parameter_model(
+                    arg=arg,
+                    kind="positional_only",
+                    index=index,
+                    default_value=default_values.get(id(arg)),
+                )
+            )
+
+        offset = len(positional_only_args)
+
+        for index, arg in enumerate(positional_or_keyword_args):
+            parameters.append(
+                self._build_parameter_model(
+                    arg=arg,
+                    kind="positional_or_keyword",
+                    index=offset + index,
+                    default_value=default_values.get(id(arg)),
+                )
+            )
+
+        if node.args.vararg is not None:
+            parameters.append(
+                self._build_parameter_model(
+                    arg=node.args.vararg,
+                    kind="vararg",
+                    index=len(parameters),
+                    default_value=None,
+                )
+            )
+
+        for index, arg in enumerate(node.args.kwonlyargs):
+            default_node = node.args.kw_defaults[index]
+            parameters.append(
+                self._build_parameter_model(
+                    arg=arg,
+                    kind="keyword_only",
+                    index=len(parameters),
+                    default_value=self.name_resolver.get_name(default_node)
+                    if default_node is not None
+                    else None,
+                )
+            )
+
+        if node.args.kwarg is not None:
+            parameters.append(
+                self._build_parameter_model(
+                    arg=node.args.kwarg,
+                    kind="kwarg",
+                    index=len(parameters),
+                    default_value=None,
+                )
             )
 
         return parameters
+
+    def _build_parameter_model(
+        self,
+        arg,
+        kind: str,
+        index: int,
+        default_value,
+    ):
+        """
+        Builds the JSON representation of one parameter.
+        """
+
+        return {
+            "name": arg.arg,
+            "annotation": self.name_resolver.get_name(arg.annotation)
+            if arg.annotation
+            else None,
+            "kind": kind,
+            "index": index,
+            "default_value": default_value,
+            "line": getattr(arg, "lineno", None),
+            "resolved_type_id": None,
+            "resolved_type_qualified_name": None,
+            "type_resolution": None,
+        }
+
+    def _align_defaults(self, args: list, defaults: list):
+        """
+        Aligns Python default values with their corresponding positional args.
+        """
+
+        result = {}
+
+        if not args or not defaults:
+            return result
+
+        start = len(args) - len(defaults)
+
+        for arg, default_node in zip(args[start:], defaults):
+            result[id(arg)] = self.name_resolver.get_name(default_node)
+
+        return result
+
+    def _extract_decorators(self, node):
+        """
+        Extracts decorators from a class, function or method definition.
+        """
+
+        return [
+            self.name_resolver.get_name(decorator)
+            for decorator in getattr(node, "decorator_list", [])
+            if self.name_resolver.get_name(decorator) is not None
+        ]
+
+    def _infer_method_kind(
+        self,
+        node,
+        function_type: str,
+        decorators: list,
+    ):
+        """
+        Infers the method kind from name and decorators.
+        """
+
+        if function_type != "method":
+            return "function"
+
+        decorator_names = set(decorators or [])
+
+        if node.name == "__init__":
+            return "constructor"
+
+        if "staticmethod" in decorator_names:
+            return "staticmethod"
+
+        if "classmethod" in decorator_names:
+            return "classmethod"
+
+        if "property" in decorator_names:
+            return "property_getter"
+
+        for decorator in decorator_names:
+            if decorator.endswith(".setter"):
+                return "property_setter"
+
+            if decorator.endswith(".deleter"):
+                return "property_deleter"
+
+            if decorator.endswith("abstractmethod"):
+                return "abstract_method"
+
+        return "method"

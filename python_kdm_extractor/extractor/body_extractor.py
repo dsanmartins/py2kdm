@@ -3,6 +3,7 @@ import hashlib
 
 from extractor.ast_name_resolver import ASTNameResolver
 from extractor.call_analyzer import CallAnalyzer
+from extractor.value_analyzer import ValueAnalyzer
 
 
 class BodyExtractor:
@@ -48,6 +49,10 @@ class BodyExtractor:
 
         self.name_resolver = ASTNameResolver()
         self.call_analyzer = CallAnalyzer()
+        self.value_analyzer = ValueAnalyzer(
+            self.name_resolver,
+            self.call_analyzer,
+        )
 
     def extract_body(self, statements: list, parent_id: str):
         """
@@ -379,12 +384,17 @@ class BodyExtractor:
         """
         Extracts a regular assignment statement.
 
-        If the right-hand side is a call, the call is stored in `value_call`.
+        The right-hand side is classified with ValueAnalyzer. This adds
+        value_kind and value_type metadata so that the KDM generator can later
+        create HasValue relationships.
+
+        If the right-hand side is a call, the call is stored in value_call.
         Nested calls inside arguments or keyword values are stored in
-        `value_calls`.
+        value_calls.
         """
 
         element_id = self._make_id(parent_id, "assign", node.lineno, index)
+        value_info = self.value_analyzer.analyze_value(node.value)
 
         statement = {
             "id": element_id,
@@ -394,13 +404,15 @@ class BodyExtractor:
                 self.name_resolver.get_name(target)
                 for target in node.targets
             ],
-            "value": self.name_resolver.get_name(node.value),
+            "value": value_info.get("value"),
+            "value_kind": value_info.get("value_kind"),
+            "value_type": value_info.get("value_type"),
             "line_start": node.lineno,
             "line_end": getattr(node, "end_lineno", node.lineno),
         }
 
-        if isinstance(node.value, ast.Call):
-            statement["value_call"] = self.call_analyzer.analyze_call(node.value)
+        if value_info.get("value_call") is not None:
+            statement["value_call"] = value_info.get("value_call")
 
             nested_calls = []
 
@@ -428,9 +440,14 @@ class BodyExtractor:
     ):
         """
         Extracts an annotated assignment statement.
+
+        The right-hand side is classified with ValueAnalyzer. This adds
+        value_kind and value_type metadata so that the KDM generator can later
+        create HasValue relationships.
         """
 
         element_id = self._make_id(parent_id, "ann_assign", node.lineno, index)
+        value_info = self.value_analyzer.analyze_value(node.value)
 
         statement = {
             "id": element_id,
@@ -438,14 +455,15 @@ class BodyExtractor:
             "statement_type": "annotated_assignment",
             "target": self.name_resolver.get_name(node.target),
             "annotation": self.name_resolver.get_name(node.annotation),
-            "value": self.name_resolver.get_name(node.value)
-            if node.value else None,
+            "value": value_info.get("value") if node.value else None,
+            "value_kind": value_info.get("value_kind") if node.value else None,
+            "value_type": value_info.get("value_type") if node.value else None,
             "line_start": node.lineno,
             "line_end": getattr(node, "end_lineno", node.lineno),
         }
 
-        if isinstance(node.value, ast.Call):
-            statement["value_call"] = self.call_analyzer.analyze_call(node.value)
+        if value_info.get("value_call") is not None:
+            statement["value_call"] = value_info.get("value_call")
 
             nested_calls = []
 

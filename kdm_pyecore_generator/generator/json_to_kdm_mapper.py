@@ -4,17 +4,17 @@ class JsonToKDMMapper:
         self.inventory_builder = inventory_builder
         self.id_index = {}
 
-        # Índices auxiliares para resolver herencia
+        # Auxiliary indexes for resolving inheritance
         self.qualified_name_index = {}
         self.class_name_index = {}
 
-        # Lenguaje del proyecto
+        # Project language
         self.language = "unknown"
 
-        # Elementos que pueden recibir code::HasType
+        # Elements that can receive code::HasType
         self.typable_elements = []
 
-        # Elementos que pueden recibir code::HasValue
+        # Elements that can receive code::HasValue
         self.value_elements = []
 
         self.storable_index = {}
@@ -129,6 +129,8 @@ class JsonToKDMMapper:
         # Non-physical metadata
         self._add_common_metadata(class_unit, cls)
 
+        self._add_decorator_metadata(class_unit, cls)
+
         self._register(cls.get("id"), class_unit, cls)
 
         for attr in cls.get("attributes", []):
@@ -160,6 +162,7 @@ class JsonToKDMMapper:
 
         # Non-physical metadata
         self._add_common_metadata(method_unit, method)
+        self._add_callable_signature_metadata(method_unit, method)
 
         self._register(method.get("id"), method_unit, method)
 
@@ -192,6 +195,7 @@ class JsonToKDMMapper:
 
         # Non-physical metadata
         self._add_common_metadata(callable_unit, func)
+        self._add_callable_signature_metadata(callable_unit, func)
 
         self._register(func.get("id"), callable_unit, func)
 
@@ -214,6 +218,9 @@ class JsonToKDMMapper:
 
         metadata = {
             "type_resolution": param.get("type_resolution"),
+            "parameter_kind": param.get("kind"),
+            "parameter_index": param.get("index"),
+            "default_value": param.get("default_value"),
         }
 
         self.factory.add_attributes_from_dict(parameter_unit, metadata)
@@ -252,6 +259,52 @@ class JsonToKDMMapper:
 
         self.factory.add_attributes_from_dict(storable_unit, metadata)
 
+    # ------------------------------------------------------------
+    # Callable and signature metadata
+    # ------------------------------------------------------------
+
+    def _add_callable_signature_metadata(self, callable_unit, callable_model: dict):
+        """
+        Adds lightweight signature metadata to MethodUnit or CallableUnit.
+
+        KDM MethodUnit/CallableUnit and ParameterUnit represent the callable
+        structure. The following attributes preserve Python-specific signature
+        details that do not have a direct KDM feature in the currently used
+        Ecore subset.
+        """
+
+        metadata = {
+            "method_kind": callable_model.get("method_kind"),
+            "is_async": callable_model.get("is_async"),
+            "return_annotation": callable_model.get("return_annotation"),
+        }
+
+        self.factory.add_attributes_from_dict(callable_unit, metadata)
+        self._add_decorator_metadata(callable_unit, callable_model)
+
+    def _add_decorator_metadata(self, kdm_element, model_element: dict):
+        decorators = model_element.get("decorators", [])
+
+        if not decorators:
+            return
+
+        self.factory.add_attribute(
+            kdm_element,
+            "decorators",
+            ", ".join(str(decorator) for decorator in decorators),
+        )
+
+        for index, decorator in enumerate(decorators):
+            self.factory.add_attribute(
+                kdm_element,
+                f"decorator_{index}",
+                decorator,
+            )
+
+    # ------------------------------------------------------------
+    # Registration helpers
+    # ------------------------------------------------------------
+
     def _register_typable(self, kdm_element, source_model: dict):
         self.typable_elements.append(
             {
@@ -281,7 +334,6 @@ class JsonToKDMMapper:
         return self.inventory_builder.get_source_file_by_path(
             file_model.get("path")
         )
-
 
     def _register_storable(self, storable_unit, var: dict, owner_model: dict = None):
         keys = set()
