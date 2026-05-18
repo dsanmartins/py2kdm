@@ -1,0 +1,32 @@
+{
+  "project_name": "pymape_hierarchical",
+  "language": "python",
+
+  "input": {
+    "source_path": "examples/pymape_hierarchical"
+  },
+
+  "outputs": {
+    "intermediate_json": "outputs/pymape_hierarchical/python_model.json",
+    "architecture_json": "outputs/pymape_hierarchical/python_model.architecture.json",
+    "kdm_xmi": "outputs/pymape_hierarchical/model.kdm.xmi"
+  },
+
+  "architecture_recovery": {
+    "enabled": true,
+    "mode": "semi_automatic",
+    "target_architecture": "mapek",
+    "autonomic_gate": {
+      "enabled": true,
+      "not_applicable_threshold": 0.40,
+      "candidate_threshold": 0.70
+    }
+  },
+
+  "kdm_generation": {
+    "validate": true,
+    "generate_inventory_model": true,
+    "generate_code_model": true,
+    "generate_structure_model": false
+  }
+}

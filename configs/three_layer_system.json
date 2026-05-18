@@ -1,0 +1,32 @@
+{
+  "project_name": "three_layer_system",
+  "language": "python",
+
+  "input": {
+    "source_path": "examples/three_layer_system"
+  },
+
+  "outputs": {
+    "intermediate_json": "outputs/three_layer_system/python_model.json",
+    "architecture_json": "outputs/three_layer_system/python_model.architecture.json",
+    "kdm_xmi": "outputs/three_layer_system/model.kdm.xmi"
+  },
+
+  "architecture_recovery": {
+    "enabled": true,
+    "mode": "semi_automatic",
+    "target_architecture": "mapek",
+    "autonomic_gate": {
+      "enabled": true,
+      "not_applicable_threshold": 0.40,
+      "candidate_threshold": 0.70
+    }
+  },
+
+  "kdm_generation": {
+    "validate": true,
+    "generate_inventory_model": true,
+    "generate_code_model": true,
+    "generate_structure_model": false
+  }
+}
