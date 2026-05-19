@@ -37,6 +37,10 @@ class KDMFactory:
         # KDM framework
         self.Segment = resolver.find("Segment")
 
+        # Extension package
+        self.ExtensionFamily = resolver.find("ExtensionFamily")
+        self.Stereotype = resolver.find("Stereotype")
+
         # Code package
         self.CodeModel = resolver.find("CodeModel")
         self.CompilationUnit = resolver.find("CompilationUnit")
@@ -138,6 +142,34 @@ class KDMFactory:
         segment = self.Segment()
         segment.name = name
         return segment
+
+    def create_extension_family(self, name: str):
+        """
+        Creates a KDM ExtensionFamily.
+        """
+
+        family = self.ExtensionFamily()
+        family.name = name
+        return family
+
+    def create_stereotype(self, name: str, stereotype_type: str):
+        """
+        Creates a KDM Stereotype.
+
+        The KDM extension package defines a stereotype name and a type string
+        indicating the kind of KDM element to which it applies, for example
+        ``structure:Component`` or ``structure:Subsystem``.
+        """
+
+        stereotype = self.Stereotype()
+        stereotype.name = name
+
+        if self.has_feature(stereotype, "type"):
+            stereotype.type = stereotype_type
+        else:
+            self.add_attribute(stereotype, "type", stereotype_type)
+
+        return stereotype
 
     # ------------------------------------------------------------
     # Code model elements

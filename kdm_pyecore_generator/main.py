@@ -22,6 +22,7 @@ from generator.body_action_mapper import BodyActionMapper
 from generator.exception_relation_resolver import ExceptionRelationResolver
 from generator.kdm_validator import KDMValidator
 from generator.structure_model_builder import StructureModelBuilder
+from generator.adaptive_stereotype_builder import AdaptiveStereotypeBuilder
 
 
 DEFAULT_KDM_ECORE_PATH = "metamodels/kdm_1_4.ecore"
@@ -275,10 +276,17 @@ def generate_kdm(
     # ------------------------------------------------------------
 
     if data.get("structure_model"):
+        stereotype_builder = AdaptiveStereotypeBuilder(
+            factory=factory,
+            segment=segment,
+        )
+        stereotype_builder.build_domain()
+
         structure_builder = StructureModelBuilder(
             factory=factory,
             segment=segment,
             id_index=mapper.id_index,
+            stereotype_builder=stereotype_builder,
         )
         structure_builder.build(data["structure_model"])
 

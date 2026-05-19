@@ -7,13 +7,32 @@ from kdm_architecture_recovery.rule_based_mapek_role_inferer import (
 from kdm_architecture_recovery.structure_relationship_recoverer import (
     StructureRelationshipRecoverer,
 )
+from kdm_architecture_recovery.adaptive_stereotype_catalog import (
+    architecture_profile,
+    stereotype_for_component_role,
+    stereotype_for_subsystem,
+)
+from kdm_architecture_recovery.control_io_recoverer import ControlIORecoverer
+from kdm_architecture_recovery.containment_recoverer import ContainmentRecoverer
 
 
 class ArchitectureRecoveryEngine:
     """
     Semi-automatic architecture recovery engine for self-adaptive systems.
 
-    Version 4 adds structure relationship recovery.
+    Version 6 adds:
+    - Adaptive System Domain stereotype metadata;
+    - Reference Input, Measured Output, Sensor and Effector recovery;
+    - containment/composition relationships following the REMEDY/MAPE-K
+      hierarchy:
+        Managing Subsystem -> Loop Manager -> Control Loop -> MAPE-K roles
+        Managed Subsystem  -> Sensor / Effector / Measured Output.
+
+    Notes:
+    - Alternative is intentionally not promoted as a structural stereotype.
+      Alternatives are considered internal Planner evidence.
+    - Control Loop is kept in the `control_loops` section and materialized
+      later by the KDM generator as the architectural loop abstraction.
     """
 
     COMPONENT_CONFIDENCE_THRESHOLD = 0.60
@@ -26,10 +45,21 @@ class ArchitectureRecoveryEngine:
         "Knowledge",
     }
 
+    LOOP_INTERNAL_ROLES = {
+        "Monitor",
+        "Analyzer",
+        "Planner",
+        "Executor",
+        "Knowledge",
+        "ReferenceInput",
+    }
+
     def __init__(self):
         self.gate = AutonomicApplicabilityGate()
         self.role_inferer = RuleBasedMAPEKRoleInferer()
         self.relationship_recoverer = StructureRelationshipRecoverer()
+        self.control_io_recoverer = ControlIORecoverer()
+        self.containment_recoverer = ContainmentRecoverer()
 
     def enrich_project_model(self, project_model: dict):
         applicability = self.gate.evaluate(project_model)
@@ -47,14 +77,26 @@ class ArchitectureRecoveryEngine:
             return project_model
 
         role_suggestions = self.role_inferer.infer_roles(project_model)
+
         components = self._build_components(role_suggestions)
+
+        # Add Sensor, Effector, Reference Input and Measured Output candidates.
+        control_io_components = self.control_io_recoverer.recover(
+            data=project_model,
+            existing_components=components,
+        )
+        components.extend(control_io_components)
+        components = self._deduplicate_components(components)
+
         control_loops = self._build_control_loops(components)
+        subsystems = self._build_subsystems(components, control_loops)
 
         structure_model = {
             "name": "InferredCurrentArchitecture",
             "status": "proposed_inferred_architecture",
             "recovery_mode": "semi_automatic",
             "architecture_family": "self_adaptive_mapek",
+            "architecture_profile": architecture_profile(),
             "autonomic_applicability": applicability,
             "software_system": {
                 "id": f"software_system:{project_model.get('projectName', 'project')}",
@@ -70,8 +112,9 @@ class ArchitectureRecoveryEngine:
             "role_suggestions": role_suggestions,
             "components": components,
             "control_loops": control_loops,
-            "subsystems": self._build_subsystems(components, control_loops),
+            "subsystems": subsystems,
             "structure_relationships": [],
+            "containment_relationships": [],
         }
 
         structure_relationships = self.relationship_recoverer.recover(
@@ -79,21 +122,43 @@ class ArchitectureRecoveryEngine:
             structure_model=structure_model,
         )
 
-        structure_model["structure_relationships"] = structure_relationships
+        containment_relationships = self.containment_recoverer.recover(
+            structure_model=structure_model,
+        )
+
+        # Keep both views:
+        # - structure_relationships: all architectural relationships to be
+        #   materialized by the KDM generator.
+        # - containment_relationships: explicit subset useful for GUI/review.
+        structure_model["structure_relationships"] = self._deduplicate_relationships(
+            structure_relationships + containment_relationships
+        )
+        structure_model["containment_relationships"] = containment_relationships
+
         structure_model["recovery_statistics"] = self._build_recovery_statistics(
-            role_suggestions,
-            components,
-            control_loops,
-            structure_relationships,
+            role_suggestions=role_suggestions,
+            components=components,
+            control_loops=control_loops,
+            structure_relationships=structure_model["structure_relationships"],
+            control_io_components=control_io_components,
+            containment_relationships=containment_relationships,
         )
 
         project_model["structure_model"] = structure_model
+
         architecture_recovery["mapek_recovery"] = "enabled"
         architecture_recovery["role_suggestions_count"] = len(role_suggestions)
         architecture_recovery["components_count"] = len(components)
+        architecture_recovery["control_io_components_count"] = len(
+            control_io_components
+        )
         architecture_recovery["control_loops_count"] = len(control_loops)
+        architecture_recovery["subsystems_count"] = len(subsystems)
         architecture_recovery["structure_relationships_count"] = len(
-            structure_relationships
+            structure_model["structure_relationships"]
+        )
+        architecture_recovery["containment_relationships_count"] = len(
+            containment_relationships
         )
 
         return project_model
@@ -110,6 +175,12 @@ class ArchitectureRecoveryEngine:
                 continue
 
             role = suggestion.get("suggested_role")
+
+            # Alternative is not a structural stereotype in this version.
+            # It can be retained as Planner evidence by future enrichers.
+            if role == "Alternative":
+                continue
+
             code_id = suggestion.get("code_element_id")
             qn = suggestion.get("code_element_qualified_name")
             component_name = self._component_name_from_qualified_name(qn, role)
@@ -120,20 +191,25 @@ class ArchitectureRecoveryEngine:
                 code_element_id=code_id,
             )
 
-            components.append(
-                {
-                    "id": component_id,
-                    "name": component_name,
-                    "role": role,
-                    "implemented_by": [code_id] if code_id else [],
-                    "confidence": suggestion.get("confidence"),
-                    "evidence": suggestion.get("evidence", []),
-                    "source": suggestion.get("source"),
-                    "status": suggestion.get("status"),
-                    "code_element_type": suggestion.get("code_element_type"),
-                    "loop_hint": suggestion.get("loop_hint"),
-                }
-            )
+            component = {
+                "id": component_id,
+                "name": component_name,
+                "role": role,
+                "implemented_by": [code_id] if code_id else [],
+                "confidence": suggestion.get("confidence"),
+                "evidence": suggestion.get("evidence", []),
+                "source": suggestion.get("source"),
+                "status": suggestion.get("status"),
+                "code_element_type": suggestion.get("code_element_type"),
+                "loop_hint": suggestion.get("loop_hint"),
+            }
+
+            stereotype_info = stereotype_for_component_role(role)
+
+            if stereotype_info:
+                component.update(stereotype_info)
+
+            components.append(component)
 
         return self._deduplicate_components(components)
 
@@ -169,16 +245,25 @@ class ArchitectureRecoveryEngine:
     # ------------------------------------------------------------
 
     def _build_control_loops(self, components: list):
-        mapek_components = [
+        loop_candidate_components = [
             component
             for component in components
+            if component.get("role") in self.LOOP_INTERNAL_ROLES
+        ]
+
+        if not loop_candidate_components:
+            return []
+
+        mapek_components = [
+            component
+            for component in loop_candidate_components
             if component.get("role") in self.MAPEK_CORE_ROLES
         ]
 
         if not mapek_components:
             return []
 
-        grouped = self._group_components_by_loop_hint(mapek_components)
+        grouped = self._group_components_by_loop_hint(loop_candidate_components)
         control_loops = []
 
         for loop_key, group_components in grouped.items():
@@ -201,10 +286,16 @@ class ArchitectureRecoveryEngine:
             confidence = self._average_component_confidence(group_components)
             status = "auto_accepted" if confidence >= 0.85 else "needs_review"
 
+            loop_id = f"control_loop:{self._slug(loop_key)}"
+
             control_loops.append(
                 {
-                    "id": f"control_loop:{self._slug(loop_key)}",
+                    "id": loop_id,
                     "name": self._readable_loop_name(loop_key),
+                    "role": "Loop",
+                    "stereotype_name": "Control Loop",
+                    "stereotype_domain": "Adaptive System Domain",
+                    "stereotype_type": "structure:Component",
                     "level": 1,
                     "scope": "flat",
                     "loop_completeness": completeness,
@@ -212,14 +303,14 @@ class ArchitectureRecoveryEngine:
                     "components": [
                         component.get("id")
                         for component in group_components
-                        if component.get("role") in self.MAPEK_CORE_ROLES
+                        if component.get("role") in self.LOOP_INTERNAL_ROLES
                     ],
                     "roles_present": sorted(present_roles),
                     "confidence": confidence,
                     "status": status,
                     "evidence": [
-                        "Candidate loop inferred from high-confidence MAPE-K "
-                        "components.",
+                        "Candidate control loop inferred from high-confidence "
+                        "MAPE-K components.",
                         f"Roles present: {', '.join(sorted(present_roles))}",
                     ],
                 }
@@ -227,12 +318,13 @@ class ArchitectureRecoveryEngine:
 
         return control_loops
 
-    def _group_components_by_loop_hint(self, mapek_components: list):
+    def _group_components_by_loop_hint(self, components: list):
         hinted_groups = {}
         shared_knowledge = []
+        shared_reference_inputs = []
         unhinted = []
 
-        for component in mapek_components:
+        for component in components:
             loop_hint = component.get("loop_hint")
 
             if loop_hint:
@@ -241,18 +333,21 @@ class ArchitectureRecoveryEngine:
 
             if component.get("role") == "Knowledge":
                 shared_knowledge.append(component)
+            elif component.get("role") == "ReferenceInput":
+                shared_reference_inputs.append(component)
             else:
                 unhinted.append(component)
 
         if hinted_groups:
             for loop_key in list(hinted_groups.keys()):
                 hinted_groups[loop_key].extend(shared_knowledge)
+                hinted_groups[loop_key].extend(shared_reference_inputs)
                 hinted_groups[loop_key].extend(unhinted)
 
             return hinted_groups
 
         return {
-            "main_candidate_loop": mapek_components
+            "main_candidate_loop": components
         }
 
     def _loop_completeness(self, present_roles: set):
@@ -279,13 +374,12 @@ class ArchitectureRecoveryEngine:
             "Knowledge",
             "LoopManager",
             "ReferenceInput",
-            "Alternative",
         }
 
         managed_roles = {
             "Sensor",
             "Effector",
-            "ManagedElement",
+            "MeasuredOutput",
         }
 
         managing_components = [
@@ -302,34 +396,42 @@ class ArchitectureRecoveryEngine:
 
         subsystems = []
 
-        if managing_components:
-            subsystems.append(
-                {
-                    "id": "subsystem:managing_subsystem",
-                    "name": "Managing Subsystem",
-                    "components": self._unique(managing_components),
-                    "control_loops": [
-                        loop.get("id") for loop in control_loops
-                    ],
-                    "confidence": self._average_confidence(
-                        components,
-                        managing_components,
-                    ),
-                }
-            )
+        if managing_components or control_loops:
+            subsystem = {
+                "id": "subsystem:managing_subsystem",
+                "name": "Managing Subsystem",
+                "components": self._unique(managing_components),
+                "control_loops": [
+                    loop.get("id") for loop in control_loops
+                ],
+                "confidence": self._average_confidence(
+                    components,
+                    managing_components,
+                ),
+            }
+
+            stereotype_info = stereotype_for_subsystem(subsystem)
+            if stereotype_info:
+                subsystem.update(stereotype_info)
+
+            subsystems.append(subsystem)
 
         if managed_components:
-            subsystems.append(
-                {
-                    "id": "subsystem:managed_subsystem",
-                    "name": "Managed Subsystem",
-                    "components": self._unique(managed_components),
-                    "confidence": self._average_confidence(
-                        components,
-                        managed_components,
-                    ),
-                }
-            )
+            subsystem = {
+                "id": "subsystem:managed_subsystem",
+                "name": "Managed Subsystem",
+                "components": self._unique(managed_components),
+                "confidence": self._average_confidence(
+                    components,
+                    managed_components,
+                ),
+            }
+
+            stereotype_info = stereotype_for_subsystem(subsystem)
+            if stereotype_info:
+                subsystem.update(stereotype_info)
+
+            subsystems.append(subsystem)
 
         return subsystems
 
@@ -343,7 +445,12 @@ class ArchitectureRecoveryEngine:
         components: list,
         control_loops: list,
         structure_relationships: list,
+        control_io_components: list = None,
+        containment_relationships: list = None,
     ):
+        control_io_components = control_io_components or []
+        containment_relationships = containment_relationships or []
+
         weak_suggestions = [
             suggestion
             for suggestion in role_suggestions
@@ -368,8 +475,10 @@ class ArchitectureRecoveryEngine:
             "needs_review_suggestions": len(needs_review),
             "weak_suggestions": len(weak_suggestions),
             "promoted_components": len(components),
+            "control_io_components": len(control_io_components),
             "control_loops": len(control_loops),
             "structure_relationships": len(structure_relationships),
+            "containment_relationships": len(containment_relationships),
             "component_confidence_threshold": self.COMPONENT_CONFIDENCE_THRESHOLD,
         }
 
@@ -377,6 +486,7 @@ class ArchitectureRecoveryEngine:
         values = [
             component.get("confidence", 0.0)
             for component in components
+            if isinstance(component.get("confidence", 0.0), (int, float))
         ]
 
         if not values:
@@ -391,6 +501,7 @@ class ArchitectureRecoveryEngine:
             component.get("confidence", 0.0)
             for component in components
             if component.get("id") in selected_ids
+            and isinstance(component.get("confidence", 0.0), (int, float))
         ]
 
         if not values:
@@ -470,3 +581,22 @@ class ArchitectureRecoveryEngine:
                 by_id[component_id] = component
 
         return list(by_id.values())
+
+    def _deduplicate_relationships(self, relationships: list):
+        seen = set()
+        result = []
+
+        for relationship in relationships:
+            key = (
+                relationship.get("source"),
+                relationship.get("type"),
+                relationship.get("target"),
+            )
+
+            if key in seen:
+                continue
+
+            seen.add(key)
+            result.append(relationship)
+
+        return result

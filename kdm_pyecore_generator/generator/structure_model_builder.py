@@ -28,10 +28,11 @@ class StructureModelBuilder:
       found in id_index, it preserves the string id as an attribute.
     """
 
-    def __init__(self, factory, segment, id_index=None):
+    def __init__(self, factory, segment, id_index=None, stereotype_builder=None):
         self.factory = factory
         self.segment = segment
         self.id_index = id_index or {}
+        self.stereotype_builder = stereotype_builder
 
         self.structure_model = None
         self.element_index = {}
@@ -73,6 +74,7 @@ class StructureModelBuilder:
         self._build_control_loops(structure_model_data)
         self._build_subsystems(structure_model_data)
         self._build_architectural_relationships(structure_model_data)
+        self._apply_containment_nesting(structure_model_data)
 
         return self.structure_model
 
@@ -123,6 +125,12 @@ class StructureModelBuilder:
             )
 
             element = self.factory.create_component(display_name)
+
+            if self.stereotype_builder is not None:
+                self.stereotype_builder.apply_component_stereotype(
+                    element,
+                    component_data,
+                )
 
             self._add_common_attributes(
                 element=element,
@@ -189,9 +197,18 @@ class StructureModelBuilder:
 
     def _build_control_loops(self, structure_model_data: dict):
         for loop_data in structure_model_data.get("control_loops", []):
-            element = self.factory.create_structure_element(
+            # In the Adaptive System Domain, a Control Loop is an architectural
+            # Component stereotyped as <<Control Loop>>. It is later nested under
+            # a CL Manager or directly under the Managing Subsystem.
+            element = self.factory.create_component(
                 loop_data.get("name", "ControlLoop")
             )
+
+            if self.stereotype_builder is not None:
+                self.stereotype_builder.apply_component_stereotype(
+                    element,
+                    loop_data,
+                )
 
             self._add_common_attributes(
                 element=element,
@@ -199,6 +216,11 @@ class StructureModelBuilder:
                 structure_kind="control_loop",
             )
 
+            self.factory.add_attribute(
+                element,
+                "role",
+                loop_data.get("role", "Loop"),
+            )
             self.factory.add_attribute(
                 element,
                 "level",
@@ -242,7 +264,7 @@ class StructureModelBuilder:
             for component_id in loop_data.get("components", []):
                 self.factory.add_attribute(
                     element,
-                    "component",
+                    "contained_component",
                     component_id,
                 )
 
@@ -250,7 +272,7 @@ class StructureModelBuilder:
                 if display_name:
                     self.factory.add_attribute(
                         element,
-                        "component_display_name",
+                        "contained_component_display_name",
                         display_name,
                     )
 
@@ -269,6 +291,12 @@ class StructureModelBuilder:
             element = self.factory.create_subsystem(
                 subsystem_data.get("name", "Subsystem")
             )
+
+            if self.stereotype_builder is not None:
+                self.stereotype_builder.apply_subsystem_stereotype(
+                    element,
+                    subsystem_data,
+                )
 
             self._add_common_attributes(
                 element=element,
@@ -362,6 +390,11 @@ class StructureModelBuilder:
                 "relationship_status",
                 relationship_data.get("status"),
             )
+            self.factory.add_attribute(
+                relation,
+                "composition_kind",
+                "containment" if relationship_data.get("type") == "contains" else None,
+            )
 
             source_display_name = self.component_display_names.get(source_id)
             if source_display_name:
@@ -413,6 +446,11 @@ class StructureModelBuilder:
                 aggregated,
                 "target_role",
                 relationship_data.get("target_role"),
+            )
+            self.factory.add_attribute(
+                aggregated,
+                "composition_kind",
+                "containment" if relationship_data.get("type") == "contains" else None,
             )
 
             self._attach_aggregated_relationship(source, aggregated)
@@ -538,6 +576,237 @@ class StructureModelBuilder:
             .replace(":", "_")
             .replace(".", "_")
         )
+
+    # ------------------------------------------------------------
+    # Nested containment
+    # ------------------------------------------------------------
+
+    def _apply_containment_nesting(self, structure_model_data: dict):
+        """
+        Reorganizes StructureModel elements into nested structureElement
+        containment, following the Adaptive System Domain hierarchy.
+
+        Desired hierarchy:
+
+            Managing Subsystem
+              CL Manager
+                Control Loop
+                  Monitor / Analyzer / Planner / Executor / Knowledge /
+                  Reference Input
+
+            Managed Subsystem
+              Sensor / Effector / Measured Output
+
+        Notes:
+        - KDM references and aggregated relationships remain valid because the
+          same Python objects are moved in the containment tree.
+        - If no CL Manager is found, Control Loop is nested directly under the
+          Managing Subsystem.
+        - If an element cannot be nested because the metamodel lacks
+          structureElement on the parent, it remains top-level and a trace
+          attribute is added.
+        """
+
+        if not self.factory.has_feature(self.structure_model, "structureElement"):
+            return
+
+        components = structure_model_data.get("components", [])
+        control_loops = structure_model_data.get("control_loops", [])
+        subsystems = structure_model_data.get("subsystems", [])
+
+        component_by_id = {
+            component.get("id"): component
+            for component in components
+        }
+
+        managing_subsystem = self._find_subsystem_id(
+            subsystems,
+            "Managing Subsystem",
+        )
+        managed_subsystem = self._find_subsystem_id(
+            subsystems,
+            "Managed Subsystem",
+        )
+
+        managing_element = self.element_index.get(managing_subsystem)
+        managed_element = self.element_index.get(managed_subsystem)
+
+        loop_manager_ids = [
+            component.get("id")
+            for component in components
+            if component.get("role") == "LoopManager"
+            or component.get("stereotype_name") == "CL Manager"
+        ]
+
+        # 1. Managing Subsystem -> CL Manager
+        for loop_manager_id in loop_manager_ids:
+            if managing_element is not None:
+                self._nest_structure_element(
+                    parent=managing_element,
+                    child=self.element_index.get(loop_manager_id),
+                    relationship_label="Managing Subsystem contains CL Manager",
+                )
+
+        # 2. CL Manager -> Control Loop(s), or Managing Subsystem -> Control Loop
+        loop_parent = None
+        if loop_manager_ids:
+            loop_parent = self.element_index.get(loop_manager_ids[0])
+        elif managing_element is not None:
+            loop_parent = managing_element
+
+        for loop_data in control_loops:
+            loop_element = self.element_index.get(loop_data.get("id"))
+
+            if loop_parent is not None:
+                self._nest_structure_element(
+                    parent=loop_parent,
+                    child=loop_element,
+                    relationship_label="CL Manager contains Control Loop"
+                    if loop_manager_ids
+                    else "Managing Subsystem contains Control Loop",
+                )
+
+            # 3. Control Loop -> MAPE/control abstractions
+            for component_id in loop_data.get("components", []):
+                component_data = component_by_id.get(component_id, {})
+                role = component_data.get("role")
+
+                if role in {
+                    "Monitor",
+                    "Analyzer",
+                    "Planner",
+                    "Executor",
+                    "Knowledge",
+                    "ReferenceInput",
+                }:
+                    self._nest_structure_element(
+                        parent=loop_element,
+                        child=self.element_index.get(component_id),
+                        relationship_label=f"Control Loop contains {role}",
+                    )
+
+        # 4. Managed Subsystem -> Sensor / Effector / Measured Output
+        if managed_element is not None:
+            for component in components:
+                if component.get("role") in {
+                    "Sensor",
+                    "Effector",
+                    "MeasuredOutput",
+                }:
+                    self._nest_structure_element(
+                        parent=managed_element,
+                        child=self.element_index.get(component.get("id")),
+                        relationship_label=(
+                            "Managed Subsystem contains "
+                            f"{component.get('role')}"
+                        ),
+                    )
+
+        # 5. Managing Subsystem -> remaining managing abstractions not already
+        # nested under a Control Loop.
+        if managing_element is not None:
+            for component in components:
+                component_id = component.get("id")
+                role = component.get("role")
+
+                if role not in {
+                    "Monitor",
+                    "Analyzer",
+                    "Planner",
+                    "Executor",
+                    "Knowledge",
+                    "ReferenceInput",
+                }:
+                    continue
+
+                element = self.element_index.get(component_id)
+
+                if element is None or self._is_nested_under_any_parent(element):
+                    continue
+
+                self._nest_structure_element(
+                    parent=managing_element,
+                    child=element,
+                    relationship_label=f"Managing Subsystem contains {role}",
+                )
+
+    def _find_subsystem_id(self, subsystems: list, expected_name: str):
+        expected = expected_name.lower()
+
+        for subsystem in subsystems:
+            text = f"{subsystem.get('id', '')} {subsystem.get('name', '')}".lower()
+
+            if expected in text:
+                return subsystem.get("id")
+
+        return None
+
+    def _nest_structure_element(self, parent, child, relationship_label: str):
+        if parent is None or child is None:
+            return False
+
+        if parent is child:
+            return False
+
+        if not self.factory.has_feature(parent, "structureElement"):
+            self.factory.add_attribute(
+                parent,
+                "unapplied_nested_containment",
+                relationship_label,
+            )
+            self.factory.add_attribute(
+                parent,
+                "unapplied_nested_child",
+                getattr(child, "name", None),
+            )
+            return False
+
+        # Avoid duplicate containment.
+        if child in list(parent.structureElement):
+            return True
+
+        # Remove child from top-level StructureModel if present.
+        if (
+            self.factory.has_feature(self.structure_model, "structureElement")
+            and child in list(self.structure_model.structureElement)
+        ):
+            self.structure_model.structureElement.remove(child)
+
+        # Remove child from a previous nested parent if needed. PyEcore
+        # usually handles containment reassignment, but this keeps behavior
+        # explicit.
+        current_parent = None
+        if hasattr(child, "eContainer"):
+            current_parent = child.eContainer()
+
+        if (
+            current_parent is not None
+            and current_parent is not parent
+            and self.factory.has_feature(current_parent, "structureElement")
+            and child in list(current_parent.structureElement)
+        ):
+            current_parent.structureElement.remove(child)
+
+        parent.structureElement.append(child)
+
+        self.factory.add_attribute(
+            child,
+            "nested_under",
+            getattr(parent, "name", None),
+        )
+        self.factory.add_attribute(
+            child,
+            "nested_containment_reason",
+            relationship_label,
+        )
+
+        return True
+
+    def _is_nested_under_any_parent(self, element):
+        if element is None or not hasattr(element, "eContainer"):
+            return False
+
+        return element.eContainer() is not self.structure_model
 
     # ------------------------------------------------------------
     # Helpers
