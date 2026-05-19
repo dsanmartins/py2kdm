@@ -5,6 +5,17 @@ py2kdm configurable pipeline runner.
 This script separates py2kdm implementation code from example systems,
 configuration files and generated outputs.
 
+Recommended project layout
+--------------------------
+py2kdm/
+├── run_pipeline.py
+├── python_kdm_extractor/
+├── kdm_architecture_recovery/
+├── kdm_pyecore_generator/
+├── examples/
+├── configs/
+└── outputs/
+
 Typical usage
 -------------
 From the py2kdm root directory:
@@ -46,9 +57,16 @@ Expected config structure
 
 Notes
 -----
-- The Python extractor is still executed as an independent subproject.
-- The KDM generator is still executed as an independent subproject.
-- Architecture recovery is optional and works over the intermediate JSON.
+- python_kdm_extractor remains independent:
+      Python source code -> intermediate JSON.
+
+- kdm_architecture_recovery remains independent:
+      intermediate JSON -> enriched JSON with architecture_recovery and,
+      when applicable, structure_model.
+
+- kdm_pyecore_generator remains independent:
+      JSON -> KDM XMI.
+
 - MAPE-K recovery is guarded by the AutonomicApplicabilityGate.
 """
 
@@ -236,9 +254,9 @@ def run_architecture_recovery(input_path: Path, output_path: Path) -> None:
     if not input_path.exists():
         raise FileNotFoundError(f"Intermediate JSON not found: {input_path}")
 
-    add_extractor_to_path()
+    add_project_paths_to_sys_path()
 
-    from extractor.architecture.architecture_recovery_engine import (  # noqa: E402
+    from kdm_architecture_recovery.architecture_recovery_engine import (  # noqa: E402
         ArchitectureRecoveryEngine,
     )
 
@@ -319,6 +337,7 @@ def select_kdm_input(
 
     - "intermediate_json";
     - "architecture_json";
+    - "default";
     - an explicit path.
     """
 
@@ -368,11 +387,26 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def add_extractor_to_path() -> None:
-    extractor_path = ROOT / "python_kdm_extractor"
+def add_project_paths_to_sys_path() -> None:
+    """
+    Adds project-level packages to sys.path.
 
-    if str(extractor_path) not in sys.path:
-        sys.path.insert(0, str(extractor_path))
+    Needed for importing the independent architecture recovery package:
+
+        kdm_architecture_recovery
+
+    and also keeps python_kdm_extractor available in case future recovery
+    modules reuse extractor utilities.
+    """
+
+    paths = [
+        ROOT,
+        ROOT / "python_kdm_extractor",
+    ]
+
+    for path in paths:
+        if str(path) not in sys.path:
+            sys.path.insert(0, str(path))
 
 
 def is_enabled(section: Dict[str, Any]) -> bool:

@@ -2,63 +2,31 @@ class ImportResolver:
     """
     Resolves Python import statements as internal or external references.
 
-    This resolver enriches each import model produced by PythonASTVisitor using
-    the symbols registered in SymbolTable.
+    This version correctly resolves package-relative imports such as:
 
-    Supported import forms include:
+        from . import config as mape_config
 
-    - plain imports:
-        import json
-        import repository.user_repository
-        import repository.user_repository as repo
+    when they appear inside a package __init__.py file. For example, if the
+    current file model corresponds to:
 
-    - from-imports:
-        from repository.user_repository import UserRepository
-        from services.user_service import validate_user
-        from repository import user_repository
-        from .repository import UserRepository
-        from repository.user_repository import *
+        pymape_hierarchical.mape
 
-    Each import is enriched with:
+    then:
 
-    - classification: "internal" or "external";
-    - resolved: True or False;
-    - target_id: id of the resolved internal element;
-    - target_qualified_name: qualified name of the resolved element;
-    - target_type: "module", "class", "function" or "wildcard";
-    - resolved_module_qualified_name when it can be inferred;
-    - effective_name, which is the alias if present, otherwise the imported name.
+        from . import config
 
-    Imports that cannot be matched against the internal symbol table are marked
-    as external, while preserving enough metadata for downstream dependency
-    analysis and KDM Imports generation.
+    should try:
+
+        pymape_hierarchical.mape.config
+
+    before marking the import as external.
     """
 
     def __init__(self, symbol_table, project_name: str):
-        """
-        Initializes the import resolver.
-
-        Parameters
-        ----------
-        symbol_table:
-            SymbolTable containing modules, classes, functions and methods
-            extracted from the analyzed project.
-
-        project_name:
-            Name of the analyzed project. It is used to build candidate
-            qualified module names for relative-looking imports.
-        """
-
         self.symbol_table = symbol_table
         self.project_name = project_name
 
     def resolve_project_imports(self, project_model: dict):
-        """
-        Resolves all imports in the project model.
-
-        Files that contain extraction errors are skipped.
-        """
-
         for file_model in project_model.get("files", []):
             if "error" in file_model:
                 continue
@@ -69,19 +37,6 @@ class ImportResolver:
         return project_model
 
     def resolve_import(self, import_model: dict, file_model: dict = None):
-        """
-        Resolves a single import model.
-
-        Parameters
-        ----------
-        import_model:
-            Import dictionary produced by PythonASTVisitor.
-
-        file_model:
-            Current module model. It is optional and is used to resolve
-            relative imports when the import model contains a `level` field.
-        """
-
         self._add_common_metadata(import_model)
 
         import_type = import_model.get("type")
@@ -95,21 +50,7 @@ class ImportResolver:
         else:
             self._mark_external(import_model)
 
-    # ------------------------------------------------------------
-    # Plain imports
-    # ------------------------------------------------------------
-
     def _resolve_plain_import(self, import_model: dict, file_model: dict = None):
-        """
-        Resolves plain imports.
-
-        Examples
-        --------
-        import json
-        import repository.user_repository
-        import repository.user_repository as repo
-        """
-
         module = import_model.get("module")
 
         if not module:
@@ -132,31 +73,13 @@ class ImportResolver:
                     import_model,
                     module_symbol,
                     target_type="module",
-                    resolved_module_qualified_name=module_symbol.get(
-                        "qualified_name"
-                    ),
+                    resolved_module_qualified_name=module_symbol.get("qualified_name"),
                 )
                 return
 
         self._mark_external(import_model)
 
-    # ------------------------------------------------------------
-    # From imports
-    # ------------------------------------------------------------
-
     def _resolve_from_import(self, import_model: dict, file_model: dict = None):
-        """
-        Resolves from-import statements.
-
-        Resolution priority
-        -------------------
-        1. Wildcard import resolves to the imported module.
-        2. Class inside the imported module.
-        3. Function inside the imported module.
-        4. Imported submodule.
-        5. Imported module itself.
-        """
-
         module = import_model.get("module")
         name = import_model.get("name")
 
@@ -173,9 +96,11 @@ class ImportResolver:
             level=import_model.get("level", 0),
         )
 
-        import_model["resolution_candidates"] = candidate_module_names
+        import_model["resolution_candidates"] = self._with_imported_name_candidates(
+            candidate_module_names,
+            name,
+        )
 
-        # from package.module import *
         if name == "*":
             for candidate_module_name in candidate_module_names:
                 module_symbol = self.symbol_table.find_module(candidate_module_name)
@@ -185,9 +110,7 @@ class ImportResolver:
                         import_model,
                         module_symbol,
                         target_type="wildcard",
-                        resolved_module_qualified_name=module_symbol.get(
-                            "qualified_name"
-                        ),
+                        resolved_module_qualified_name=module_symbol.get("qualified_name"),
                     )
                     import_model["wildcard"] = True
                     return
@@ -197,8 +120,6 @@ class ImportResolver:
             return
 
         for candidate_module_name in candidate_module_names:
-            # 1. Try class:
-            # example_project.repository.user_repository.UserRepository
             class_qn = self._join_qualified_name(candidate_module_name, name)
             class_symbol = self.symbol_table.find_class_by_qualified_name(class_qn)
 
@@ -211,8 +132,6 @@ class ImportResolver:
                 )
                 return
 
-            # 2. Try function:
-            # example_project.services.user_service.validate_user
             function_qn = self._join_qualified_name(candidate_module_name, name)
             function_symbol = self.symbol_table.find_function_by_qualified_name(
                 function_qn
@@ -227,8 +146,6 @@ class ImportResolver:
                 )
                 return
 
-            # 3. Try imported submodule:
-            # from repository import user_repository
             submodule_qn = self._join_qualified_name(candidate_module_name, name)
             module_symbol = self.symbol_table.find_module(submodule_qn)
 
@@ -237,13 +154,10 @@ class ImportResolver:
                     import_model,
                     module_symbol,
                     target_type="module",
-                    resolved_module_qualified_name=module_symbol.get(
-                        "qualified_name"
-                    ),
+                    resolved_module_qualified_name=module_symbol.get("qualified_name"),
                 )
                 return
 
-            # 4. Try imported module itself.
             module_symbol = self.symbol_table.find_module(candidate_module_name)
 
             if module_symbol is not None and name == module_symbol.get("name"):
@@ -251,17 +165,11 @@ class ImportResolver:
                     import_model,
                     module_symbol,
                     target_type="module",
-                    resolved_module_qualified_name=module_symbol.get(
-                        "qualified_name"
-                    ),
+                    resolved_module_qualified_name=module_symbol.get("qualified_name"),
                 )
                 return
 
         self._mark_external(import_model)
-
-    # ------------------------------------------------------------
-    # Candidate construction
-    # ------------------------------------------------------------
 
     def _candidate_module_names(
         self,
@@ -269,26 +177,6 @@ class ImportResolver:
         file_model: dict = None,
         level: int = 0,
     ):
-        """
-        Builds possible internal module qualified names.
-
-        Examples
-        --------
-        For project_name = "example_project":
-
-            repository.user_repository
-            example_project.repository.user_repository
-
-        For a relative import inside example_project.services.user_service:
-
-            from .utils import validators
-
-        possible candidates include:
-
-            example_project.services.utils
-            example_project.services.utils.validators
-        """
-
         candidates = []
 
         module_name = module_name or ""
@@ -309,7 +197,7 @@ class ImportResolver:
             if not module_name.startswith(f"{self.project_name}."):
                 candidates.append(f"{self.project_name}.{module_name}")
 
-        elif self.project_name:
+        elif self.project_name and level == 0:
             candidates.append(self.project_name)
 
         return self._unique(candidates)
@@ -320,11 +208,6 @@ class ImportResolver:
         file_model: dict,
         level: int,
     ):
-        """
-        Builds candidates for relative imports when the AST import model
-        provides a level field.
-        """
-
         if file_model is None:
             return []
 
@@ -335,11 +218,11 @@ class ImportResolver:
 
         parts = current_qn.split(".")
 
-        # Remove the current module name to obtain its package.
-        package_parts = parts[:-1]
+        if self._is_package_init_file(file_model):
+            package_parts = parts
+        else:
+            package_parts = parts[:-1]
 
-        # Python relative import semantics:
-        # level=1 means current package, level=2 means parent package, etc.
         if level > 1:
             package_parts = package_parts[: -(level - 1)]
 
@@ -352,6 +235,23 @@ class ImportResolver:
             return [f"{base_package}.{module_name}"]
 
         return [base_package]
+
+    def _is_package_init_file(self, file_model: dict):
+        name = file_model.get("name")
+        path = str(file_model.get("path", ""))
+
+        return name == "__init__" or path.endswith("__init__.py")
+
+    def _with_imported_name_candidates(self, module_candidates: list, name: str):
+        candidates = []
+
+        for candidate in module_candidates:
+            candidates.append(candidate)
+
+            if name and name != "*":
+                candidates.append(self._join_qualified_name(candidate, name))
+
+        return self._unique(candidates)
 
     def _join_qualified_name(self, prefix: str, suffix: str):
         if prefix:
@@ -375,18 +275,7 @@ class ImportResolver:
 
         return result
 
-    # ------------------------------------------------------------
-    # Marking helpers
-    # ------------------------------------------------------------
-
     def _add_common_metadata(self, import_model: dict):
-        """
-        Adds normalized names used by later stages.
-
-        These fields are useful for mapping aliases to dependencies and for
-        producing readable KDM import metadata.
-        """
-
         alias = import_model.get("alias")
         name = import_model.get("name")
         module = import_model.get("module")
@@ -402,10 +291,6 @@ class ImportResolver:
         target_type: str,
         resolved_module_qualified_name: str = None,
     ):
-        """
-        Marks an import as an internal project reference.
-        """
-
         import_model.update(
             {
                 "classification": "internal",
@@ -423,10 +308,6 @@ class ImportResolver:
         )
 
     def _mark_external(self, import_model: dict):
-        """
-        Marks an import as an unresolved external dependency.
-        """
-
         import_model.update(
             {
                 "classification": "external",

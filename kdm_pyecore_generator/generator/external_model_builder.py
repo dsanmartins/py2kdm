@@ -1,7 +1,7 @@
 class ExternalModelBuilder:
     """
     Builds and reuses KDM elements for external libraries, builtins,
-    external types, and unresolved external calls.
+    external types, and unresolved external calls/imports.
     """
 
     def __init__(self, factory, segment):
@@ -50,6 +50,16 @@ class ExternalModelBuilder:
         return target
 
     def _get_or_create_library_unit(self, external_model, library_name: str):
+        """
+        Creates or reuses the CompilationUnit representing an external library.
+
+        This is the only helper used to place external elements under the
+        ExternalLibraries_CodeModel. Do not call a non-existing
+        get_or_create_external_library_model method.
+        """
+
+        library_name = str(library_name or "unknown_external")
+
         if library_name in self.library_units:
             return self.library_units[library_name]
 
@@ -124,6 +134,9 @@ class ExternalModelBuilder:
         return "callable"
 
     def get_or_create_external_class(self, library_name: str, class_name: str):
+        library_name = str(library_name or "unknown_external")
+        class_name = str(class_name or "UnknownExternalClass")
+
         key = f"{library_name}:class:{class_name}"
 
         if key in self.external_targets:
@@ -138,42 +151,70 @@ class ExternalModelBuilder:
         self.external_targets[key] = target
         return target
 
-
     def get_or_create_external_import_target(self, import_model: dict):
         """
-        Creates or reuses a KDM element representing an external import.
+        Creates or reuses an external target for an unresolved import.
 
-        Examples:
-        import json              -> CompilationUnit json
-        import logging           -> CompilationUnit logging
-        from pathlib import Path -> ClassUnit Path inside CompilationUnit pathlib
+        This method is defensive because Python imports can be relative and may
+        carry module=None, for example:
+
+            from . import config as mape_config
+
+        Ideally, internal relative imports should be resolved by ImportResolver.
+        This method only handles imports that still remain external/unresolved
+        after that step.
         """
 
-        module_name = import_model.get("module", "unknown_external")
-        imported_name = import_model.get("name")
+        module_name = (
+            import_model.get("module")
+            or import_model.get("imported_module")
+            or import_model.get("resolved_module_qualified_name")
+            or import_model.get("name")
+            or import_model.get("effective_name")
+            or "unknown_external"
+        )
 
-        library_name = module_name.split(".")[0]
+        module_name = str(module_name or "unknown_external")
+        library_name = module_name.split(".")[0] if module_name else "unknown_external"
 
-        external_model = self.ensure_external_model()
-        library_unit = self._get_or_create_library_unit(external_model, library_name)
+        target_name = (
+            import_model.get("name")
+            or import_model.get("effective_name")
+            or module_name
+            or "unknown_external_import"
+        )
+        target_name = str(target_name)
 
-        # Case: import json / import logging
-        # The target can be the library CompilationUnit itself.
-        if imported_name is None:
-            return library_unit
-
-        # Case: from pathlib import Path
-        # We create a class or callable inside the external library unit.
         target_kind = self._infer_import_target_kind(import_model)
-        key = f"{library_name}:{target_kind}:{imported_name}"
+
+        key = f"{library_name}:import:{target_kind}:{target_name}"
 
         if key in self.external_targets:
             return self.external_targets[key]
 
+        external_model = self.ensure_external_model()
+        library_unit = self._get_or_create_library_unit(external_model, library_name)
+
         if target_kind == "class":
-            target = self.factory.create_class_unit(imported_name)
+            target = self.factory.create_class_unit(target_name)
+        elif target_kind == "module":
+            target = self.factory.create_compilation_unit(target_name)
         else:
-            target = self.factory.create_callable_unit(imported_name)
+            target = self.factory.create_callable_unit(target_name)
+
+        self.factory.add_attribute(target, "external", "true")
+        self.factory.add_attribute(target, "external_kind", "import")
+        self.factory.add_attribute(target, "library", library_name)
+
+        if import_model.get("alias"):
+            self.factory.add_attribute(target, "alias", import_model.get("alias"))
+
+        if import_model.get("level") is not None:
+            self.factory.add_attribute(
+                target,
+                "relative_import_level",
+                import_model.get("level"),
+            )
 
         library_unit.codeElement.append(target)
         self.external_targets[key] = target
@@ -181,7 +222,18 @@ class ExternalModelBuilder:
         return target
 
     def _infer_import_target_kind(self, import_model: dict):
+        target_type = import_model.get("target_type")
         name = import_model.get("name")
+        module = import_model.get("module")
+
+        if target_type in {"class", "function", "module", "wildcard"}:
+            if target_type == "function":
+                return "callable"
+
+            if target_type == "wildcard":
+                return "module"
+
+            return target_type
 
         if name in {
             "Path",
@@ -192,9 +244,11 @@ class ExternalModelBuilder:
         }:
             return "class"
 
-        # Heuristic: capitalized imported names are treated as classes.
         if name and name[:1].isupper():
             return "class"
 
-        return "callable"
+        # Plain import without imported name is better represented as a module.
+        if module and name is None:
+            return "module"
 
+        return "callable"

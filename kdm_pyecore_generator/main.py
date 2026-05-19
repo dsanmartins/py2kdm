@@ -21,6 +21,7 @@ from generator.return_relation_resolver import ReturnRelationResolver
 from generator.body_action_mapper import BodyActionMapper
 from generator.exception_relation_resolver import ExceptionRelationResolver
 from generator.kdm_validator import KDMValidator
+from generator.structure_model_builder import StructureModelBuilder
 
 
 DEFAULT_KDM_ECORE_PATH = "metamodels/kdm_1_4.ecore"
@@ -268,8 +269,20 @@ def generate_kdm(
     reference_resolver.add_extends_relations(data)
     reference_resolver.add_import_relations(data)
 
+
     # ------------------------------------------------------------
-    # 11. Validate generated model
+    # 11. Structure Model
+    # ------------------------------------------------------------
+
+    if data.get("structure_model"):
+        structure_builder = StructureModelBuilder(
+            factory=factory,
+            segment=segment,
+        )
+        structure_builder.build(data["structure_model"])
+
+    # ------------------------------------------------------------
+    # 12. Validate generated model
     # ------------------------------------------------------------
 
     if validate:
@@ -285,7 +298,7 @@ def generate_kdm(
             raise RuntimeError("KDM validation failed. See validation report above.")
 
     # ------------------------------------------------------------
-    # 12. Save XMI
+    # 13. Save XMI
     # ------------------------------------------------------------
 
     output_resource = resource_set.create_resource(URI(str(output_path)))
@@ -293,7 +306,7 @@ def generate_kdm(
     output_resource.save()
 
     # ------------------------------------------------------------
-    # 13. Summary
+    # 14. Summary
     # ------------------------------------------------------------
 
     summary = {

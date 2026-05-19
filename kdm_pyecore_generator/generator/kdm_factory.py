@@ -87,6 +87,15 @@ class KDMFactory:
         self.SourceRef = resolver.find("SourceRef")
         self.SourceRegion = resolver.find("SourceRegion")
 
+        # Structure package
+        self.StructureModel = resolver.find("StructureModel")
+        self.SoftwareSystem = resolver.find("SoftwareSystem")
+        self.ArchitectureView = resolver.find("ArchitectureView")
+        self.Subsystem = resolver.find("Subsystem")
+        self.Component = resolver.find("Component")
+        self.StructureElement = resolver.find("StructureElement")
+        self.StructureRelationship = resolver.find("StructureRelationship")
+
     # ------------------------------------------------------------
     # Generic helpers
     # ------------------------------------------------------------
@@ -730,3 +739,89 @@ class KDMFactory:
             source_file.encoding = encoding
 
         return source_file
+
+    # ------------------------------------------------------------
+    # Structure model elements
+    # ------------------------------------------------------------
+
+    def create_structure_model(self, name: str):
+        """
+        Creates a KDM StructureModel.
+
+        StructureModel contains high-level architectural elements through its
+        structureElement containment reference.
+        """
+
+        model = self.StructureModel()
+        model.name = name
+        return model
+
+    def create_software_system(self, name: str):
+        """
+        Creates a KDM SoftwareSystem.
+        """
+
+        element = self.SoftwareSystem()
+        element.name = name
+        return element
+
+    def create_architecture_view(self, name: str):
+        """
+        Creates a KDM ArchitectureView.
+        """
+
+        element = self.ArchitectureView()
+        element.name = name
+        return element
+
+    def create_subsystem(self, name: str):
+        """
+        Creates a KDM Subsystem.
+        """
+
+        element = self.Subsystem()
+        element.name = name
+        return element
+
+    def create_component(self, name: str):
+        """
+        Creates a KDM Component.
+        """
+
+        element = self.Component()
+        element.name = name
+        return element
+
+    def create_structure_element(self, name: str):
+        """
+        Creates a generic KDM StructureElement.
+        """
+
+        element = self.StructureElement()
+        element.name = name
+        return element
+
+    def create_structure_relationship(self, source, target):
+        """
+        Creates a KDM StructureRelationship.
+
+        The KDM 1.4 metamodel defines:
+        - from : AbstractStructureElement
+        - to   : KDMEntity
+
+        Because 'from' is a Python keyword, this method sets it defensively
+        through setattr.
+        """
+
+        relation = self.StructureRelationship()
+
+        if not self.has_feature(relation, "from"):
+            raise ValueError("StructureRelationship does not have feature 'from'.")
+
+        if not self.has_feature(relation, "to"):
+            raise ValueError("StructureRelationship does not have feature 'to'.")
+
+        setattr(relation, "from", source)
+        relation.to = target
+
+        return relation

@@ -1,33 +1,4 @@
 class BodyActionMapper:
-    """
-    Maps executable body nodes from the intermediate JSON model to KDM action
-    elements.
-
-    This mapper is responsible for building the executable structure inside
-    each KDM MethodUnit or CallableUnit. For every callable with a non-empty
-    body, it creates a KDM BlockUnit named ``body`` and attaches executable
-    actions to that block.
-
-    The expected structure is:
-
-        MethodUnit / CallableUnit
-          └── BlockUnit name="body" kind="body"
-                ├── ActionElement
-                ├── TryUnit
-                ├── CatchUnit
-                ├── FinallyUnit
-                └── nested ActionElement nodes
-
-    The mapper also reuses call ActionElement nodes previously created by
-    ReferenceResolver, preserving call relations while nesting them in the
-    correct executable context.
-
-    Traceability is preserved through:
-    - body_id attributes on generated body actions;
-    - callable_body_id attributes on BlockUnit elements;
-    - SourceRef / SourceRegion elements.
-    """
-
     def __init__(
         self,
         factory,
@@ -36,29 +7,6 @@ class BodyActionMapper:
         inventory_builder=None,
         language="unknown",
     ):
-        """
-        Initializes the body action mapper.
-
-        Parameters
-        ----------
-        factory:
-            KDMFactory used to create KDM elements and relations.
-
-        id_index:
-            Dictionary mapping intermediate JSON ids to generated KDM elements.
-
-        action_index:
-            Dictionary of ActionElement nodes already created by
-            ReferenceResolver, mainly for calls and constructor calls.
-
-        inventory_builder:
-            InventoryBuilder used to resolve SourceFile references for
-            SourceRegion traceability.
-
-        language:
-            Source language name used in SourceRef / SourceRegion metadata.
-        """
-
         self.factory = factory
         self.id_index = id_index
         self.action_index = action_index or {}
@@ -80,11 +28,6 @@ class BodyActionMapper:
         self.callable_body_block_index = {}
 
     def map_body_actions(self, data: dict):
-        """
-        Maps all method and function bodies contained in the intermediate JSON
-        model to KDM executable structures.
-        """
-
         for file_model in data.get("files", []):
             for cls in file_model.get("classes", []):
                 for method in cls.get("methods", []):
@@ -95,20 +38,16 @@ class BodyActionMapper:
 
     def _map_callable_body(self, callable_model: dict, file_model: dict):
         """
-        Maps one callable body to a KDM BlockUnit.
+        Maps the executable body of a method or function.
 
-        The callable itself remains a MethodUnit or CallableUnit. Its executable
-        statements are placed inside a child BlockUnit named ``body``.
+        Executable actions must not be contained directly in MethodUnit or
+        CallableUnit. They must be contained inside an action::BlockUnit that
+        represents the callable body.
         """
 
         callable_kdm = self.id_index.get(callable_model.get("id"))
 
         if callable_kdm is None:
-            return
-
-        body = callable_model.get("body", [])
-
-        if not body:
             return
 
         body_block = self._get_or_create_callable_body_block(
@@ -120,13 +59,18 @@ class BodyActionMapper:
         if body_block is None:
             return
 
-        for statement in body:
+        for statement in callable_model.get("body", []):
             self._map_body_item(
                 item=statement,
                 callable_model=callable_model,
                 file_model=file_model,
                 parent_kdm=body_block,
             )
+
+        self._move_direct_executable_actions_to_body_block(
+            callable_kdm=callable_kdm,
+            body_block=body_block,
+        )
 
     # ------------------------------------------------------------
     # Callable body BlockUnit
@@ -154,11 +98,11 @@ class BodyActionMapper:
             if getattr(child.eClass, "name", None) != "BlockUnit":
                 continue
 
-            if self._has_attribute(
-                child,
-                "callable_body_id",
-                callable_id,
-            ):
+            if self._has_attribute(child, "callable_body_id", callable_id):
+                self.callable_body_block_index[callable_id] = child
+                return child
+
+            if getattr(child, "name", None) == "body" or getattr(child, "kind", None) == "body":
                 self.callable_body_block_index[callable_id] = child
                 return child
 
@@ -167,17 +111,8 @@ class BodyActionMapper:
             kind="body",
         )
 
-        self._add_attribute_once(
-            body_block,
-            "role",
-            "callable_body",
-        )
-
-        self._add_attribute_once(
-            body_block,
-            "callable_body_id",
-            callable_id,
-        )
+        self._add_attribute_once(body_block, "role", "callable_body")
+        self._add_attribute_once(body_block, "callable_body_id", callable_id)
 
         self._add_callable_body_source_region(
             body_block=body_block,
@@ -196,13 +131,6 @@ class BodyActionMapper:
         callable_model: dict,
         file_model: dict,
     ):
-        """
-        Adds source traceability to a callable body BlockUnit.
-
-        The source region spans from the first to the last statement in the
-        callable body whenever line information is available.
-        """
-
         body = callable_model.get("body", [])
 
         if not body:
@@ -237,6 +165,50 @@ class BodyActionMapper:
             file_item=source_file,
         )
 
+    def _move_direct_executable_actions_to_body_block(
+        self,
+        callable_kdm,
+        body_block,
+    ):
+        """
+        Moves direct executable actions from MethodUnit/CallableUnit to the
+        callable body BlockUnit.
+
+        Some ActionElement objects are created before body mapping, especially
+        by call/reference resolution. If they remain directly contained in a
+        MethodUnit or CallableUnit, the KDM validator reports errors.
+        """
+
+        if callable_kdm is None or body_block is None:
+            return
+
+        if not self.factory.has_feature(callable_kdm, "codeElement"):
+            return
+
+        if not self.factory.has_feature(body_block, "codeElement"):
+            return
+
+        executable_types = {
+            "ActionElement",
+            "TryUnit",
+            "CatchUnit",
+            "FinallyUnit",
+        }
+
+        movable = []
+
+        for element in list(callable_kdm.codeElement):
+            if element is body_block:
+                continue
+
+            element_type = getattr(element.eClass, "name", None)
+
+            if element_type in executable_types:
+                movable.append(element)
+
+        for element in movable:
+            self._attach_action_to_parent(element, body_block)
+
     def _map_body_item(
         self,
         item: dict,
@@ -244,11 +216,6 @@ class BodyActionMapper:
         file_model: dict,
         parent_kdm,
     ):
-        """
-        Maps one JSON body item to a KDM action element and recursively maps
-        its nested body items.
-        """
-
         action = self._get_or_create_action_for_body_item(
             item=item,
             callable_model=callable_model,
@@ -266,7 +233,9 @@ class BodyActionMapper:
         else:
             next_parent = parent_kdm
 
-        # Expression-level calls are moved under the element that owns them.
+        # Option B:
+        # condition_calls, value_calls, exception_calls and context_calls
+        # are moved under the ActionElement/TryUnit/CatchUnit that owns them.
         self._map_expression_calls(item, next_parent)
 
         # Nested expression calls:
@@ -325,14 +294,6 @@ class BodyActionMapper:
         file_model: dict,
         parent_kdm,
     ):
-        """
-        Maps a JSON finalbody list to a KDM FinallyUnit.
-
-        For try statements, the finalbody is represented by a synthetic
-        FinallyUnit. The ExceptionRelationResolver later connects the TryUnit
-        to this FinallyUnit using ExitFlow.
-        """
-
         finalbody = item.get("finalbody", [])
 
         if not finalbody:
@@ -444,7 +405,7 @@ class BodyActionMapper:
         if action is None:
             return
 
-        self._add_attribute_once(
+        self.factory.add_attribute(
             action,
             "expression_role",
             expression_role,
@@ -453,14 +414,51 @@ class BodyActionMapper:
         self._attach_action_to_parent(action, parent_kdm)
 
     def _attach_action_to_parent(self, action, parent_kdm):
+        """
+        Attaches an executable KDM element to a parent container.
+
+        This method protects PyEcore containment from cycles. It also avoids
+        duplicate containment operations.
+        """
+
         if action is None or parent_kdm is None:
+            return
+
+        if action is parent_kdm:
             return
 
         if not self.factory.has_feature(parent_kdm, "codeElement"):
             return
 
-        if action not in parent_kdm.codeElement:
-            parent_kdm.codeElement.append(action)
+        if self._would_create_containment_cycle(
+            child=action,
+            parent=parent_kdm,
+        ):
+            return
+
+        if action in parent_kdm.codeElement:
+            return
+
+        parent_kdm.codeElement.append(action)
+
+    def _would_create_containment_cycle(self, child, parent) -> bool:
+        """
+        Returns True if attaching child below parent would create a containment
+        cycle. A cycle occurs when parent is already contained below child.
+        """
+
+        current = parent
+
+        while current is not None:
+            if current is child:
+                return True
+
+            try:
+                current = current.eContainer()
+            except Exception:
+                return False
+
+        return False
 
     # ------------------------------------------------------------
     # Action creation / reuse
@@ -567,11 +565,6 @@ class BodyActionMapper:
         return None
 
     def _create_action_for_body_item(self, item: dict):
-        """
-        Creates a new KDM action element for a JSON body item when no existing
-        call action can be reused.
-        """
-
         statement_type = item.get("statement_type")
         node_type = item.get("type")
         control_type = item.get("control_type")
@@ -642,11 +635,22 @@ class BodyActionMapper:
         and relations, not temporary attributes.
         """
 
-        self._add_attribute_once(
-            action,
-            "body_id",
-            item.get("id"),
-        )
+        metadata = {
+            "body_id": item.get("id"),
+        }
+
+        # Keep body_type only when it is not already obvious from the KDM metaclass.
+        item_type = item.get("type")
+
+        if item_type not in {
+            "control_structure",
+            "exception_handler",
+            "finally_block",
+            "statement",
+        }:
+            metadata["body_type"] = item_type
+
+        self.factory.add_attributes_from_dict(action, metadata)
 
     def _get_source_file(self, file_model: dict):
         if self.inventory_builder is None:
@@ -655,6 +659,31 @@ class BodyActionMapper:
         return self.inventory_builder.get_source_file_by_path(
             file_model.get("path")
         )
+
+    def _has_attribute(self, element, tag: str, value) -> bool:
+        if value is None:
+            return False
+
+        if not self.factory.has_feature(element, "attribute"):
+            return False
+
+        for attribute in element.attribute:
+            if getattr(attribute, "tag", None) != tag:
+                continue
+
+            if getattr(attribute, "value", None) == str(value):
+                return True
+
+        return False
+
+    def _add_attribute_once(self, element, tag: str, value):
+        if value is None:
+            return
+
+        if self._has_attribute(element, tag, value):
+            return
+
+        self.factory.add_attribute(element, tag, value)
 
     # ------------------------------------------------------------
     # Same-line nested call mapping
@@ -692,7 +721,7 @@ class BodyActionMapper:
             if action in owner_action.codeElement:
                 continue
 
-            self._add_attribute_once(
+            self.factory.add_attribute(
                 action,
                 "expression_role",
                 "nested_expression_call",
@@ -764,7 +793,7 @@ class BodyActionMapper:
             ):
                 continue
 
-            self._add_attribute_once(
+            self.factory.add_attribute(
                 nested_action,
                 "expression_role",
                 "nested_expression_call",
@@ -800,29 +829,3 @@ class BodyActionMapper:
             return True
 
         return True
-
-    # ------------------------------------------------------------
-    # Attribute helpers
-    # ------------------------------------------------------------
-
-    def _has_attribute(self, element, tag: str, value: str) -> bool:
-        if not self.factory.has_feature(element, "attribute"):
-            return False
-
-        for attribute in element.attribute:
-            if getattr(attribute, "tag", None) != tag:
-                continue
-
-            if getattr(attribute, "value", None) == str(value):
-                return True
-
-        return False
-
-    def _add_attribute_once(self, element, tag: str, value):
-        if value is None:
-            return
-
-        if self._has_attribute(element, tag, value):
-            return
-
-        self.factory.add_attribute(element, tag, value)

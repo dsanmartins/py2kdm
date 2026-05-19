@@ -15,18 +15,12 @@
   "architecture_recovery": {
     "enabled": true,
     "mode": "semi_automatic",
-    "target_architecture": "mapek",
-    "autonomic_gate": {
-      "enabled": true,
-      "not_applicable_threshold": 0.40,
-      "candidate_threshold": 0.70
-    }
+    "target_architecture": "mapek"
   },
 
   "kdm_generation": {
+    "enabled": true,
     "validate": true,
-    "generate_inventory_model": true,
-    "generate_code_model": true,
-    "generate_structure_model": false
+    "input": "architecture_json"
   }
 }
