@@ -95,6 +95,8 @@ class KDMFactory:
         self.Component = resolver.find("Component")
         self.StructureElement = resolver.find("StructureElement")
         self.StructureRelationship = resolver.find("StructureRelationship")
+        self.AggregatedRelationship = resolver.find("AggregatedRelationship")
+
 
     # ------------------------------------------------------------
     # Generic helpers
@@ -825,3 +827,41 @@ class KDMFactory:
         relation.to = target
 
         return relation
+
+    def create_aggregated_relationship(self, source, target, relations=None):
+        """
+        Creates a KDM core::AggregatedRelationship.
+
+        The KDM 1.4 Ecore metamodel defines:
+        - from    : KDMEntity[1]
+        - to      : KDMEntity[1]
+        - relation: KDMRelationship[0..*]
+        - density : Integer
+
+        The AggregatedRelationship must be contained in the
+        aggregatedRelation reference of the KDMEntity that acts as the
+        aggregation from-endpoint.
+        """
+
+        aggregation = self.AggregatedRelationship()
+
+        if not self.has_feature(aggregation, "from"):
+            raise ValueError("AggregatedRelationship does not have feature 'from'.")
+
+        if not self.has_feature(aggregation, "to"):
+            raise ValueError("AggregatedRelationship does not have feature 'to'.")
+
+        setattr(aggregation, "from", source)
+        aggregation.to = target
+
+        relations = relations or []
+
+        if self.has_feature(aggregation, "relation"):
+            for relation in relations:
+                if relation is not None:
+                    aggregation.relation.append(relation)
+
+        if self.has_feature(aggregation, "density"):
+            aggregation.density = len(relations) if relations else 1
+
+        return aggregation

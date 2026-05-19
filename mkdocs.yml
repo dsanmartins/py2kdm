@@ -6,11 +6,21 @@ theme:
 nav:
   - Home: index.md
   - Architecture: architecture.md
+  - Pipeline Configuration: pipeline_configuration.md
   - Python Extractor: python_extractor.md
   - Intermediate JSON Model: intermediate_json_model.md
-  - JSON to KDM Mapping: json_to_kdm_mapping.md
-  - Validation Rules: validation_rules.md
-  - CLI Usage: cli_usage.md
-  - Development Guide: development_guide.md
-  - Testing Strategy: testing_strategy.md
-  - Limitations: limitations.md
+  - Architecture Recovery:
+      - Overview: architecture_recovery.md
+      - MAPE-K Recovery Rules: mapek_recovery_rules.md
+      - Structure Model Mapping: structure_model_mapping.md
+      - KDM Traceability Links: kdm_traceability_links.md
+  - KDM Generation:
+      - JSON to KDM Mapping: json_to_kdm_mapping.md
+      - Validation Rules: validation_rules.md
+  - Usage:
+      - CLI Usage: cli_usage.md
+      - Examples and Case Studies: examples.md
+  - Development:
+      - Development Guide: development_guide.md
+      - Testing Strategy: testing_strategy.md
+      - Limitations: limitations.md

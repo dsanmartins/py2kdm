@@ -24197,7 +24197,7 @@
       <attribute tag="status" value="proposal"/>
       <attribute tag="recovered_name" value="Inferred MAPE-K View"/>
     </structureElement>
-    <structureElement xsi:type="structure:Component" name="distance">
+    <structureElement xsi:type="structure:Component" name="distance" implementation="//@model.1/@codeElement.0/@codeElement.1">
       <attribute tag="id" value="component:distance_monitor_cruise_control_distance"/>
       <attribute tag="structure_kind" value="component"/>
       <attribute tag="status" value="auto_accepted"/>
@@ -24208,7 +24208,9 @@
       <attribute tag="component_status" value="auto_accepted"/>
       <attribute tag="code_element_type" value="function"/>
       <attribute tag="loop_hint" value="loop"/>
-      <attribute tag="implemented_by" value="function:pymape_hierarchical.hierarchical-cruise-control.distance"/>
+      <attribute tag="display_name" value="distance"/>
+      <attribute tag="original_component_name" value="distance"/>
+      <attribute tag="implemented_by_id" value="function:pymape_hierarchical.hierarchical-cruise-control.distance"/>
       <attribute tag="evidence" value="Decorator 'loop.monitor' maps to MAPE-K role Monitor"/>
       <attribute tag="evidence" value="Loop hint inferred from decorator: loop"/>
       <structureRelationship xsi:type="structure:StructureRelationship" from="//@model.4/@structureElement.2" to="//@model.4/@structureElement.8">
@@ -24219,10 +24221,18 @@
         <attribute tag="source_role" value="Monitor"/>
         <attribute tag="target_role" value="Knowledge"/>
         <attribute tag="relationship_status" value="auto_accepted"/>
+        <attribute tag="source_display_name" value="distance"/>
+        <attribute tag="target_display_name" value="Knowledge"/>
         <attribute tag="derived_from" value="Component belongs to control_loop:loop with shared Knowledge component"/>
       </structureRelationship>
+      <aggregatedRelation from="//@model.4/@structureElement.2" to="//@model.4/@structureElement.8" relation="//@model.4/@structureElement.2/@structureRelationship.0" density="1">
+        <attribute tag="relationship_type" value="uses_knowledge"/>
+        <attribute tag="relationship_level" value="architectural"/>
+        <attribute tag="source_role" value="Monitor"/>
+        <attribute tag="target_role" value="Knowledge"/>
+      </aggregatedRelation>
     </structureElement>
-    <structureElement xsi:type="structure:Component" name="pid">
+    <structureElement xsi:type="structure:Component" name="pid" implementation="//@model.1/@codeElement.0/@codeElement.2">
       <attribute tag="id" value="component:pid_planner_cruise_control_pid"/>
       <attribute tag="structure_kind" value="component"/>
       <attribute tag="status" value="auto_accepted"/>
@@ -24233,7 +24243,9 @@
       <attribute tag="component_status" value="auto_accepted"/>
       <attribute tag="code_element_type" value="function"/>
       <attribute tag="loop_hint" value="loop"/>
-      <attribute tag="implemented_by" value="function:pymape_hierarchical.hierarchical-cruise-control.pid"/>
+      <attribute tag="display_name" value="pid"/>
+      <attribute tag="original_component_name" value="pid"/>
+      <attribute tag="implemented_by_id" value="function:pymape_hierarchical.hierarchical-cruise-control.pid"/>
       <attribute tag="evidence" value="Decorator 'loop.plan' maps to MAPE-K role Planner"/>
       <attribute tag="evidence" value="Loop hint inferred from decorator: loop"/>
       <structureRelationship xsi:type="structure:StructureRelationship" from="//@model.4/@structureElement.3" to="//@model.4/@structureElement.4">
@@ -24244,6 +24256,8 @@
         <attribute tag="source_role" value="Planner"/>
         <attribute tag="target_role" value="Executor"/>
         <attribute tag="relationship_status" value="needs_review"/>
+        <attribute tag="source_display_name" value="pid"/>
+        <attribute tag="target_display_name" value="speed_executor"/>
         <attribute tag="derived_from" value="Role ordering inside control_loop:loop: Planner precedes Executor"/>
       </structureRelationship>
       <structureRelationship xsi:type="structure:StructureRelationship" from="//@model.4/@structureElement.3" to="//@model.4/@structureElement.8">
@@ -24254,10 +24268,24 @@
         <attribute tag="source_role" value="Planner"/>
         <attribute tag="target_role" value="Knowledge"/>
         <attribute tag="relationship_status" value="auto_accepted"/>
+        <attribute tag="source_display_name" value="pid"/>
+        <attribute tag="target_display_name" value="Knowledge"/>
         <attribute tag="derived_from" value="Component belongs to control_loop:loop with shared Knowledge component"/>
       </structureRelationship>
+      <aggregatedRelation from="//@model.4/@structureElement.3" to="//@model.4/@structureElement.4" relation="//@model.4/@structureElement.3/@structureRelationship.0" density="1">
+        <attribute tag="relationship_type" value="mapek_flow"/>
+        <attribute tag="relationship_level" value="architectural"/>
+        <attribute tag="source_role" value="Planner"/>
+        <attribute tag="target_role" value="Executor"/>
+      </aggregatedRelation>
+      <aggregatedRelation from="//@model.4/@structureElement.3" to="//@model.4/@structureElement.8" relation="//@model.4/@structureElement.3/@structureRelationship.1" density="1">
+        <attribute tag="relationship_type" value="uses_knowledge"/>
+        <attribute tag="relationship_level" value="architectural"/>
+        <attribute tag="source_role" value="Planner"/>
+        <attribute tag="target_role" value="Knowledge"/>
+      </aggregatedRelation>
     </structureElement>
-    <structureElement xsi:type="structure:Component" name="speed">
+    <structureElement xsi:type="structure:Component" name="speed_executor" implementation="//@model.1/@codeElement.0/@codeElement.5">
       <attribute tag="id" value="component:speed_executor_cruise_control_speed"/>
       <attribute tag="structure_kind" value="component"/>
       <attribute tag="status" value="auto_accepted"/>
@@ -24268,7 +24296,9 @@
       <attribute tag="component_status" value="auto_accepted"/>
       <attribute tag="code_element_type" value="function"/>
       <attribute tag="loop_hint" value="loop"/>
-      <attribute tag="implemented_by" value="function:pymape_hierarchical.hierarchical-cruise-control.speed"/>
+      <attribute tag="display_name" value="speed_executor"/>
+      <attribute tag="original_component_name" value="speed"/>
+      <attribute tag="implemented_by_id" value="function:pymape_hierarchical.hierarchical-cruise-control.speed"/>
       <attribute tag="evidence" value="Decorator 'loop.execute' maps to MAPE-K role Executor"/>
       <attribute tag="evidence" value="Loop hint inferred from decorator: loop"/>
       <structureRelationship xsi:type="structure:StructureRelationship" from="//@model.4/@structureElement.4" to="//@model.4/@structureElement.8">
@@ -24279,10 +24309,18 @@
         <attribute tag="source_role" value="Executor"/>
         <attribute tag="target_role" value="Knowledge"/>
         <attribute tag="relationship_status" value="auto_accepted"/>
+        <attribute tag="source_display_name" value="speed_executor"/>
+        <attribute tag="target_display_name" value="Knowledge"/>
         <attribute tag="derived_from" value="Component belongs to control_loop:loop with shared Knowledge component"/>
       </structureRelationship>
+      <aggregatedRelation from="//@model.4/@structureElement.4" to="//@model.4/@structureElement.8" relation="//@model.4/@structureElement.4/@structureRelationship.0" density="1">
+        <attribute tag="relationship_type" value="uses_knowledge"/>
+        <attribute tag="relationship_level" value="architectural"/>
+        <attribute tag="source_role" value="Executor"/>
+        <attribute tag="target_role" value="Knowledge"/>
+      </aggregatedRelation>
     </structureElement>
-    <structureElement xsi:type="structure:Component" name="speed">
+    <structureElement xsi:type="structure:Component" name="speed_monitor" implementation="//@model.1/@codeElement.0/@codeElement.5">
       <attribute tag="id" value="component:speed_monitor_cruise_control_speed"/>
       <attribute tag="structure_kind" value="component"/>
       <attribute tag="status" value="auto_accepted"/>
@@ -24293,7 +24331,9 @@
       <attribute tag="component_status" value="auto_accepted"/>
       <attribute tag="code_element_type" value="function"/>
       <attribute tag="loop_hint" value="loop"/>
-      <attribute tag="implemented_by" value="function:pymape_hierarchical.hierarchical-cruise-control.speed"/>
+      <attribute tag="display_name" value="speed_monitor"/>
+      <attribute tag="original_component_name" value="speed"/>
+      <attribute tag="implemented_by_id" value="function:pymape_hierarchical.hierarchical-cruise-control.speed"/>
       <attribute tag="evidence" value="Decorator 'loop.monitor' maps to MAPE-K role Monitor"/>
       <attribute tag="evidence" value="Loop hint inferred from decorator: loop"/>
       <structureRelationship xsi:type="structure:StructureRelationship" from="//@model.4/@structureElement.5" to="//@model.4/@structureElement.3">
@@ -24304,6 +24344,8 @@
         <attribute tag="source_role" value="Monitor"/>
         <attribute tag="target_role" value="Planner"/>
         <attribute tag="relationship_status" value="needs_review"/>
+        <attribute tag="source_display_name" value="speed_monitor"/>
+        <attribute tag="target_display_name" value="pid"/>
         <attribute tag="derived_from" value="Role ordering inside control_loop:loop: Monitor precedes Planner"/>
       </structureRelationship>
       <structureRelationship xsi:type="structure:StructureRelationship" from="//@model.4/@structureElement.5" to="//@model.4/@structureElement.8">
@@ -24314,10 +24356,24 @@
         <attribute tag="source_role" value="Monitor"/>
         <attribute tag="target_role" value="Knowledge"/>
         <attribute tag="relationship_status" value="auto_accepted"/>
+        <attribute tag="source_display_name" value="speed_monitor"/>
+        <attribute tag="target_display_name" value="Knowledge"/>
         <attribute tag="derived_from" value="Component belongs to control_loop:loop with shared Knowledge component"/>
       </structureRelationship>
+      <aggregatedRelation from="//@model.4/@structureElement.5" to="//@model.4/@structureElement.3" relation="//@model.4/@structureElement.5/@structureRelationship.0" density="1">
+        <attribute tag="relationship_type" value="mapek_flow"/>
+        <attribute tag="relationship_level" value="architectural"/>
+        <attribute tag="source_role" value="Monitor"/>
+        <attribute tag="target_role" value="Planner"/>
+      </aggregatedRelation>
+      <aggregatedRelation from="//@model.4/@structureElement.5" to="//@model.4/@structureElement.8" relation="//@model.4/@structureElement.5/@structureRelationship.1" density="1">
+        <attribute tag="relationship_type" value="uses_knowledge"/>
+        <attribute tag="relationship_level" value="architectural"/>
+        <attribute tag="source_role" value="Monitor"/>
+        <attribute tag="target_role" value="Knowledge"/>
+      </aggregatedRelation>
     </structureElement>
-    <structureElement xsi:type="structure:Component" name="gas_brake">
+    <structureElement xsi:type="structure:Component" name="gas_brake" implementation="//@model.1/@codeElement.0/@codeElement.6">
       <attribute tag="id" value="component:gas_brake_executor_control_gas_brake"/>
       <attribute tag="structure_kind" value="component"/>
       <attribute tag="status" value="auto_accepted"/>
@@ -24328,7 +24384,9 @@
       <attribute tag="component_status" value="auto_accepted"/>
       <attribute tag="code_element_type" value="function"/>
       <attribute tag="loop_hint" value="loop"/>
-      <attribute tag="implemented_by" value="function:pymape_hierarchical.hierarchical-cruise-control.gas_brake"/>
+      <attribute tag="display_name" value="gas_brake"/>
+      <attribute tag="original_component_name" value="gas_brake"/>
+      <attribute tag="implemented_by_id" value="function:pymape_hierarchical.hierarchical-cruise-control.gas_brake"/>
       <attribute tag="evidence" value="Decorator 'loop.execute' maps to MAPE-K role Executor"/>
       <attribute tag="evidence" value="Loop hint inferred from decorator: loop"/>
       <structureRelationship xsi:type="structure:StructureRelationship" from="//@model.4/@structureElement.6" to="//@model.4/@structureElement.8">
@@ -24339,10 +24397,18 @@
         <attribute tag="source_role" value="Executor"/>
         <attribute tag="target_role" value="Knowledge"/>
         <attribute tag="relationship_status" value="auto_accepted"/>
+        <attribute tag="source_display_name" value="gas_brake"/>
+        <attribute tag="target_display_name" value="Knowledge"/>
         <attribute tag="derived_from" value="Component belongs to control_loop:loop with shared Knowledge component"/>
       </structureRelationship>
+      <aggregatedRelation from="//@model.4/@structureElement.6" to="//@model.4/@structureElement.8" relation="//@model.4/@structureElement.6/@structureRelationship.0" density="1">
+        <attribute tag="relationship_type" value="uses_knowledge"/>
+        <attribute tag="relationship_level" value="architectural"/>
+        <attribute tag="source_role" value="Executor"/>
+        <attribute tag="target_role" value="Knowledge"/>
+      </aggregatedRelation>
     </structureElement>
-    <structureElement xsi:type="structure:Component" name="Loop">
+    <structureElement xsi:type="structure:Component" name="Loop" implementation="//@model.1/@codeElement.4/@codeElement.0">
       <attribute tag="id" value="component:loop_loopmanager_mape_loop_loop"/>
       <attribute tag="structure_kind" value="component"/>
       <attribute tag="status" value="needs_review"/>
@@ -24352,11 +24418,13 @@
       <attribute tag="source" value="rule_based_class"/>
       <attribute tag="component_status" value="needs_review"/>
       <attribute tag="code_element_type" value="class"/>
-      <attribute tag="implemented_by" value="class:pymape_hierarchical.mape.loop.Loop"/>
+      <attribute tag="display_name" value="Loop"/>
+      <attribute tag="original_component_name" value="Loop"/>
+      <attribute tag="implemented_by_id" value="class:pymape_hierarchical.mape.loop.Loop"/>
       <attribute tag="evidence" value="Class name matches role term for LoopManager: Loop"/>
       <attribute tag="evidence" value="Module path contains role term for LoopManager: mape/loop.py"/>
     </structureElement>
-    <structureElement xsi:type="structure:Component" name="Knowledge">
+    <structureElement xsi:type="structure:Component" name="Knowledge" implementation="//@model.1/@codeElement.5/@codeElement.0">
       <attribute tag="id" value="component:knowledge_knowledge_mape_knowledge_knowledge"/>
       <attribute tag="structure_kind" value="component"/>
       <attribute tag="status" value="needs_review"/>
@@ -24366,7 +24434,9 @@
       <attribute tag="source" value="rule_based_class"/>
       <attribute tag="component_status" value="needs_review"/>
       <attribute tag="code_element_type" value="class"/>
-      <attribute tag="implemented_by" value="class:pymape_hierarchical.mape.knowledge.Knowledge"/>
+      <attribute tag="display_name" value="Knowledge"/>
+      <attribute tag="original_component_name" value="Knowledge"/>
+      <attribute tag="implemented_by_id" value="class:pymape_hierarchical.mape.knowledge.Knowledge"/>
       <attribute tag="evidence" value="Class name matches role term for Knowledge: Knowledge"/>
       <attribute tag="evidence" value="Module path contains role term for Knowledge: mape/knowledge.py"/>
     </structureElement>
@@ -24386,11 +24456,17 @@
       <attribute tag="roles_present" value="Planner"/>
       <attribute tag="missing_role" value="Analyzer"/>
       <attribute tag="component" value="component:distance_monitor_cruise_control_distance"/>
+      <attribute tag="component_display_name" value="distance"/>
       <attribute tag="component" value="component:pid_planner_cruise_control_pid"/>
+      <attribute tag="component_display_name" value="pid"/>
       <attribute tag="component" value="component:speed_executor_cruise_control_speed"/>
+      <attribute tag="component_display_name" value="speed_executor"/>
       <attribute tag="component" value="component:speed_monitor_cruise_control_speed"/>
+      <attribute tag="component_display_name" value="speed_monitor"/>
       <attribute tag="component" value="component:gas_brake_executor_control_gas_brake"/>
+      <attribute tag="component_display_name" value="gas_brake"/>
       <attribute tag="component" value="component:knowledge_knowledge_mape_knowledge_knowledge"/>
+      <attribute tag="component_display_name" value="Knowledge"/>
       <attribute tag="evidence" value="Candidate loop inferred from high-confidence MAPE-K components."/>
       <attribute tag="evidence" value="Roles present: Executor, Knowledge, Monitor, Planner"/>
     </structureElement>
@@ -24400,12 +24476,19 @@
       <attribute tag="recovered_name" value="Managing Subsystem"/>
       <attribute tag="confidence" value="0.86"/>
       <attribute tag="component" value="component:distance_monitor_cruise_control_distance"/>
+      <attribute tag="component_display_name" value="distance"/>
       <attribute tag="component" value="component:pid_planner_cruise_control_pid"/>
+      <attribute tag="component_display_name" value="pid"/>
       <attribute tag="component" value="component:speed_executor_cruise_control_speed"/>
+      <attribute tag="component_display_name" value="speed_executor"/>
       <attribute tag="component" value="component:speed_monitor_cruise_control_speed"/>
+      <attribute tag="component_display_name" value="speed_monitor"/>
       <attribute tag="component" value="component:gas_brake_executor_control_gas_brake"/>
+      <attribute tag="component_display_name" value="gas_brake"/>
       <attribute tag="component" value="component:loop_loopmanager_mape_loop_loop"/>
+      <attribute tag="component_display_name" value="Loop"/>
       <attribute tag="component" value="component:knowledge_knowledge_mape_knowledge_knowledge"/>
+      <attribute tag="component_display_name" value="Knowledge"/>
       <attribute tag="control_loop" value="control_loop:loop"/>
     </structureElement>
   </model>

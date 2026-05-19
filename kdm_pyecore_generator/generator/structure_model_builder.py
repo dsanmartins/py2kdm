@@ -2,28 +2,36 @@ class StructureModelBuilder:
     """
     Builds a KDM StructureModel from the architecture recovery JSON section.
 
-    Important validation rule
-    -------------------------
-    This builder does not generate Attribute elements with tag="kind", because
-    the current KDM validator treats generic Attribute(kind=...) as obsolete.
-    For recovered structural semantics, it uses "structure_kind" instead.
+    This version adds two important KDM links:
 
-    Name disambiguation
-    -------------------
-    If two or more recovered components have the same visible name but different
-    roles or implementation ids, the builder disambiguates their KDM names using
-    the role:
+    1. implementation
+       Each structure::Component can reference the concrete KDM code entities
+       that implement the architectural abstraction.
 
-        speed + Monitor  -> speed_monitor
-        speed + Executor -> speed_executor
+       Example:
+           Component pid_planner
+               implementation -> CallableUnit pid
 
-    The original recovered name is still preserved as an Attribute with tag
-    "recovered_name".
+    2. aggregatedRelation
+       Each architectural StructureRelationship can also be represented by a
+       core::AggregatedRelationship owned by its source KDMEntity.
+
+       Example:
+           Component pid_planner
+               structureRelationship -> speed_executor
+               aggregatedRelation    -> speed_executor
+
+    Notes:
+    - Attribute tag="kind" is not used because the current validator treats it
+      as obsolete.
+    - The builder remains defensive: if a code implementation target cannot be
+      found in id_index, it preserves the string id as an attribute.
     """
 
-    def __init__(self, factory, segment):
+    def __init__(self, factory, segment, id_index=None):
         self.factory = factory
         self.segment = segment
+        self.id_index = id_index or {}
 
         self.structure_model = None
         self.element_index = {}
@@ -153,8 +161,6 @@ class StructureModelBuilder:
                 component_data.get("loop_hint"),
             )
 
-            # Preserve both names: the unique KDM display name and the recovered
-            # source-level name.
             self.factory.add_attribute(
                 element,
                 "display_name",
@@ -166,12 +172,10 @@ class StructureModelBuilder:
                 component_data.get("name"),
             )
 
-            for implemented_by in component_data.get("implemented_by", []):
-                self.factory.add_attribute(
-                    element,
-                    "implemented_by",
-                    implemented_by,
-                )
+            self._attach_implementation_refs(
+                structure_element=element,
+                implemented_by_ids=component_data.get("implemented_by", []),
+            )
 
             for evidence in component_data.get("evidence", []):
                 self.factory.add_attribute(
@@ -384,20 +388,85 @@ class StructureModelBuilder:
 
             self._attach_structure_relationship(source, relation)
 
+            aggregated = self.factory.create_aggregated_relationship(
+                source=source,
+                target=target,
+                relations=[relation],
+            )
+
+            self.factory.add_attribute(
+                aggregated,
+                "relationship_type",
+                relationship_data.get("type"),
+            )
+            self.factory.add_attribute(
+                aggregated,
+                "relationship_level",
+                relationship_data.get("relationship_level"),
+            )
+            self.factory.add_attribute(
+                aggregated,
+                "source_role",
+                relationship_data.get("source_role"),
+            )
+            self.factory.add_attribute(
+                aggregated,
+                "target_role",
+                relationship_data.get("target_role"),
+            )
+
+            self._attach_aggregated_relationship(source, aggregated)
+
+    # ------------------------------------------------------------
+    # Implementation traceability
+    # ------------------------------------------------------------
+
+    def _attach_implementation_refs(
+        self,
+        structure_element,
+        implemented_by_ids: list,
+    ):
+        """
+        Adds real KDM implementation references when possible.
+
+        If the referenced code element is not available in id_index, the
+        original id is preserved as an Attribute for traceability/debugging.
+        """
+
+        if not implemented_by_ids:
+            return
+
+        if not self.factory.has_feature(structure_element, "implementation"):
+            for implemented_by in implemented_by_ids:
+                self.factory.add_attribute(
+                    structure_element,
+                    "implemented_by",
+                    implemented_by,
+                )
+            return
+
+        for implemented_by in implemented_by_ids:
+            code_element = self.id_index.get(implemented_by)
+
+            if code_element is not None:
+                structure_element.implementation.append(code_element)
+                self.factory.add_attribute(
+                    structure_element,
+                    "implemented_by_id",
+                    implemented_by,
+                )
+            else:
+                self.factory.add_attribute(
+                    structure_element,
+                    "unresolved_implementation_id",
+                    implemented_by,
+                )
+
     # ------------------------------------------------------------
     # Name disambiguation
     # ------------------------------------------------------------
 
     def _compute_component_display_names(self, components: list):
-        """
-        Computes unique display names for KDM Component elements.
-
-        If a component name occurs only once, keep it as is.
-
-        If the same name occurs more than once, append the role. If that is
-        still not unique, append a short suffix derived from the component id.
-        """
-
         by_name = {}
 
         for component in components:
@@ -445,7 +514,6 @@ class StructureModelBuilder:
         component_id = component.get("id", "")
         suffix = component_id.split(":")[-1]
 
-        # Remove the base prefix when possible to avoid unnecessary verbosity.
         suffix = suffix.replace(candidate, "").strip("_")
         suffix_parts = [part for part in suffix.split("_") if part]
 
@@ -482,15 +550,6 @@ class StructureModelBuilder:
         self.structure_model.structureElement.append(element)
 
     def _attach_structure_relationship(self, source, relation):
-        """
-        Attaches a StructureRelationship to the source element when the
-        metamodel exposes a containment feature for it.
-
-        If the current KDM metamodel variant does not provide such a feature
-        on AbstractStructureElement, the relationship is preserved as metadata
-        on the source element instead of breaking generation.
-        """
-
         for feature_name in [
             "structureRelationship",
             "structureRelation",
@@ -498,7 +557,7 @@ class StructureModelBuilder:
         ]:
             if self.factory.has_feature(source, feature_name):
                 getattr(source, feature_name).append(relation)
-                return
+                return True
 
         self.factory.add_attribute(
             source,
@@ -510,6 +569,24 @@ class StructureModelBuilder:
             "unattached_structure_relationship_target",
             getattr(getattr(relation, "to", None), "name", None),
         )
+        return False
+
+    def _attach_aggregated_relationship(self, source, aggregated):
+        """
+        AggregatedRelationship is owned by the KDMEntity that acts as the
+        aggregation from-endpoint, through aggregatedRelation.
+        """
+
+        if self.factory.has_feature(source, "aggregatedRelation"):
+            source.aggregatedRelation.append(aggregated)
+            return True
+
+        self.factory.add_attribute(
+            source,
+            "unattached_aggregated_relationship_target",
+            getattr(getattr(aggregated, "to", None), "name", None),
+        )
+        return False
 
     def _add_common_attributes(
         self,

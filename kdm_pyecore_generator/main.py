@@ -278,6 +278,7 @@ def generate_kdm(
         structure_builder = StructureModelBuilder(
             factory=factory,
             segment=segment,
+            id_index=mapper.id_index,
         )
         structure_builder.build(data["structure_model"])
 
