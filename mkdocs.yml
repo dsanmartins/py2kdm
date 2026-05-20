@@ -15,6 +15,7 @@ nav:
       - Structure Model Mapping: structure_model_mapping.md
       - KDM Traceability Links: kdm_traceability_links.md
       - Architecture Review GUI: architecture_review_gui.md
+      - Architecture Agents: architecture_agents.md
   - KDM Generation:
       - JSON to KDM Mapping: json_to_kdm_mapping.md
       - Validation Rules: validation_rules.md

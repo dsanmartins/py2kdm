@@ -5,17 +5,6 @@ py2kdm configurable pipeline runner.
 This script separates py2kdm implementation code from example systems,
 configuration files and generated outputs.
 
-Recommended project layout
---------------------------
-py2kdm/
-├── run_pipeline.py
-├── python_kdm_extractor/
-├── kdm_architecture_recovery/
-├── kdm_pyecore_generator/
-├── examples/
-├── configs/
-└── outputs/
-
 Typical usage
 -------------
 From the py2kdm root directory:
@@ -39,6 +28,7 @@ Expected config structure
   "outputs": {
     "intermediate_json": "outputs/pymape_hierarchical/python_model.json",
     "architecture_json": "outputs/pymape_hierarchical/python_model.architecture.json",
+    "ai_architecture_json": "outputs/pymape_hierarchical/python_model.ai_architecture.json",
     "kdm_xmi": "outputs/pymape_hierarchical/model.kdm.xmi"
   },
 
@@ -57,17 +47,11 @@ Expected config structure
 
 Notes
 -----
-- python_kdm_extractor remains independent:
-      Python source code -> intermediate JSON.
-
-- kdm_architecture_recovery remains independent:
-      intermediate JSON -> enriched JSON with architecture_recovery and,
-      when applicable, structure_model.
-
-- kdm_pyecore_generator remains independent:
-      JSON -> KDM XMI.
-
+- The Python extractor is still executed as an independent subproject.
+- The KDM generator is still executed as an independent subproject.
+- Architecture recovery is optional and works over the intermediate JSON.
 - MAPE-K recovery is guarded by the AutonomicApplicabilityGate.
+- Pre-review architecture agents can optionally enrich the architecture JSON.
 """
 
 from __future__ import annotations
@@ -105,10 +89,17 @@ def main() -> int:
             str(intermediate_json).replace(".json", ".architecture.json"),
         )
     )
+    ai_architecture_json = resolve_path(
+        config["outputs"].get(
+            "ai_architecture_json",
+            str(architecture_json).replace(".architecture.json", ".ai_architecture.json"),
+        )
+    )
     kdm_xmi = resolve_path(config["outputs"]["kdm_xmi"])
 
     ensure_parent(intermediate_json)
     ensure_parent(architecture_json)
+    ensure_parent(ai_architecture_json)
     ensure_parent(kdm_xmi)
 
     run_extractor(
@@ -124,8 +115,19 @@ def main() -> int:
         run_architecture_recovery(
             input_path=intermediate_json,
             output_path=architecture_json,
+            python_executable=args.python,
         )
         architecture_input_for_kdm = architecture_json
+
+        if args.with_agents in {"pre-review", "all"}:
+            run_architecture_agents(
+                mode="pre-review",
+                input_path=architecture_json,
+                output_path=ai_architecture_json,
+                dynamic_trace=args.dynamic_trace,
+                python_executable=args.python,
+            )
+            architecture_input_for_kdm = ai_architecture_json
     else:
         print_step("Architecture recovery skipped")
 
@@ -150,6 +152,8 @@ def main() -> int:
     print(f"Intermediate JSON: {intermediate_json}")
     if architecture_json.exists():
         print(f"Architecture JSON: {architecture_json}")
+    if ai_architecture_json.exists():
+        print(f"AI Architecture JSON: {ai_architecture_json}")
     if kdm_xmi.exists():
         print(f"KDM XMI: {kdm_xmi}")
 
@@ -189,6 +193,26 @@ def parse_args() -> argparse.Namespace:
         "--skip-kdm",
         action="store_true",
         help="Skip KDM generation even if enabled in the config.",
+    )
+
+    parser.add_argument(
+        "--with-agents",
+        choices=["none", "pre-review", "all"],
+        default="none",
+        help=(
+            "Run architecture agents as part of the pipeline. "
+            "Currently, pre-review agents are supported before human GUI review. "
+            "The value 'all' currently behaves as pre-review inside run_pipeline; "
+            "post-review should be run after exporting reviewed JSON from the GUI."
+        ),
+    )
+
+    parser.add_argument(
+        "--dynamic-trace",
+        help=(
+            "Optional dynamic trace JSON consumed by DynamicEvidenceAgent "
+            "when --with-agents pre-review or all is used."
+        ),
     )
 
     return parser.parse_args()
@@ -248,38 +272,82 @@ def run_extractor(
     run_command(command, cwd=ROOT / "python_kdm_extractor")
 
 
-def run_architecture_recovery(input_path: Path, output_path: Path) -> None:
+def run_architecture_recovery(
+    input_path: Path,
+    output_path: Path,
+    python_executable: str,
+) -> None:
     print_step("Running architecture recovery")
 
     if not input_path.exists():
         raise FileNotFoundError(f"Intermediate JSON not found: {input_path}")
 
-    add_project_paths_to_sys_path()
+    recovery_main = ROOT / "kdm_architecture_recovery" / "main.py"
 
-    from kdm_architecture_recovery.architecture_recovery_engine import (  # noqa: E402
-        ArchitectureRecoveryEngine,
-    )
+    if not recovery_main.exists():
+        raise FileNotFoundError(f"Architecture recovery main.py not found: {recovery_main}")
 
-    with input_path.open("r", encoding="utf-8") as file:
-        project_model = json.load(file)
+    command = [
+        python_executable,
+        str(recovery_main),
+        "--input",
+        str(input_path),
+        "--output",
+        str(output_path),
+    ]
 
-    engine = ArchitectureRecoveryEngine()
-    project_model = engine.enrich_project_model(project_model)
+    run_command(command, cwd=ROOT)
 
-    ensure_parent(output_path)
 
-    with output_path.open("w", encoding="utf-8") as file:
-        json.dump(project_model, file, indent=4, ensure_ascii=False)
 
-    recovery = project_model.get("architecture_recovery", {})
-    applicability = recovery.get("autonomic_applicability", {})
+def run_architecture_agents(
+    mode: str,
+    input_path: Path,
+    output_path: Path,
+    dynamic_trace: str | None,
+    python_executable: str,
+) -> None:
+    """
+    Runs architecture agents over an architecture-enriched JSON model.
 
-    print("Architecture recovery result:")
-    print(f"- decision: {applicability.get('decision')}")
-    print(f"- status: {applicability.get('status')}")
-    print(f"- score: {applicability.get('score')}")
-    print(f"- mapek_recovery: {recovery.get('mapek_recovery')}")
-    print(f"- output: {output_path}")
+    In the pipeline, this is currently intended for the pre-review phase:
+
+        architecture recovery -> pre-review agents -> GUI review
+
+    Post-review agents should normally be executed after the user exports a
+    reviewed JSON from the GUI.
+    """
+
+    print_step(f"Running architecture agents ({mode})")
+
+    agents_main = ROOT / "kdm_architecture_agents" / "main.py"
+
+    if not agents_main.exists():
+        raise FileNotFoundError(f"Architecture agents main.py not found: {agents_main}")
+
+    if not input_path.exists():
+        raise FileNotFoundError(f"Architecture agents input JSON not found: {input_path}")
+
+    command = [
+        python_executable,
+        str(agents_main),
+        "--mode",
+        mode,
+        "--input",
+        str(input_path),
+        "--output",
+        str(output_path),
+    ]
+
+    if dynamic_trace:
+        trace_path = resolve_path(dynamic_trace)
+
+        if not trace_path.exists():
+            raise FileNotFoundError(f"Dynamic trace JSON not found: {trace_path}")
+
+        command.extend(["--dynamic-trace", str(trace_path)])
+
+    run_command(command, cwd=ROOT)
 
 
 def run_kdm_generator(
@@ -337,7 +405,6 @@ def select_kdm_input(
 
     - "intermediate_json";
     - "architecture_json";
-    - "default";
     - an explicit path.
     """
 
@@ -387,26 +454,11 @@ def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
 
 
-def add_project_paths_to_sys_path() -> None:
-    """
-    Adds project-level packages to sys.path.
+def add_extractor_to_path() -> None:
+    extractor_path = ROOT / "python_kdm_extractor"
 
-    Needed for importing the independent architecture recovery package:
-
-        kdm_architecture_recovery
-
-    and also keeps python_kdm_extractor available in case future recovery
-    modules reuse extractor utilities.
-    """
-
-    paths = [
-        ROOT,
-        ROOT / "python_kdm_extractor",
-    ]
-
-    for path in paths:
-        if str(path) not in sys.path:
-            sys.path.insert(0, str(path))
+    if str(extractor_path) not in sys.path:
+        sys.path.insert(0, str(extractor_path))
 
 
 def is_enabled(section: Dict[str, Any]) -> bool:
