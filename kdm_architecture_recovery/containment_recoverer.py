@@ -1,45 +1,22 @@
+from kdm_architecture_recovery.semantic_architecture_rules import (
+    SemanticArchitectureRules,
+)
+
+
 class ContainmentRecoverer:
     """
-    Builds architectural containment/composition relationships following the
-    Adaptive System Domain hierarchy.
-
-    Correct containment hierarchy:
-
-        Managing Subsystem
-          contains CL Manager
-              contains Control Loop(s)
-                  contains Monitor / Analyzer / Planner / Executor /
-                           Knowledge / Reference Input
-
-    If no CL Manager is recovered:
-
-        Managing Subsystem
-          contains Control Loop(s)
-              contains MAPE-K components
-
-    Managed Subsystem
-      contains Sensor / Effector / Measured Output
-
-    Important:
-    Managing Subsystem must NOT directly contain the MAPE-K internal elements
-    when those elements already belong to a Control Loop. Otherwise the KDM
-    contains redundant containment relations.
+    Builds containment relationships using SemanticArchitectureRules during
+    construction.
     """
 
     LOOP_INTERNAL_ROLES = {
-        "Monitor",
-        "Analyzer",
-        "Planner",
-        "Executor",
-        "Knowledge",
-        "ReferenceInput",
+        "Monitor", "Analyzer", "Planner", "Executor", "Knowledge", "ReferenceInput",
     }
 
-    MANAGED_ROLES = {
-        "Sensor",
-        "Effector",
-        "MeasuredOutput",
-    }
+    MANAGED_ROLES = {"Sensor", "Effector", "MeasuredOutput"}
+
+    def __init__(self, rules=None):
+        self.rules = rules or SemanticArchitectureRules()
 
     def recover(self, structure_model: dict):
         components = structure_model.get("components", [])
@@ -63,113 +40,120 @@ class ContainmentRecoverer:
             for component in components
         }
 
-        # --------------------------------------------------------
-        # 1. Managing Subsystem containment
-        # --------------------------------------------------------
-        # Preferred:
-        #   Managing Subsystem -> CL Manager -> Control Loop
-        #
-        # Fallback if no CL Manager:
-        #   Managing Subsystem -> Control Loop
-        #
-        # We deliberately do NOT add:
-        #   Managing Subsystem -> Monitor/Planner/Executor/Knowledge
-        # when those components belong to a Control Loop.
-        # --------------------------------------------------------
+        has_loop_manager = bool(loop_manager_components)
 
         if managing:
             if loop_manager_components:
                 for loop_manager in loop_manager_components:
-                    relationships.append(
-                        self._contains(
-                            source=managing["id"],
-                            target=loop_manager["id"],
-                            reason="Managing Subsystem contains the CL Manager.",
-                        )
+                    rel = self._guarded_contains(
+                        source=managing,
+                        source_role="Managing Subsystem",
+                        target=loop_manager,
+                        target_role="CL Manager",
+                        reason="Managing Subsystem contains the CL Manager.",
+                        context={"has_loop_manager": has_loop_manager},
                     )
+                    if rel:
+                        relationships.append(rel)
 
                 for loop_manager in loop_manager_components:
                     for loop in control_loops:
-                        relationships.append(
-                            self._contains(
-                                source=loop_manager["id"],
-                                target=loop["id"],
-                                reason=(
-                                    "CL Manager coordinates one or more "
-                                    "Control Loops."
-                                ),
-                            )
+                        rel = self._guarded_contains(
+                            source=loop_manager,
+                            source_role="CL Manager",
+                            target=loop,
+                            target_role="Control Loop",
+                            reason="CL Manager coordinates one or more Control Loops.",
+                            context={"has_loop_manager": has_loop_manager},
                         )
+                        if rel:
+                            relationships.append(rel)
             else:
                 for loop in control_loops:
-                    relationships.append(
-                        self._contains(
-                            source=managing["id"],
-                            target=loop["id"],
-                            reason=(
-                                "Managing Subsystem contains Control Loop "
-                                "because no CL Manager was recovered."
-                            ),
-                        )
+                    rel = self._guarded_contains(
+                        source=managing,
+                        source_role="Managing Subsystem",
+                        target=loop,
+                        target_role="Control Loop",
+                        reason=(
+                            "Managing Subsystem contains Control Loop because "
+                            "no CL Manager was recovered."
+                        ),
+                        context={"has_loop_manager": has_loop_manager},
                     )
-
-        # --------------------------------------------------------
-        # 2. Control Loop internal containment
-        # --------------------------------------------------------
-        # Control Loop -> MAPE-K + Knowledge + ReferenceInput.
-        # --------------------------------------------------------
+                    if rel:
+                        relationships.append(rel)
 
         for loop in control_loops:
+            self.rules.assess_control_loop(loop)
+
             for component_id in loop.get("components", []):
                 component = component_by_id.get(component_id)
-
                 if not component:
                     continue
 
                 role = component.get("role")
+                if role not in self.LOOP_INTERNAL_ROLES:
+                    continue
 
-                if role in self.LOOP_INTERNAL_ROLES:
-                    relationships.append(
-                        self._contains(
-                            source=loop["id"],
-                            target=component_id,
-                            reason=f"Control Loop contains {role}.",
-                        )
-                    )
-
-        # --------------------------------------------------------
-        # 3. Managed Subsystem containment
-        # --------------------------------------------------------
-        # Managed Subsystem -> Sensor / Effector / Measured Output.
-        # We do not try to reconstruct all managed-system components.
-        # --------------------------------------------------------
+                rel = self._guarded_contains(
+                    source=loop,
+                    source_role="Control Loop",
+                    target=component,
+                    target_role=role,
+                    reason=f"Control Loop contains {role}.",
+                    context={"has_loop_manager": has_loop_manager},
+                )
+                if rel:
+                    relationships.append(rel)
 
         if managed:
             for component in components:
                 role = component.get("role")
+                if role not in self.MANAGED_ROLES:
+                    continue
 
-                if role in self.MANAGED_ROLES:
-                    relationships.append(
-                        self._contains(
-                            source=managed["id"],
-                            target=component["id"],
-                            reason=f"Managed Subsystem contains {role}.",
-                        )
-                    )
+                rel = self._guarded_contains(
+                    source=managed,
+                    source_role="Managed Subsystem",
+                    target=component,
+                    target_role=role,
+                    reason=f"Managed Subsystem contains {role}.",
+                    context={"has_loop_manager": has_loop_manager},
+                )
+                if rel:
+                    relationships.append(rel)
 
-        structure_model["containment_relationships"] = self._deduplicate(
-            relationships
-        )
+        self.rules.assess_control_io_presence(components)
+
+        structure_model["containment_relationships"] = self._deduplicate(relationships)
+        structure_model["architecture_consistency"] = self.rules.report()
 
         return structure_model["containment_relationships"]
+
+    def _guarded_contains(self, source, source_role, target, target_role, reason, context):
+        source_id = source.get("id")
+        target_id = target.get("id")
+
+        if not source_id or not target_id:
+            return None
+
+        if not self.rules.can_contain(
+            source_id=source_id,
+            source_role=source_role,
+            target_id=target_id,
+            target_role=target_role,
+            context=context,
+        ):
+            return None
+
+        return self._contains(source=source_id, target=target_id, reason=reason)
 
     def _find_subsystem(self, subsystems, kind):
         for subsystem in subsystems:
             text = f"{subsystem.get('id', '')} {subsystem.get('name', '')}".lower()
-
             if kind in text:
                 return subsystem
-
         return None
 
     def _contains(self, source, target, reason):
@@ -190,18 +174,14 @@ class ContainmentRecoverer:
     def _deduplicate(self, relationships):
         seen = set()
         result = []
-
         for relationship in relationships:
             key = (
                 relationship.get("source"),
                 relationship.get("type"),
                 relationship.get("target"),
             )
-
             if key in seen:
                 continue
-
             seen.add(key)
             result.append(relationship)
-
         return result

@@ -1,4 +1,12 @@
 from pathlib import Path
+import sys
+
+PY2KDM_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PY2KDM_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PY2KDM_PROJECT_ROOT))
+
+
+from py2kdm_common.paths import ensure_parent, resolve_from_root
 import argparse
 
 from pyecore.resources import URI
@@ -25,7 +33,8 @@ from generator.structure_model_builder import StructureModelBuilder
 from generator.adaptive_stereotype_builder import AdaptiveStereotypeBuilder
 
 
-DEFAULT_KDM_ECORE_PATH = "metamodels/kdm_1_4.ecore"
+GENERATOR_ROOT = Path(__file__).resolve().parent
+DEFAULT_KDM_ECORE_PATH = GENERATOR_ROOT / "metamodels" / "kdm_1_4.ecore"
 DEFAULT_JSON_INPUT_PATH = "input/python_model.json"
 DEFAULT_OUTPUT_PATH = "output/example_project.kdm.xmi"
 
@@ -59,14 +68,17 @@ def generate_kdm(
         Summary information about the generated model.
     """
 
-    output_path = Path(output_path)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    # Resolve paths from the project root. This makes the generator robust
+    # when called from the project root, a subdirectory, or a GUI process.
+    json_input_path = resolve_from_root(json_input_path)
+    output_path = ensure_parent(resolve_from_root(output_path))
+    kdm_ecore_path = resolve_from_root(kdm_ecore_path)
 
     # ------------------------------------------------------------
     # 1. Load KDM 1.4 metamodel
     # ------------------------------------------------------------
 
-    loader = KDMLoader(kdm_ecore_path)
+    loader = KDMLoader(str(kdm_ecore_path))
     resource_set, root_package = loader.load()
 
     resolver = ClassifierResolver(root_package)
@@ -76,7 +88,7 @@ def generate_kdm(
     # 2. Load JSON intermediate model
     # ------------------------------------------------------------
 
-    json_loader = JSONModelLoader(json_input_path)
+    json_loader = JSONModelLoader(str(json_input_path))
     data = json_loader.load()
 
     project_name = data.get("projectName", "UnknownProject")
@@ -355,7 +367,7 @@ def parse_args():
 
     parser.add_argument(
         "--metamodel",
-        default=DEFAULT_KDM_ECORE_PATH,
+        default=str(DEFAULT_KDM_ECORE_PATH),
         help=f"Path to the KDM 1.4 Ecore metamodel. Default: {DEFAULT_KDM_ECORE_PATH}",
     )
 

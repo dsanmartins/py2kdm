@@ -4,6 +4,7 @@ OK = "ok"
 WARNING = "warning"
 FORBIDDEN = "forbidden"
 
+
 @dataclass(frozen=True)
 class ReviewRule:
     id: str
@@ -11,14 +12,44 @@ class ReviewRule:
     title: str
     description: str
 
+
+# Roles currently supported by the architecture recovery and review GUI.
+# These are role values, not necessarily stereotype display names.
 ALLOWED_COMPONENT_ROLES = {
-    "Monitor", "Analyzer", "Planner", "Executor", "Knowledge", "LoopManager",
-    "ManagedElement", "Sensor", "Effector", "ReferenceInput", "Alternative",
+    "Monitor",
+    "Analyzer",
+    "Planner",
+    "Executor",
+    "Knowledge",
+    "LoopManager",
+    "Loop",
+    "ReferenceInput",
+    "MeasuredOutput",
+    "Sensor",
+    "Effector",
+
+    # Backward compatibility with older proposals. These should normally not
+    # be generated in the current architecture recovery.
+    "ManagedElement",
+    "Alternative",
 }
 
+# Relationship types currently produced or editable by the architecture
+# recovery/review flow.
 ALLOWED_RELATIONSHIP_TYPES = {
-    "mapek_flow", "uses_knowledge", "subscribes_to", "depends_on",
-    "controls", "observes", "updates",
+    "contains",
+    "mapek_flow",
+    "uses_knowledge",
+    "subscribes_to",
+    "depends_on",
+    "controls",
+    "observes",
+    "updates",
+    "acts_through",
+    "observes_through",
+    "produces_measurement",
+    "uses_reference_input",
+    "evaluates_measured_output",
 }
 
 STANDARD_MAPEK_FLOW = {
@@ -33,6 +64,7 @@ RULES = {
     "ARV-OK-02": ReviewRule("ARV-OK-02", OK, "Rejected component", "A component was rejected and will not be materialized."),
     "ARV-OK-03": ReviewRule("ARV-OK-03", OK, "Valid role override", "A component role was changed to an allowed role."),
     "ARV-OK-04": ReviewRule("ARV-OK-04", OK, "Accepted relationship", "A relationship was accepted."),
+
     "ARV-W-01": ReviewRule("ARV-W-01", WARNING, "Partial control loop", "A control loop is missing one or more MAPE roles."),
     "ARV-W-02": ReviewRule("ARV-W-02", WARNING, "Component without implementation", "A materialized component has no implementation link."),
     "ARV-W-03": ReviewRule("ARV-W-03", WARNING, "Unresolved implementation", "An implementation reference could not be resolved."),
@@ -45,11 +77,12 @@ RULES = {
     "ARV-W-10": ReviewRule("ARV-W-10", WARNING, "Shared Knowledge", "Multiple loops share the same Knowledge component."),
     "ARV-W-11": ReviewRule("ARV-W-11", WARNING, "Missing hierarchy level", "Multiple loops exist but one has no explicit level."),
     "ARV-W-12": ReviewRule("ARV-W-12", WARNING, "Mixed subsystem", "A subsystem contains managing and managed elements."),
+
     "ARV-F-01": ReviewRule("ARV-F-01", FORBIDDEN, "Invalid role", "A component role is not allowed."),
     "ARV-F-02": ReviewRule("ARV-F-02", FORBIDDEN, "Duplicate component id", "Materialized components have duplicate ids."),
     "ARV-F-03": ReviewRule("ARV-F-03", FORBIDDEN, "Missing relationship source", "A relationship source does not exist."),
     "ARV-F-04": ReviewRule("ARV-F-04", FORBIDDEN, "Missing relationship target", "A relationship target does not exist."),
-    "ARV-F-05": ReviewRule("ARV-F-05", FORBIDDEN, "Relationship to non-materialized component", "A materialized relationship references a rejected component."),
+    "ARV-F-05": ReviewRule("ARV-F-05", FORBIDDEN, "Relationship to non-materialized element", "A materialized relationship references a rejected element."),
     "ARV-F-06": ReviewRule("ARV-F-06", FORBIDDEN, "Loop references non-materialized component", "A materialized loop references a rejected component."),
     "ARV-F-07": ReviewRule("ARV-F-07", FORBIDDEN, "Invalid uses_knowledge target", "uses_knowledge must target Knowledge."),
     "ARV-F-08": ReviewRule("ARV-F-08", FORBIDDEN, "Invalid relationship type", "A relationship type is not supported."),

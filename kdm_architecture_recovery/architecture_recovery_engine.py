@@ -7,6 +7,9 @@ from kdm_architecture_recovery.rule_based_mapek_role_inferer import (
 from kdm_architecture_recovery.structure_relationship_recoverer import (
     StructureRelationshipRecoverer,
 )
+from kdm_architecture_recovery.managed_interaction_recoverer import (
+    ManagedInteractionRecoverer,
+)
 from kdm_architecture_recovery.adaptive_stereotype_catalog import (
     architecture_profile,
     stereotype_for_component_role,
@@ -14,6 +17,9 @@ from kdm_architecture_recovery.adaptive_stereotype_catalog import (
 )
 from kdm_architecture_recovery.control_io_recoverer import ControlIORecoverer
 from kdm_architecture_recovery.containment_recoverer import ContainmentRecoverer
+from kdm_architecture_recovery.semantic_architecture_rules import (
+    SemanticArchitectureRules,
+)
 
 
 class ArchitectureRecoveryEngine:
@@ -58,8 +64,12 @@ class ArchitectureRecoveryEngine:
         self.gate = AutonomicApplicabilityGate()
         self.role_inferer = RuleBasedMAPEKRoleInferer()
         self.relationship_recoverer = StructureRelationshipRecoverer()
+        self.managed_interaction_recoverer = ManagedInteractionRecoverer()
         self.control_io_recoverer = ControlIORecoverer()
-        self.containment_recoverer = ContainmentRecoverer()
+        self.semantic_rules = SemanticArchitectureRules()
+        self.containment_recoverer = ContainmentRecoverer(
+            rules=self.semantic_rules,
+        )
 
     def enrich_project_model(self, project_model: dict):
         applicability = self.gate.evaluate(project_model)
@@ -122,6 +132,13 @@ class ArchitectureRecoveryEngine:
             structure_model=structure_model,
         )
 
+        managed_interaction_relationships = (
+            self.managed_interaction_recoverer.recover(
+                structure_model=structure_model,
+            )
+        )
+        structure_relationships.extend(managed_interaction_relationships)
+
         containment_relationships = self.containment_recoverer.recover(
             structure_model=structure_model,
         )
@@ -134,6 +151,7 @@ class ArchitectureRecoveryEngine:
             structure_relationships + containment_relationships
         )
         structure_model["containment_relationships"] = containment_relationships
+        structure_model["architecture_consistency"] = self.semantic_rules.report()
 
         structure_model["recovery_statistics"] = self._build_recovery_statistics(
             role_suggestions=role_suggestions,
@@ -156,6 +174,9 @@ class ArchitectureRecoveryEngine:
         architecture_recovery["subsystems_count"] = len(subsystems)
         architecture_recovery["structure_relationships_count"] = len(
             structure_model["structure_relationships"]
+        )
+        architecture_recovery["managed_interaction_relationships_count"] = len(
+            managed_interaction_relationships
         )
         architecture_recovery["containment_relationships_count"] = len(
             containment_relationships
