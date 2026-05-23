@@ -1,21 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# py2kdm end-to-end regression script.
+# py2kdm end-to-end regression script with JSON Schema validation.
 #
-# This script is intended to be executed from the py2kdm root directory.
-# It runs a reproducible non-interactive end-to-end flow:
+# Run from the py2kdm root directory.
 #
+# Flow:
 #   extractor
 #     -> architecture recovery
 #     -> pre-review agents
+#     -> JSON Schema validation
 #     -> pass-through reviewed JSON
+#     -> JSON Schema validation
 #     -> post-review agents
+#     -> JSON Schema validation
 #     -> KDM generation
-#     -> sanity checks
+#     -> sanity checks over the KDM XMI
 #
 # The pass-through reviewed JSON is used only for regression/CI purposes.
-# It does not replace the human GUI review.
+# It does not replace human GUI review.
 
 CONFIG_PATH="configs/pymape_hierarchical.json"
 OUTPUT_DIR="outputs/pymape_hierarchical"
@@ -49,13 +52,6 @@ Options:
                              Use the existing reviewed JSON exported from the GUI.
 
   -h, --help                 Show this help message.
-
-Examples:
-  bash scripts/e2e_regression.sh
-
-  bash scripts/e2e_regression.sh --clean
-
-  bash scripts/e2e_regression.sh --use-existing-reviewed
 EOF
 }
 
@@ -147,6 +143,23 @@ print(f"OK: {description}")
 PY
 }
 
+schema_check() {
+  local file="$1"
+  local model_type="$2"
+  local description="$3"
+
+  if [[ ! -f "scripts/validate_json_schema.py" ]]; then
+    echo "ERROR: Schema validator not found: scripts/validate_json_schema.py" >&2
+    exit 1
+  fi
+
+  "$PYTHON_BIN" scripts/validate_json_schema.py \
+    --input "$file" \
+    --type "$model_type"
+
+  echo "OK: $description"
+}
+
 if [[ "$CLEAN" == true ]]; then
   print_step "Cleaning generated artifacts"
   rm -f "$INTERMEDIATE_JSON" \
@@ -178,9 +191,14 @@ json_check "$ARCHITECTURE_JSON" "'structure_model' in data" "architecture JSON h
 json_check "$AI_ARCHITECTURE_JSON" "'ai_enrichment' in data" "AI architecture JSON has ai_enrichment"
 json_check "$AI_ARCHITECTURE_JSON" "data.get('ai_enrichment', {}).get('summary', {}).get('suggestions', 0) >= 1" "pre-review agents produced suggestions"
 
+print_step "Validating pre-review JSON artifacts against schemas"
+
+schema_check "$INTERMEDIATE_JSON" "python" "intermediate JSON validates against python_model.schema.json"
+schema_check "$ARCHITECTURE_JSON" "architecture" "architecture JSON validates against architecture_model.schema.json"
+schema_check "$AI_ARCHITECTURE_JSON" "ai-architecture" "AI architecture JSON validates against ai_architecture_model.schema.json"
+
 if [[ "$USE_EXISTING_REVIEWED" == true ]]; then
   print_step "Using existing reviewed JSON"
-
   assert_file_exists "$REVIEWED_JSON"
 else
   print_step "Creating pass-through reviewed JSON for regression"
@@ -217,6 +235,10 @@ print(f"Created pass-through reviewed JSON: {target}")
 PY
 fi
 
+print_step "Validating reviewed JSON against schema"
+
+schema_check "$REVIEWED_JSON" "reviewed" "reviewed JSON validates against reviewed_architecture_model.schema.json"
+
 print_step "Running post-review agents"
 
 "$PYTHON_BIN" kdm_architecture_agents/main.py \
@@ -228,6 +250,10 @@ assert_file_exists "$AI_CHECKED_JSON"
 
 json_check "$AI_CHECKED_JSON" "'post_review_ai_check' in data" "AI-checked JSON has post_review_ai_check"
 json_check "$AI_CHECKED_JSON" "data.get('post_review_ai_check', {}).get('summary', {}).get('kdm_ready') is True" "AI-checked JSON is KDM-ready"
+
+print_step "Validating AI-checked JSON against schema"
+
+schema_check "$AI_CHECKED_JSON" "ai-checked" "AI-checked JSON validates against ai_checked_architecture_model.schema.json"
 
 print_step "Generating reviewed KDM"
 

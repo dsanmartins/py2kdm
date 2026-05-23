@@ -21,8 +21,10 @@ nav:
       - Validation Rules: validation_rules.md
   - Usage:
       - CLI Usage: cli_usage.md
+      - E2E Schema Validation: e2e_schema_validation.md
       - Examples and Case Studies: examples.md
   - Development:
       - Development Guide: development_guide.md
       - Testing Strategy: testing_strategy.md
+      - JSON Schemas: json_schemas.md
       - Limitations: limitations.md

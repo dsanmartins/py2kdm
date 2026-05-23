@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://py2kdm.local/schemas/python_model.schema.json",
+  "title": "py2kdm Python Extraction Model",
+  "type": "object",
+  "required": [
+    "projectName",
+    "language",
+    "files",
+    "elements",
+    "relationships"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "projectName": {
+      "type": "string"
+    },
+    "language": {
+      "type": "string"
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "elements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "symbol_table": {
+      "type": "object"
+    },
+    "summary": {
+      "type": "object"
+    }
+  }
+}

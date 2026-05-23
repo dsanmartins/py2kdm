@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://py2kdm.local/schemas/reviewed_architecture_model.schema.json",
+  "title": "py2kdm Reviewed Architecture Model",
+  "allOf": [
+    {
+      "$ref": "https://py2kdm.local/schemas/architecture_model.schema.json"
+    },
+    {
+      "type": "object",
+      "required": [
+        "architecture_review"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "architecture_review": {
+          "$ref": "https://py2kdm.local/schemas/reviewed_architecture_model.schema.json#/$defs/architectureReview"
+        },
+        "ai_enrichment": {
+          "type": "object"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "architectureReview": {
+      "type": "object",
+      "required": [
+        "status",
+        "source",
+        "decision"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "decision": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

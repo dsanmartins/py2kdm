@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://py2kdm.local/schemas/ai_checked_architecture_model.schema.json",
+  "title": "py2kdm AI-checked Reviewed Architecture Model",
+  "allOf": [
+    {
+      "$ref": "https://py2kdm.local/schemas/reviewed_architecture_model.schema.json"
+    },
+    {
+      "type": "object",
+      "required": [
+        "post_review_ai_check"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "post_review_ai_check": {
+          "$ref": "https://py2kdm.local/schemas/ai_checked_architecture_model.schema.json#/$defs/postReviewAICheck"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "postReviewAICheck": {
+      "type": "object",
+      "required": [
+        "status",
+        "source",
+        "findings",
+        "summary"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "findings": {
+          "type": "array",
+          "items": {
+            "$ref": "https://py2kdm.local/schemas/ai_checked_architecture_model.schema.json#/$defs/aiFinding"
+          }
+        },
+        "summary": {
+          "type": "object",
+          "required": [
+            "kdm_ready"
+          ],
+          "additionalProperties": true,
+          "properties": {
+            "kdm_ready": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "aiFinding": {
+      "type": "object",
+      "required": [
+        "id",
+        "finding_type",
+        "message",
+        "severity",
+        "status",
+        "source"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "finding_type": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        },
+        "severity": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "recommendation": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "affected_elements": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

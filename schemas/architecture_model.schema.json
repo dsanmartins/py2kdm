@@ -1,0 +1,236 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://py2kdm.local/schemas/architecture_model.schema.json",
+  "title": "py2kdm Architecture Model",
+  "allOf": [
+    {
+      "$ref": "https://py2kdm.local/schemas/python_model.schema.json"
+    },
+    {
+      "type": "object",
+      "required": [
+        "structure_model"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "architecture_recovery": {
+          "type": "object"
+        },
+        "structure_model": {
+          "$ref": "https://py2kdm.local/schemas/architecture_model.schema.json#/$defs/structureModel"
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "structureModel": {
+      "type": "object",
+      "required": [
+        "components"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "components": {
+          "type": "array",
+          "items": {
+            "$ref": "https://py2kdm.local/schemas/architecture_model.schema.json#/$defs/component"
+          }
+        },
+        "subsystems": {
+          "type": "array",
+          "items": {
+            "$ref": "https://py2kdm.local/schemas/architecture_model.schema.json#/$defs/subsystem"
+          }
+        },
+        "control_loops": {
+          "type": "array",
+          "items": {
+            "$ref": "https://py2kdm.local/schemas/architecture_model.schema.json#/$defs/controlLoop"
+          }
+        },
+        "structure_relationships": {
+          "type": "array",
+          "items": {
+            "$ref": "https://py2kdm.local/schemas/architecture_model.schema.json#/$defs/structureRelationship"
+          }
+        },
+        "containment_relationships": {
+          "type": "array",
+          "items": {
+            "$ref": "https://py2kdm.local/schemas/architecture_model.schema.json#/$defs/structureRelationship"
+          }
+        },
+        "architecture_consistency": {
+          "type": "object"
+        }
+      }
+    },
+    "component": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "role"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "Monitor",
+            "Analyzer",
+            "Planner",
+            "Executor",
+            "Knowledge",
+            "LoopManager",
+            "Loop",
+            "ReferenceInput",
+            "MeasuredOutput",
+            "Sensor",
+            "Effector",
+            "ManagedElement",
+            "Alternative"
+          ]
+        },
+        "stereotype_name": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "implemented_by": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "materialize": {
+          "type": "boolean"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "subsystem": {
+      "type": "object",
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "materialize": {
+          "type": "boolean"
+        }
+      }
+    },
+    "controlLoop": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "components"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "level": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "materialize": {
+          "type": "boolean"
+        }
+      }
+    },
+    "structureRelationship": {
+      "type": "object",
+      "required": [
+        "source",
+        "target",
+        "type"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "target": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "contains",
+            "mapek_flow",
+            "uses_knowledge",
+            "subscribes_to",
+            "depends_on",
+            "controls",
+            "observes",
+            "updates",
+            "acts_through",
+            "observes_through",
+            "produces_measurement",
+            "uses_reference_input",
+            "evaluates_measured_output"
+          ]
+        },
+        "confidence": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "materialize": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

@@ -13,34 +13,91 @@ The toolchain supports Architecture-Driven Modernization, model-driven analysis,
 
 ## Current status
 
-The current version supports an end-to-end workflow with deterministic architecture agents and human review:
+The current version supports an end-to-end pipeline with deterministic architecture agents and human review:
 
 ```text
-Python project
-   ↓
-python_kdm_extractor
-   ↓
-Intermediate JSON model
-   ↓
-kdm_architecture_recovery
-   ↓
-Architecture-enriched JSON model
-   ↓
-Pre-review architecture agents
-   ↓
-AI-enriched architecture JSON
-   ↓
-Architecture Review GUI
-   ↓
-Reviewed architecture JSON
-   ↓
-Post-review architecture agents
-   ↓
-AI-checked reviewed JSON
-   ↓
-kdm_pyecore_generator
-   ↓
-KDM 1.4 XMI model
+1. Project selection
+   1.1 Select the input Python project.
+   1.2 Define or load the pipeline configuration.
+   1.3 Define the output directory.
+
+2. Reverse engineering
+   2.1 Run the static extractor.
+       Input:
+         Python project
+       Output:
+         python_model.json
+
+   2.2 Run architectural recovery.
+       Input:
+         python_model.json
+       Output:
+         python_model.architecture.json
+
+   2.3 Run pre-review agents.
+       Input:
+         python_model.architecture.json
+       Output:
+         python_model.ai_architecture.json
+
+3. Human architecture review
+   3.1 Open the enriched architectural proposal.
+       Input:
+         python_model.ai_architecture.json
+
+   3.2 Review the recovered architecture.
+       The user can:
+         - accept or reject agent suggestions;
+         - modify architectural roles;
+         - enable or disable KDM materialization;
+         - review relationships;
+         - move elements visually;
+         - inspect traceability to source code.
+
+   3.3 Validate the reviewed architecture.
+       The GUI displays:
+         - OK;
+         - WARNING;
+         - FORBIDDEN.
+
+   3.4 Export the reviewed architecture.
+       Output:
+         python_model.reviewed_architecture.json
+
+4. Post-review agent check
+   4.1 Run post-review agents over the reviewed architecture.
+       Input:
+         python_model.reviewed_architecture.json
+       Output:
+         python_model.reviewed.ai_checked.json
+
+   4.2 Check whether the model is ready for KDM generation.
+       Expected result:
+         kdm_ready = true
+
+5. Final KDM generation
+   5.1 Run the KDM generator.
+       Input:
+         python_model.reviewed.ai_checked.json
+       Output:
+         model.reviewed.kdm.xmi
+
+6. Artifact visualization and management
+   6.1 Display the generated artifacts:
+       - python_model.json
+       - python_model.architecture.json
+       - python_model.ai_architecture.json
+       - python_model.reviewed_architecture.json
+       - python_model.reviewed.ai_checked.json
+       - model.reviewed.kdm.xmi
+
+   6.2 Display reports:
+       - extraction report;
+       - architectural recovery report;
+       - pre-review suggestions;
+       - human validation;
+       - post-review findings;
+       - KDM validation.
 ```
 
 Implemented capabilities:
