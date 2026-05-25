@@ -1,46 +1,25 @@
 # Limitations
 
-## Static analysis limitations
+## Python coverage
 
-Python static analysis cannot always resolve:
+The extractor targets Python source code and maps a practical subset of Python constructs to the intermediate model and KDM.
 
-- dynamically bound methods;
-- decorated functions;
-- dependency injection;
-- monkey patching;
-- callback registration;
-- external library behavior;
-- framework-managed execution.
+## Dynamic analysis
 
-Dynamic analysis can complement these gaps but only for executed scenarios.
+Runtime evidence depends on scenario quality. If a behavior is not exercised by a scenario, it will not appear in runtime traces.
 
-## Dynamic analysis limitations
+## Architecture recovery
 
-Runtime evidence is scenario-dependent. If a behavior is not executed, it will not appear in the trace.
+Recovered architecture is evidence-based and heuristic. It must be reviewed by the user before KDM generation.
 
-Dynamic tracing may also capture infrastructure noise. The enrichment stage filters common noise, but project-specific helpers may require additional filtering.
+## AI suggestions
 
-## Architecture recovery limitations
+LLM-backed suggestions are optional. They are pre-review suggestions only and are not authoritative.
 
-Recovered architecture is a proposal. Some roles may be implicit or merged in the implementation. For example, an Analyzer role may be absorbed into a Planner or Monitor.
+## KDM mapping
 
-Therefore, recovered components and AI suggestions require human review.
+The KDM generator aims to use KDM semantics where possible. Some project-specific or domain-specific evidence may still require stereotypes or extension families.
 
-## LLM limitations
+## GUI configuration
 
-LLMs are optional and are restricted to pre-review suggestions. They do not construct or modify the CodeModel and do not apply changes directly to the StructureModel.
-
-Potential limitations include:
-
-- redundant suggestions;
-- overly generic architectural advice;
-- incorrect interpretation of missing roles;
-- output formatting issues.
-
-The schema guard and suggestion deduplicator reduce these issues, but human review remains required.
-
-## KDM mapping limitations
-
-Some Python constructs do not map perfectly to KDM. The generator uses the closest KDM semantic construct available and validates the resulting model.
-
-Runtime calls that cannot be resolved to known CodeItems are reported as unresolved and are not emitted as KDM `Calls`.
+The GUI has a separate configuration format from the CLI pipeline. This is intentional because the GUI stores interactive state, while the CLI config describes batch execution.

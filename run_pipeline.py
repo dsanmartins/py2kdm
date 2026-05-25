@@ -263,7 +263,7 @@ def parse_args() -> argparse.Namespace:
         "--dynamic-trace",
         help=(
             "Optional dynamic trace JSON consumed by DynamicEvidenceAgent "
-            "when --with-agents pre-review or all is used."
+            "when --with-agents pre-review is used."
         ),
     )
 
@@ -593,8 +593,7 @@ def run_architecture_agents(
 
         architecture recovery -> pre-review agents -> GUI review
 
-    Post-review agents should normally be executed after the user exports a
-    reviewed JSON from the GUI.
+    Only pre-review agents are supported in the default pipeline. After the user exports a reviewed JSON from the GUI, that reviewed model should feed KDM generation directly.
     """
 
     print_step(f"Running architecture agents ({mode})")

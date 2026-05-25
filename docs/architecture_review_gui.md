@@ -1,44 +1,42 @@
-# Architecture Review GUI
+# Architecture review GUI
 
-The review GUI allows the user to inspect, accept, reject, or modify the recovered architecture and the AI-generated pre-review suggestions.
+The GUI review workflow is implemented in `py2kdm_gui`.
 
-## Purpose
+## Launch
 
-The GUI is the point where the user validates the StructureModel. After review, the exported JSON is treated as authoritative and is used directly for final KDM generation.
+```bash
+python -m py2kdm_gui.main
+```
 
-## Inputs
+## Tabs
 
-Typical inputs are:
+| Tab | Purpose |
+|---|---|
+| Configuration | Project setup, scenarios and pre-review agents. |
+| Process | Pipeline execution, diagnostics and KDM summary. |
+| Human Review | Architecture review, validation and export. |
+| Artifacts | Generated file inspection. |
+
+## Open proposal
+
+The preferred proposal is the AI-enriched architecture JSON:
 
 ```text
-python_model.runtime_enriched.architecture.json
 python_model.runtime_enriched.ai_architecture.json
 ```
 
-The AI-enriched architecture JSON includes `ai_enrichment.suggestions`, which the GUI can show as reviewable items.
+## Review actions
 
-## User actions
+AI suggestions support Accept, Reject, and Mark reviewed.
 
-The reviewer may:
+Accept applies a structured suggestion when possible. If the suggestion is textual only, the acceptance decision is recorded without modifying the model.
 
-- accept a suggested component or relationship;
-- reject a suggestion;
-- rename a component;
-- change a role;
-- merge or split components;
-- add missing abstractions manually;
-- mark uncertain suggestions as not applicable.
+## Export
 
-## Output
-
-The GUI exports a reviewed architecture JSON:
+The reviewed architecture must be validated before export. The GUI shows an export summary before writing:
 
 ```text
-python_model.runtime_enriched.reviewed_architecture.json
+python_model.reviewed_architecture.json
 ```
 
-This file is the final architecture input for KDM generation.
-
-## Methodological boundary
-
-No post-review AI agent is part of the default workflow. The reviewed architecture reflects the human decision and is not reinterpreted by agents before KDM generation.
+This reviewed JSON is the input for final KDM generation.

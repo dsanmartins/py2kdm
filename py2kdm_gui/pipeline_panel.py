@@ -34,6 +34,11 @@ from py2kdm_gui.pipeline_controller import (
     summarize_json,
 )
 from py2kdm_gui.pipeline_state_panel import PipelineStatePanel
+from py2kdm_gui.kdm_result_summary import build_kdm_generation_summary
+from py2kdm_gui.output_cleaner import (
+    backup_and_clean_output_dir,
+    clean_output_dir_without_backup,
+)
 from py2kdm_gui.project_validator import validate_project_setup
 from py2kdm_gui.project_config import (
     AgentConfig,
@@ -55,6 +60,7 @@ class PipelinePanel(QWidget):
     """
 
     proposal_ready = Signal(str)
+    outputs_cleaned = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -73,11 +79,19 @@ class PipelinePanel(QWidget):
     # ------------------------------------------------------------
 
     def _build_ui(self):
-        layout = QVBoxLayout(self)
+        root_layout = QVBoxLayout(self)
+        root_layout.setContentsMargins(0, 0, 0, 0)
 
-        layout.addWidget(self._project_group())
-        layout.addWidget(self._dynamic_group())
-        layout.addWidget(self._agents_group())
+        self.configuration_widget = QWidget()
+        config_layout = QVBoxLayout(self.configuration_widget)
+        config_layout.addWidget(self._project_group())
+        config_layout.addWidget(self._dynamic_group())
+        config_layout.addWidget(self._agents_group())
+        config_layout.addStretch(1)
+
+        self.process_widget = QWidget()
+        layout = QVBoxLayout(self.process_widget)
+
         layout.addWidget(self._actions_group())
 
         self.state_panel = PipelineStatePanel()
@@ -94,10 +108,34 @@ class PipelinePanel(QWidget):
         self.summary_label = QLabel("No artifact summary loaded.")
         layout.addWidget(self.summary_label)
 
+        self.kdm_generation_summary_panel = QPlainTextEdit()
+        self.kdm_generation_summary_panel.setReadOnly(True)
+        self.kdm_generation_summary_panel.setMaximumHeight(170)
+        self.kdm_generation_summary_panel.setPlaceholderText(
+            "After final KDM generation, the result summary will appear here."
+        )
+        layout.addWidget(self.kdm_generation_summary_panel)
+
+        self.error_diagnostic_panel = QPlainTextEdit()
+        self.error_diagnostic_panel.setReadOnly(True)
+        self.error_diagnostic_panel.setMaximumHeight(140)
+        self.error_diagnostic_panel.setPlaceholderText(
+            "If a pipeline step fails, a compact diagnostic will appear here."
+        )
+        layout.addWidget(self.error_diagnostic_panel)
+
         self.log = QPlainTextEdit()
         self.log.setReadOnly(True)
         self.log.setMinimumHeight(220)
         layout.addWidget(self.log)
+
+        root_layout.addWidget(self.process_widget)
+
+    def get_configuration_widget(self):
+        return self.configuration_widget
+
+    def get_process_widget(self):
+        return self.process_widget
 
     def _project_group(self):
         group = QGroupBox("Project setup")
@@ -170,11 +208,9 @@ class PipelinePanel(QWidget):
         self.add_scenario_btn = QPushButton("Add scenario")
         self.browse_scenario_btn = QPushButton("Browse script")
         self.remove_scenario_btn = QPushButton("Remove selected")
-        self.add_pymape_defaults_btn = QPushButton("Add PyMAPE defaults")
         buttons.addWidget(self.add_scenario_btn)
         buttons.addWidget(self.browse_scenario_btn)
         buttons.addWidget(self.remove_scenario_btn)
-        buttons.addWidget(self.add_pymape_defaults_btn)
         buttons.addStretch(1)
         layout.addLayout(buttons)
 
@@ -232,11 +268,13 @@ class PipelinePanel(QWidget):
         self.validate_setup_btn = QPushButton("Validate setup")
         self.run_until_review_btn = QPushButton("Run until Human Review")
         self.run_pre_review_pipeline_btn = QPushButton("Run full pre-review pipeline")
+        self.clean_outputs_btn = QPushButton("Clean project outputs")
 
         auto.addWidget(self.refresh_state_btn)
         auto.addWidget(self.validate_setup_btn)
         auto.addWidget(self.run_until_review_btn)
         auto.addWidget(self.run_pre_review_pipeline_btn)
+        auto.addWidget(self.clean_outputs_btn)
         auto.addStretch(1)
 
         layout.addLayout(auto)
@@ -265,7 +303,6 @@ class PipelinePanel(QWidget):
         self.add_scenario_btn.clicked.connect(self._add_scenario_dialog)
         self.browse_scenario_btn.clicked.connect(self._browse_scenario_script)
         self.remove_scenario_btn.clicked.connect(self._remove_selected_scenario)
-        self.add_pymape_defaults_btn.clicked.connect(self._add_pymape_default_scenarios)
 
         self.run_static_btn.clicked.connect(self.run_static_extraction)
         self.run_dynamic_btn.clicked.connect(self.run_dynamic_analysis)
@@ -278,6 +315,7 @@ class PipelinePanel(QWidget):
         self.validate_setup_btn.clicked.connect(self.validate_setup)
         self.run_until_review_btn.clicked.connect(self.run_until_human_review)
         self.run_pre_review_pipeline_btn.clicked.connect(self.run_until_human_review)
+        self.clean_outputs_btn.clicked.connect(self.clean_project_outputs)
 
         self.llm_provider_combo.currentTextChanged.connect(self._refresh_env_status)
         self.enable_dynamic_checkbox.stateChanged.connect(lambda _: self.refresh_state())
@@ -287,6 +325,12 @@ class PipelinePanel(QWidget):
         self.controller.step_started.connect(self._on_step_started)
         self.controller.step_finished.connect(self._on_step_finished)
         self.controller.artifact_created.connect(self._on_artifact_created)
+        self.controller.step_failed_diagnostic.connect(
+            self._on_step_failed_diagnostic
+        )
+        self.controller.step_succeeded_output.connect(
+            self._on_step_succeeded_output
+        )
 
     def _set_defaults(self):
         project_root = PY2KDM_PROJECT_ROOT / "examples" / "pymape_hierarchical"
@@ -297,7 +341,12 @@ class PipelinePanel(QWidget):
         self.project_name_edit.setText("pymape_hierarchical")
         self.llm_provider_combo.setCurrentText("none")
         self.llm_model_edit.setText("gemini-2.5-flash-lite")
+
+        # The bundled PyMAPE example is preloaded only as a startup example.
+        # Project-specific scenario loading should normally be handled through
+        # config files or by manually adding scenarios.
         self._add_pymape_default_scenarios()
+
         self._refresh_env_status()
         self._refresh_setup_mode()
 
@@ -443,7 +492,6 @@ class PipelinePanel(QWidget):
             self.add_scenario_btn,
             self.browse_scenario_btn,
             self.remove_scenario_btn,
-            self.add_pymape_defaults_btn,
             self.llm_provider_combo,
             self.llm_model_edit,
             self.llm_timeout_spin,
@@ -596,6 +644,10 @@ class PipelinePanel(QWidget):
             self.scenario_table.setItem(row, 1, QTableWidgetItem(name))
 
     def _add_pymape_default_scenarios(self):
+        # Internal helper for the bundled PyMAPE example.
+        # This method is intentionally not exposed as a GUI button because
+        # py2kdm_gui must remain project-agnostic. For other systems,
+        # scenarios should be loaded from a project config or added manually.
         if self.scenario_table.rowCount() > 0:
             return
 
@@ -683,7 +735,7 @@ class PipelinePanel(QWidget):
     # ------------------------------------------------------------
 
     def run_static_extraction(self):
-        if not self.validate_setup(show_message=True):
+        if not self.validate_setup(show_message=False):
             return
 
         self._ensure_output_dir()
@@ -693,7 +745,7 @@ class PipelinePanel(QWidget):
         )
 
     def run_dynamic_analysis(self):
-        if not self.validate_setup(show_message=True):
+        if not self.validate_setup(show_message=False):
             return
 
         if not self.enable_dynamic_checkbox.isChecked():
@@ -759,7 +811,7 @@ class PipelinePanel(QWidget):
         )
 
     def run_architecture_recovery(self):
-        if not self.validate_setup(show_message=True):
+        if not self.validate_setup(show_message=False):
             return
 
         input_json = (
@@ -782,7 +834,7 @@ class PipelinePanel(QWidget):
         )
 
     def run_pre_review_agents(self):
-        if not self.validate_setup(show_message=True):
+        if not self.validate_setup(show_message=False):
             return
 
         if not self.architecture_json.exists():
@@ -843,7 +895,7 @@ class PipelinePanel(QWidget):
     # ------------------------------------------------------------
 
     def run_until_human_review(self):
-        if not self.validate_setup(show_message=True):
+        if not self.validate_setup(show_message=False):
             return
 
         if not self._is_setup_ready():
@@ -890,6 +942,86 @@ class PipelinePanel(QWidget):
             self.run_pre_review_agents()
         elif next_step == "load_review":
             self.load_for_review()
+
+
+    # ------------------------------------------------------------
+    # Output management
+    # ------------------------------------------------------------
+
+    def clean_project_outputs(self):
+        if self.controller.is_running():
+            QMessageBox.warning(
+                self,
+                "Pipeline running",
+                "Stop or wait for the current pipeline step before cleaning outputs.",
+            )
+            return
+
+        output_dir = self.output_dir
+
+        message = (
+            "This will clean only the configured output directory:\n\n"
+            f"{output_dir}\n\n"
+            "Choose Backup and clean to keep a timestamped copy first."
+        )
+
+        box = QMessageBox(self)
+        box.setWindowTitle("Clean project outputs")
+        box.setText(message)
+        box.setIcon(QMessageBox.Icon.Warning)
+
+        backup_button = box.addButton("Backup and clean", QMessageBox.ButtonRole.AcceptRole)
+        clean_button = box.addButton("Clean without backup", QMessageBox.ButtonRole.DestructiveRole)
+        cancel_button = box.addButton("Cancel", QMessageBox.ButtonRole.RejectRole)
+
+        box.exec()
+        clicked = box.clickedButton()
+
+        if clicked == cancel_button:
+            return
+
+        try:
+            if clicked == backup_button:
+                result = backup_and_clean_output_dir(output_dir)
+            elif clicked == clean_button:
+                confirm = QMessageBox.question(
+                    self,
+                    "Confirm clean without backup",
+                    (
+                        "This will delete the current contents of the output directory "
+                        "without creating a backup. Continue?"
+                    ),
+                )
+                if confirm != QMessageBox.StandardButton.Yes:
+                    return
+                result = clean_output_dir_without_backup(output_dir)
+            else:
+                return
+        except Exception as exc:
+            QMessageBox.critical(self, "Clean outputs failed", str(exc))
+            return
+
+        self._append_log("")
+        self._append_log("=== Clean outputs ===")
+        self._append_log(result.to_text())
+
+        if hasattr(self, "error_diagnostic_panel"):
+            self.error_diagnostic_panel.clear()
+
+        if hasattr(self, "kdm_generation_summary_panel"):
+            self.kdm_generation_summary_panel.clear()
+
+        self._reset_reviewed_override_after_clean(output_dir)
+        self.summary_label.setText("Outputs cleaned.")
+        self.refresh_state()
+        self.outputs_cleaned.emit(str(output_dir))
+
+        QMessageBox.information(
+            self,
+            "Outputs cleaned",
+            result.to_text(),
+        )
+
 
     # ------------------------------------------------------------
     # State
@@ -967,6 +1099,25 @@ class PipelinePanel(QWidget):
                 f"{step_name} failed. See the log panel for details.",
             )
 
+    def _on_step_succeeded_output(self, step_name: str, command_output: str):
+        if step_name != "Final KDM generation":
+            return
+
+        summary = build_kdm_generation_summary(
+            output_path=self.final_kdm_xmi,
+            command_output=command_output,
+        )
+        self.kdm_generation_summary_panel.setPlainText(summary.to_text())
+        self._append_log("")
+        self._append_log("=== Final KDM summary ===")
+        self._append_log(summary.to_text())
+
+    def _on_step_failed_diagnostic(self, step_name: str, diagnostic: str):
+        self.error_diagnostic_panel.setPlainText(diagnostic)
+        self._append_log("")
+        self._append_log("=== Diagnostic ===")
+        self._append_log(diagnostic)
+
     def _on_artifact_created(self, label: str, path: str):
         self._append_log(f"{label}: {path}")
 
@@ -985,6 +1136,7 @@ class PipelinePanel(QWidget):
             self.validate_setup_btn,
             self.run_until_review_btn,
             self.run_pre_review_pipeline_btn,
+            self.clean_outputs_btn,
             self.load_config_btn,
             self.save_config_btn,
             self.save_config_as_btn,
@@ -993,6 +1145,21 @@ class PipelinePanel(QWidget):
 
         if enabled:
             self._refresh_setup_mode()
+
+    def _reset_reviewed_override_after_clean(self, output_dir: Path):
+        override = getattr(self, "reviewed_architecture_path_override", None)
+
+        if override is None:
+            return
+
+        try:
+            override = Path(override).resolve()
+            output_dir = Path(output_dir).resolve()
+            override.relative_to(output_dir)
+        except Exception:
+            return
+
+        self.reviewed_architecture_path_override = None
 
     def _ensure_output_dir(self):
         self.output_dir.mkdir(parents=True, exist_ok=True)

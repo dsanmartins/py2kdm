@@ -1,89 +1,36 @@
-# Development Guide
+# Development guide
 
-## Repository organization
+## Recommended development loop
 
-```text
-python_kdm_extractor/          Static Python extraction
-kdm_dynamic_analysis/          Runtime tracing and CodeModel enrichment
-kdm_architecture_recovery/     Architecture recovery
-kdm_architecture_agents/       Pre-review AI suggestions
-kdm_architecture_review/       Human review GUI
-kdm_pyecore_generator/         KDM XMI generation
-schemas/                       JSON Schemas
-configs/                       Pipeline configurations
-docs/                          MkDocs documentation
-run_pipeline.py                Configurable pipeline runner
-```
+1. Make changes in one module.
+2. Run unit tests for that module.
+3. Run schema validation on representative outputs.
+4. Run the GUI for interactive review when UI behavior is affected.
+5. Run `scripts/e2e_regression.sh` before release.
 
-## Development workflow
+## GUI development
 
-1. Implement or modify one pipeline stage.
-2. Run unit tests for that stage.
-3. Run schema validation on affected JSON artifacts.
-4. Run an E2E pipeline on `three_layer_system` or `pymape_hierarchical`.
-5. Generate KDM and check validation errors.
-6. Update documentation and examples.
-
-## Environment variables
-
-For Gemini:
+Launch the GUI with:
 
 ```bash
-export GEMINI_API_KEY="your_key_here"
+python -m py2kdm_gui.main
 ```
 
-Or use `.env` if `python-dotenv` is installed:
+The GUI should remain project-agnostic. Project-specific scenario sets should be loaded from config files rather than hardcoded into visible buttons.
 
-```bash
-pip install python-dotenv
-```
+## Scripts folder
 
-`.env`:
+Keep these scripts:
 
-```bash
-GEMINI_API_KEY=your_key_here
-```
+- `scripts/e2e_regression.sh`;
+- `scripts/validate_json_schema.py`.
 
-Never commit `.env`.
+Patch-application scripts named `scripts/apply_*.py` were temporary during development and should not be kept in the final repository.
 
-## Adding a new dynamic scenario
+## Generated folders
 
-Create a scenario under the target project, for example:
+Do not commit:
 
-```text
-examples/my_project/scenarios/my_scenario.py
-```
-
-Then run:
-
-```bash
-python run_pipeline.py \
-  --config configs/my_project.json \
-  --enable-dynamic-analysis \
-  --dynamic-project-root examples/my_project \
-  --dynamic-scenario my_scenario:scenarios/my_scenario.py
-```
-
-## Adding an agent suggestion
-
-Agents should only add suggestions under `ai_enrichment.suggestions`. They must not directly modify `structure_model`.
-
-Suggestions should include:
-
-- `suggestion_type`;
-- `message`;
-- `status`;
-- `confidence`;
-- `affected_elements`;
-- `proposed_changes`;
-- `evidence`.
-
-## KDM semantic rule
-
-When KDM has a native semantic construct, use it. For example:
-
-```text
-runtime_calls -> action::Calls
-```
-
-Do not encode semantic facts only as `TaggedValue` if KDM has an appropriate relation.
+- `__pycache__/`;
+- generated outputs unless they are intentional fixtures;
+- local `.env` files containing API keys.

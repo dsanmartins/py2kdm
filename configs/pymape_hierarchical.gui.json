@@ -1,0 +1,31 @@
+{
+  "project": {
+    "name": "pymape_hierarchical",
+    "root": "examples/pymape_hierarchical",
+    "output_dir": "outputs/pymape_hierarchical"
+  },
+  "dynamic_analysis": {
+    "enabled": true,
+    "scenarios": [
+      {
+        "name": "cruise_control",
+        "script": "scenarios/cruise_control_scenario.py",
+        "mode": "desktop",
+        "enabled": true,
+        "description": "Cruise-control scenario."
+      },
+      {
+        "name": "hold_distance",
+        "script": "scenarios/hold_distance_scenario.py",
+        "mode": "desktop",
+        "enabled": true,
+        "description": "Distance-holding scenario."
+      }
+    ]
+  },
+  "agents": {
+    "llm_provider": "none",
+    "llm_model": "gemini-2.5-flash-lite",
+    "llm_timeout": 300
+  }
+}

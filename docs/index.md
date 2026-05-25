@@ -1,36 +1,49 @@
 # py2kdm
 
-`py2kdm` is a model-driven reverse engineering pipeline that transforms Python projects into KDM-compatible XMI models. It combines static extraction, optional runtime evidence, architecture recovery, pre-review AI suggestions, human review, and final KDM generation.
+**Author:** Daniel San Martín
 
-The current methodological flow is:
 
-```text
-Python project
-  -> static extraction
-  -> optional dynamic analysis
-  -> runtime-enriched intermediate JSON
-  -> architecture recovery
-  -> pre-review AI suggestions
-  -> human review
-  -> final KDM XMI
+`py2kdm` is a model-driven reverse-engineering workbench for generating KDM-based representations from Python projects. It combines static extraction, optional runtime evidence, architecture recovery, human review, and final KDM XMI generation.
+
+The current workflow is organized around two complementary interfaces:
+
+- a **GUI workbench** for configuration, pipeline execution, human review, traceability inspection, and artifact inspection;
+- a **console pipeline** through `run_pipeline.py` for reproducible command-line execution and regression checks.
+
+## Main workflow
+
+1. Configure the project.
+2. Run static extraction.
+3. Optionally run dynamic analysis through scenarios.
+4. Recover architectural abstractions into a `structure_model`.
+5. Run pre-review architecture agents to create reviewable suggestions.
+6. Review the proposed architecture in the GUI.
+7. Export the reviewed architecture JSON.
+8. Generate the final KDM XMI.
+9. Inspect the generated artifacts.
+
+## Main outputs
+
+| Artifact | Purpose |
+|---|---|
+| `python_model.json` | Static intermediate model extracted from Python source code. |
+| `runtime_trace.<scenario>.json` | Runtime events observed for one scenario. |
+| `python_model.runtime_enriched.combined.json` | Static model enriched with runtime relationships and observed types. |
+| `python_model.runtime_enriched.architecture.json` | Architecture recovery over the runtime-enriched model. |
+| `python_model.runtime_enriched.ai_architecture.json` | Architecture proposal with pre-review AI suggestions. |
+| `python_model.reviewed_architecture.json` | Human-reviewed architecture model. |
+| `model.reviewed.kdm.xmi` | Final KDM XMI model. |
+
+## Recommended entry points
+
+Use the GUI when you need reviewability and traceability:
+
+```bash
+python -m py2kdm_gui.main
 ```
 
-The AI agents are used only before human review. After the user accepts, rejects, or edits suggestions in the review GUI, the reviewed architecture is treated as authoritative and is directly transformed into the final KDM model.
+Use the console pipeline when you need reproducible CLI execution:
 
-## Main features
-
-- Static extraction of Python files, classes, functions, methods, parameters, variables, calls, imports, values, exceptions, and body actions.
-- Runtime tracing through `sys.setprofile` to observe calls, argument types, return types, and exceptions.
-- Semantic KDM mapping of runtime calls as native `action::Calls`, not as generic metadata.
-- Architecture recovery for MAPE-K oriented self-adaptive systems.
-- Pre-review AI suggestions based on deterministic rules, runtime evidence, and optional LLM reasoning.
-- Human review through a GUI before generating the final KDM model.
-- JSON Schema validation for intermediate, architecture, AI-enriched, and reviewed models.
-
-## Recommended documentation path
-
-1. Read [Architecture](architecture.md) for the high-level design.
-2. Read [Pipeline Configuration](pipeline_configuration.md) for configuration files and outputs.
-3. Read [Dynamic Analysis](dynamic_analysis.md) if runtime evidence is required.
-4. Read [Architecture Agents](architecture_agents.md) if AI-assisted suggestions are enabled.
-5. Read [JSON to KDM Mapping](json_to_kdm_mapping.md) for the final KDM generation semantics.
+```bash
+python run_pipeline.py --config configs/three_layer_system.json
+```

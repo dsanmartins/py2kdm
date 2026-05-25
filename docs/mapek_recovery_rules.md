@@ -1,46 +1,28 @@
-# MAPE-K Recovery Rules
+# MAPE-K recovery rules
 
-MAPE-K recovery identifies Monitor, Analyzer, Planner, Executor, Knowledge, Sensor, Effector, Reference Input, and Measured Output candidates from code and runtime evidence.
+MAPE-K recovery is based on explicit evidence in the code model and, when available, runtime evidence.
 
-## Core roles
-
-| Role | Typical evidence |
-|---|---|
-| Monitor | Code that observes state, subscribes to updates, or reads measured values. |
-| Analyzer | Code that evaluates monitored data and determines whether adaptation is needed. |
-| Planner | Code that decides a target adaptation or computes a control action. |
-| Executor | Code that performs adaptation by invoking actuators or effectors. |
-| Knowledge | Shared state, configuration, memory, or data repository used by the loop. |
-
-## Peripheral roles
+## Role inference
 
 | Role | Typical evidence |
 |---|---|
-| Sensor | Interface or function that obtains external measurements. |
-| Effector | Interface or function that applies changes to the managed system. |
-| ReferenceInput | Desired setpoint, policy, or target value. |
-| MeasuredOutput | Observed value used for feedback control. |
-
-## Rule-based inference
-
-Role inference uses names, call relationships, data-flow hints, containment, and known MAPE-K vocabulary. Examples:
-
-- `speed`, `distance`, `monitor`, `observe`, `subscribe` may indicate Monitor behavior.
-- `pid`, `plan`, `control`, `target`, `setpoint` may indicate Planner behavior.
-- `gas`, `brake`, `actuate`, `execute` may indicate Executor or Effector behavior.
-- Shared memory, Redis-like structures, or configuration containers may indicate Knowledge.
+| Monitor | Functions or classes that observe, read, sense or collect data. |
+| Analyzer | Functions or classes that evaluate or classify system state. |
+| Planner | Functions or classes that decide an adaptation plan. |
+| Executor | Functions or classes that perform adaptation actions. |
+| Knowledge | Shared state, memory, repositories or configuration data. |
+| Sensor | External or internal observation endpoint. |
+| Effector | Action endpoint affecting a managed element. |
 
 ## Runtime evidence
 
-Runtime evidence may support or refine relationships between recovered components. For example:
+Runtime calls may support architecture relationships such as:
 
 ```text
-gas_brake --acts_through--> gas
-gas_brake --acts_through--> brake
+Executor --acts_through--> Effector
+Monitor --observes--> Sensor
 ```
 
-Such suggestions are generated as reviewable architecture changes, not applied automatically.
+## Review requirement
 
-## Missing roles
-
-A control loop may be valid even if a role is not explicit in the implementation. For example, an Analyzer may be absorbed into a Planner or Monitor. Therefore, missing-role suggestions should remain `needs_review`.
+Recovered roles are proposals. The GUI lets the user inspect and revise them before KDM generation.

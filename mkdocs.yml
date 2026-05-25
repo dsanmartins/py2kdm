@@ -1,27 +1,37 @@
 site_name: py2kdm
+site_author: "Daniel San Martín"
+extra:
+  author_url: "https://www.danielsanmartin.cl/"
+site_description: KDM-based reverse engineering workbench for Python projects
+copyright: 'Author: <a href="https://www.danielsanmartin.cl/">Daniel San Martín</a>'
 
 theme:
   name: material
 
 nav:
   - Home: index.md
-  - Architecture: architecture.md
-  - Pipeline Configuration: pipeline_configuration.md
-  - Python Extractor: python_extractor.md
-  - Intermediate JSON Model: intermediate_json_model.md
-  - Dynamic Analysis: dynamic_analysis.md
-  - Architecture Recovery:
-      - Overview: architecture_recovery.md
+  - User Guide:
+      - GUI Workflow: gui_workflow.md
+      - GUI Configuration: gui_configuration.md
+      - GUI Process Tab: gui_process.md
+      - Architecture Review GUI: architecture_review_gui.md
+      - Human Review: human_review.md
+      - Artifact Reference: artifact_reference.md
+      - CLI Usage: cli_usage.md
+      - Pipeline Configuration: pipeline_configuration.md
+      - Examples and Case Studies: examples.md
+  - Pipeline Internals:
+      - Architecture: architecture.md
+      - Python Extractor: python_extractor.md
+      - Intermediate JSON Model: intermediate_json_model.md
+      - Dynamic Analysis: dynamic_analysis.md
+      - Dynamic Scenarios: dynamic_scenarios.md
+      - Architecture Recovery: architecture_recovery.md
       - MAPE-K Recovery Rules: mapek_recovery_rules.md
       - Structure Model Mapping: structure_model_mapping.md
-      - Architecture Review GUI: architecture_review_gui.md
       - Architecture Agents: architecture_agents.md
-  - KDM Generation:
       - JSON to KDM Mapping: json_to_kdm_mapping.md
       - Validation Rules: validation_rules.md
-  - Usage:
-      - CLI Usage: cli_usage.md
-      - Examples and Case Studies: examples.md
   - Development:
       - Development Guide: development_guide.md
       - Testing Strategy: testing_strategy.md

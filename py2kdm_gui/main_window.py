@@ -51,6 +51,7 @@ class MainWindow(QMainWindow):
         self.review_widget = self._build_review_widget()
 
         self.main_tabs = QTabWidget()
+        self.main_tabs.addTab(self.pipeline_panel.get_configuration_widget(), "Configuration")
         self.main_tabs.addTab(self.pipeline_panel, "Process")
         self.main_tabs.addTab(self.review_widget, "Human Review")
         self.main_tabs.addTab(self.artifact_panel, "Artifacts")
@@ -125,6 +126,12 @@ class MainWindow(QMainWindow):
         self.pipeline_panel.output_dir_edit.textChanged.connect(
             lambda text: self.artifact_panel.set_output_dir(text)
         )
+        self.pipeline_panel.outputs_cleaned.connect(
+            self._handle_outputs_cleaned
+        )
+        self.pipeline_panel.controller.step_succeeded_output.connect(
+            self._handle_pipeline_step_success
+        )
         self.artifact_panel.set_output_dir(self.pipeline_panel.output_dir_edit.text())
         self.ai_suggestions_panel.suggestion_action_requested.connect(
             self._handle_ai_suggestion_action
@@ -172,6 +179,16 @@ class MainWindow(QMainWindow):
         self.review_validated = False
         self.export_reviewed_btn.setEnabled(False)
         self._refresh_all(run_validation=False)
+
+    def _handle_pipeline_step_success(self, step_name: str, command_output: str):
+        if step_name == "Final KDM generation":
+            self.artifact_panel.refresh()
+            self.statusBar().showMessage("Final KDM generated successfully.")
+
+    def _handle_outputs_cleaned(self, output_dir: str):
+        self.artifact_panel.set_output_dir(output_dir)
+        self.artifact_panel.refresh()
+        self.statusBar().showMessage(f"Outputs cleaned: {output_dir}")
 
     def open_proposal(self):
         path, _ = QFileDialog.getOpenFileName(

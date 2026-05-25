@@ -1,39 +1,23 @@
-# JSON Schemas
+# JSON schemas
 
-JSON Schemas define the structure of pipeline artifacts and support regression validation.
+JSON schemas are stored under `schemas/`.
 
-## Available schemas
+## Validator
 
-| Schema | Artifact |
-|---|---|
-| `python_model.schema.json` | Static intermediate JSON. |
-| `architecture_model.schema.json` | Recovered architecture JSON. |
-| `ai_architecture_model.schema.json` | AI-enriched pre-review architecture JSON. |
-| `reviewed_architecture_model.schema.json` | Human-reviewed architecture JSON. |
-| `ai_checked_architecture_model.schema.json` | Legacy compatibility schema for AI-checked outputs. |
-| `runtime_trace.schema.json` | Runtime trace JSON. |
-
-## Validation command
+Use:
 
 ```bash
-python scripts/validate_json_schema.py \
-  --input outputs/pymape_hierarchical/python_model.runtime_enriched.combined.json \
-  --schema schemas/python_model.schema.json
+python scripts/validate_json_schema.py --input path/to/file.json --type reviewed
 ```
 
-## Schema design
+Supported `--type` values include:
 
-Schemas should validate structural consistency but should not enforce project-specific architecture choices. For example, a MAPE-K project may or may not expose an explicit Analyzer component.
+- `python`;
+- `architecture`;
+- `ai-architecture`;
+- `reviewed`;
+- `ai-checked` for legacy artifacts.
 
-## Runtime-enriched models
+## Role
 
-Runtime-enriched models still conform to the intermediate JSON schema, with additional fields such as:
-
-```text
-relationships[type="runtime_calls"]
-runtime_enrichment
-```
-
-## Reviewed architecture
-
-The reviewed architecture schema validates the artifact that feeds final KDM generation after human review.
+Schemas are used for regression tests and for checking the shape of generated artifacts. They do not replace semantic validation in the GUI or KDM generator.

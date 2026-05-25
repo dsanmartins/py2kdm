@@ -3,22 +3,18 @@ set -euo pipefail
 
 # py2kdm end-to-end regression script with JSON Schema validation.
 #
-# Run from the py2kdm root directory.
-#
-# Flow:
+# Current methodology:
 #   extractor
 #     -> architecture recovery
 #     -> pre-review agents
 #     -> JSON Schema validation
-#     -> pass-through reviewed JSON
+#     -> pass-through reviewed JSON for regression only
 #     -> JSON Schema validation
-#     -> post-review agents
-#     -> JSON Schema validation
-#     -> KDM generation
+#     -> KDM generation directly from reviewed JSON
 #     -> sanity checks over the KDM XMI
 #
-# The pass-through reviewed JSON is used only for regression/CI purposes.
-# It does not replace human GUI review.
+# No post-review agents are run. After human review, the reviewed JSON is
+# authoritative and feeds KDM generation directly.
 
 CONFIG_PATH="configs/pymape_hierarchical.json"
 OUTPUT_DIR="outputs/pymape_hierarchical"
@@ -28,7 +24,6 @@ INTERMEDIATE_JSON="${OUTPUT_DIR}/python_model.json"
 ARCHITECTURE_JSON="${OUTPUT_DIR}/python_model.architecture.json"
 AI_ARCHITECTURE_JSON="${OUTPUT_DIR}/python_model.ai_architecture.json"
 REVIEWED_JSON="${OUTPUT_DIR}/python_model.reviewed_architecture.json"
-AI_CHECKED_JSON="${OUTPUT_DIR}/python_model.reviewed.ai_checked.json"
 KDM_XMI="${OUTPUT_DIR}/model.reviewed.kdm.xmi"
 
 CLEAN=false
@@ -67,7 +62,6 @@ while [[ $# -gt 0 ]]; do
       ARCHITECTURE_JSON="${OUTPUT_DIR}/python_model.architecture.json"
       AI_ARCHITECTURE_JSON="${OUTPUT_DIR}/python_model.ai_architecture.json"
       REVIEWED_JSON="${OUTPUT_DIR}/python_model.reviewed_architecture.json"
-      AI_CHECKED_JSON="${OUTPUT_DIR}/python_model.reviewed.ai_checked.json"
       KDM_XMI="${OUTPUT_DIR}/model.reviewed.kdm.xmi"
       shift 2
       ;;
@@ -84,7 +78,7 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     *)
-      echo "Unknown option: $1"
+      echo "Unknown option: $1" >&2
       usage
       exit 1
       ;;
@@ -100,7 +94,6 @@ print_step() {
 
 assert_file_exists() {
   local file="$1"
-
   if [[ ! -f "$file" ]]; then
     echo "ERROR: Expected file does not exist: $file" >&2
     exit 1
@@ -165,7 +158,6 @@ if [[ "$CLEAN" == true ]]; then
   rm -f "$INTERMEDIATE_JSON" \
         "$ARCHITECTURE_JSON" \
         "$AI_ARCHITECTURE_JSON" \
-        "$AI_CHECKED_JSON" \
         "$KDM_XMI"
 
   if [[ "$USE_EXISTING_REVIEWED" == false ]]; then
@@ -239,26 +231,10 @@ print_step "Validating reviewed JSON against schema"
 
 schema_check "$REVIEWED_JSON" "reviewed" "reviewed JSON validates against reviewed_architecture_model.schema.json"
 
-print_step "Running post-review agents"
-
-"$PYTHON_BIN" kdm_architecture_agents/main.py \
-  --mode post-review \
-  --input "$REVIEWED_JSON" \
-  --output "$AI_CHECKED_JSON"
-
-assert_file_exists "$AI_CHECKED_JSON"
-
-json_check "$AI_CHECKED_JSON" "'post_review_ai_check' in data" "AI-checked JSON has post_review_ai_check"
-json_check "$AI_CHECKED_JSON" "data.get('post_review_ai_check', {}).get('summary', {}).get('kdm_ready') is True" "AI-checked JSON is KDM-ready"
-
-print_step "Validating AI-checked JSON against schema"
-
-schema_check "$AI_CHECKED_JSON" "ai-checked" "AI-checked JSON validates against ai_checked_architecture_model.schema.json"
-
 print_step "Generating reviewed KDM"
 
 "$PYTHON_BIN" kdm_pyecore_generator/main.py \
-  --input "$AI_CHECKED_JSON" \
+  --input "$REVIEWED_JSON" \
   --output "$KDM_XMI"
 
 assert_file_exists "$KDM_XMI"
@@ -275,11 +251,6 @@ if ! grep -q "StructureModel" "$KDM_XMI"; then
   exit 1
 fi
 
-if ! grep -q "Control Loop" "$KDM_XMI"; then
-  echo "ERROR: KDM XMI does not contain Control Loop." >&2
-  exit 1
-fi
-
 print_step "E2E regression completed successfully"
 
 echo "Generated artifacts:"
@@ -287,5 +258,4 @@ echo "- Intermediate JSON: $INTERMEDIATE_JSON"
 echo "- Architecture JSON: $ARCHITECTURE_JSON"
 echo "- AI Architecture JSON: $AI_ARCHITECTURE_JSON"
 echo "- Reviewed JSON: $REVIEWED_JSON"
-echo "- AI-checked JSON: $AI_CHECKED_JSON"
 echo "- KDM XMI: $KDM_XMI"

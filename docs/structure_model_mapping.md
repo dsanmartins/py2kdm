@@ -1,77 +1,27 @@
-# Structure Model Mapping
+# Structure model mapping
 
-The `structure_model` stores the recovered architecture before KDM generation.
+The `structure_model` is the architecture-level layer added to the JSON model before KDM generation.
 
-## Components
+## Main elements
 
-Components represent architectural abstractions recovered from code.
-
-```json
-{
-  "id": "component:gas_brake_executor_control_gas_brake",
-  "name": "gas_brake",
-  "role": "Executor",
-  "implemented_by": [
-    "function:pymape_hierarchical.hierarchical-cruise-control.gas_brake"
-  ],
-  "confidence": 0.85,
-  "materialize": true
-}
-```
-
-Important fields:
-
-| Field | Meaning |
+| JSON element | Meaning |
 |---|---|
-| `id` | Stable architecture-level identifier. |
-| `name` | Human-readable component name. |
-| `role` | Candidate architectural role. |
-| `implemented_by` | Code elements implementing the component. |
-| `confidence` | Recovery confidence. |
-| `materialize` | Whether the component should be emitted to the final KDM structure model. |
+| `subsystems` | Coarse-grained architecture containers. |
+| `control_loops` | Adaptive control-loop abstractions. |
+| `components` | Architecture components with roles and stereotypes. |
+| `structure_relationships` | Architecture relationships between components. |
+| `containment_relationships` | Containment between subsystems, loops and components. |
 
-## Structure relationships
+## Materialization flag
 
-Relationships connect architecture components.
-
-```json
-{
-  "id": "relationship:gas_brake_acts_through_gas",
-  "type": "acts_through",
-  "source": "component:gas_brake_executor_control_gas_brake",
-  "target": "component:gas_effector_pymape_hierarchical_fixtures_virtualcarspeed_gas",
-  "status": "needs_review"
-}
-```
-
-## Containment relationships
-
-Containment relationships organize components inside subsystems or control loops.
+Many architecture elements include:
 
 ```json
-{
-  "type": "contains",
-  "source": "control_loop:loop",
-  "target": "component:speed_monitor_cruise_control_speed"
-}
+"materialize": true
 ```
 
-## Control loops
+Only materialized elements should be emitted to the final KDM StructureModel.
 
-Control loops group components involved in adaptive behavior.
+## Review metadata
 
-```json
-{
-  "id": "control_loop:loop",
-  "name": "loop",
-  "components": [
-    "component:speed_monitor_cruise_control_speed",
-    "component:pid_planner_cruise_control_pid",
-    "component:gas_brake_executor_control_gas_brake"
-  ]
-}
-```
-
-## Review status
-
-Suggestions from agents are not applied directly. They are passed to the review GUI where the user decides whether to accept, reject, or modify them.
+Human review can add or update review status, review decisions, reasons, accepted/rejected AI suggestions, and applied changes.

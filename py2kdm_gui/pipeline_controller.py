@@ -6,6 +6,8 @@ from pathlib import Path
 
 from PySide6.QtCore import QObject, QProcess, Signal
 
+from py2kdm_gui.error_diagnostics import diagnose_pipeline_error
+
 
 PY2KDM_PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -23,12 +25,15 @@ class PipelineController(QObject):
     step_started = Signal(str)
     step_finished = Signal(str, bool)
     artifact_created = Signal(str, str)
+    step_failed_diagnostic = Signal(str, str)
+    step_succeeded_output = Signal(str, str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.process: QProcess | None = None
         self.current_step = None
         self.expected_artifact = None
+        self.output_buffer = []
 
     def is_running(self) -> bool:
         return self.process is not None
@@ -175,6 +180,7 @@ class PipelineController(QObject):
 
         self.current_step = step_name
         self.expected_artifact = expected_artifact
+        self.output_buffer = []
 
         self.output_received.emit("$ " + " ".join(command))
         self.step_started.emit(step_name)
@@ -198,6 +204,7 @@ class PipelineController(QObject):
         )
 
         if data:
+            self.output_buffer.append(data.rstrip())
             self.output_received.emit(data.rstrip())
 
     def _on_finished(self, exit_code: int, _exit_status) -> None:
@@ -214,6 +221,19 @@ class PipelineController(QObject):
         self.output_received.emit(
             f"[{step_name}] finished with exit code {exit_code}"
         )
+
+        if not success:
+            diagnostic = diagnose_pipeline_error(
+                step_name=step_name,
+                output="\n".join(self.output_buffer),
+                exit_code=exit_code,
+            )
+            self.step_failed_diagnostic.emit(step_name, diagnostic.to_text())
+        else:
+            self.step_succeeded_output.emit(
+                step_name,
+                "\n".join(self.output_buffer),
+            )
 
         # Important: clear the running process state before emitting
         # step_finished. Some listeners immediately start the next queued step

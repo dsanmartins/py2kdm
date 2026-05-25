@@ -1,136 +1,41 @@
-# Architecture Agents
+# Architecture agents
 
-Architecture agents run only in the pre-review phase. Their purpose is to produce reviewable suggestions for the user.
+Architecture agents run before human review and produce reviewable suggestions.
 
-They do not modify `structure_model` directly.
+## Supported mode
 
-## Workflow
+The current main workflow supports only:
 
-```text
-architecture recovery
-  -> pre-review architecture agents
-  -> human review in GUI
-  -> reviewed architecture JSON
-  -> final KDM generation
+```bash
+python kdm_architecture_agents/main.py --mode pre-review   --input outputs/pymape_hierarchical/python_model.runtime_enriched.architecture.json   --output outputs/pymape_hierarchical/python_model.runtime_enriched.ai_architecture.json
 ```
 
-After human review, no additional AI agent modifies or reinterprets the architecture. The reviewed JSON is authoritative.
+Post-review agents are intentionally not part of the default methodological pipeline. After human review, the reviewed architecture JSON is authoritative.
 
 ## Agent types
 
-### DynamicEvidenceAgent
+| Agent | Purpose |
+|---|---|
+| `DynamicEvidenceAgent` | Suggests architecture relationships supported by runtime evidence. |
+| `ArchitectureEnrichmentAgent` | Detects missing or ambiguous architecture abstractions. |
+| `LLMArchitectureReasoningAgent` | Optionally asks an LLM for additional pre-review suggestions. |
+| `SuggestionDeduplicator` | Removes duplicate or overlapping suggestions. |
 
-Uses runtime evidence from the model:
+## LLM providers
 
-```text
-relationships[type="runtime_calls"]
-runtime_enrichment.summary
-```
+Supported providers are `none`, `gemini`, and `ollama`.
 
-It can suggest architecture-level relationships such as:
+Gemini reads `GEMINI_API_KEY` or `GOOGLE_API_KEY` from the environment. A `.env` file at project root is loaded when `python-dotenv` is installed.
 
-```text
-Executor --acts_through--> Effector
-Monitor --observes--> MeasuredOutput
-Sensor --produces_measurement--> MeasuredOutput
-```
+## Suggestion schema
 
-Example suggestion:
+Suggestions are stored in:
 
 ```json
-{
-  "suggestion_type": "dynamic_relation",
-  "message": "Runtime evidence suggests gas_brake --acts_through--> gas.",
-  "status": "needs_review",
-  "proposed_changes": [
-    {
-      "operation": "add_relationship",
-      "relationship_type": "acts_through",
-      "source": "component:gas_brake_executor_control_gas_brake",
-      "target": "component:gas_effector_pymape_hierarchical_fixtures_virtualcarspeed_gas"
-    }
-  ]
+"ai_enrichment": {
+  "status": "pre_review_enriched",
+  "suggestions": []
 }
 ```
 
-### ArchitectureEnrichmentAgent
-
-Uses deterministic architecture rules. It detects missing abstractions, role ambiguity, partial control loops, and candidate review points.
-
-Examples:
-
-- no Reference Input recovered;
-- no Measured Output recovered;
-- one code element appears to implement multiple roles;
-- a control loop has no explicit Analyzer.
-
-### LLMArchitectureReasoningAgent
-
-Optionally calls an LLM provider to provide additional reviewable suggestions. The LLM receives a compact context that includes:
-
-- components;
-- structure relationships;
-- control-loop summaries;
-- runtime summary;
-- current architecture consistency information.
-
-The LLM must return JSON only and cannot modify the model directly.
-
-## Suggestion deduplication
-
-The pipeline deduplicates semantically equivalent suggestions. If a deterministic agent and an LLM suggest the same issue, the deterministic suggestion remains primary and the LLM message is merged into metadata.
-
-Summary fields include:
-
-```json
-{
-  "raw_suggestions": 7,
-  "deduplicated_suggestions": 1,
-  "suggestions": 6
-}
-```
-
-## Gemini configuration
-
-The Gemini provider reads the API key from the environment:
-
-```bash
-export GEMINI_API_KEY="your_key_here"
-```
-
-Optionally, install `python-dotenv` and create `.env` at the project root:
-
-```bash
-pip install python-dotenv
-```
-
-`.env`:
-
-```bash
-GEMINI_API_KEY=your_key_here
-```
-
-The `.env` file must be ignored by Git.
-
-## Running agents
-
-Offline deterministic mode:
-
-```bash
-python kdm_architecture_agents/main.py \
-  --mode pre-review \
-  --input outputs/pymape_hierarchical/python_model.runtime_enriched.architecture.json \
-  --output outputs/pymape_hierarchical/python_model.runtime_enriched.ai_architecture.json \
-  --llm-provider none
-```
-
-Gemini mode:
-
-```bash
-python kdm_architecture_agents/main.py \
-  --mode pre-review \
-  --input outputs/pymape_hierarchical/python_model.runtime_enriched.architecture.json \
-  --output outputs/pymape_hierarchical/python_model.runtime_enriched.ai_architecture.json \
-  --llm-provider gemini \
-  --llm-model gemini-2.5-flash-lite
-```
+Suggestions are not automatically transformed to KDM. They must be accepted, rejected or marked as reviewed in the GUI.

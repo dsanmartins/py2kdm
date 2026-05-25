@@ -1,97 +1,32 @@
-# Intermediate JSON Model
+# Intermediate JSON model
 
-The intermediate JSON model is the central artifact exchanged between pipeline stages. It contains the static CodeModel, optional runtime enrichment, recovered architecture, AI suggestions, and user review data.
+The intermediate JSON model is the exchange format used across the py2kdm pipeline.
+
+## Purpose
+
+It decouples the static extractor from the KDM generator and from the architecture recovery stages. This makes it possible to enrich the model before generating KDM.
 
 ## Main sections
 
-Typical top-level fields include:
+Typical top-level sections include project metadata, files, modules, classes, functions and methods, variables and parameters, relationships, optional `runtime_enrichment`, optional `structure_model`, optional `ai_enrichment`, and optional `architecture_review`.
 
-```json
-{
-  "projectName": "pymape_hierarchical",
-  "language": "python",
-  "files": [],
-  "relationships": [],
-  "runtime_enrichment": {},
-  "structure_model": {},
-  "ai_enrichment": {},
-  "architecture_review": {}
-}
-```
+## Static relationships
 
-## CodeModel information
+The model can include calls, imports, type references, value references, returns, and raises/throws.
 
-Static code information is stored mainly under `files` and `relationships`. Static relationships may include imports, calls, creates, reads, writes, types, values, returns, and exceptions.
+## Runtime relationships
 
-## Runtime enrichment
-
-Runtime evidence is added to the same model without replacing static facts.
+After dynamic analysis, the model may include runtime-aware relationships such as:
 
 ```json
 {
   "type": "runtime_calls",
-  "source": "...",
-  "target": "...",
-  "relationship_level": "code",
-  "source_level": "runtime",
-  "evidence": "dynamic_trace",
+  "source": "function:...",
+  "target": "function:...",
   "scenario": "cruise_control"
 }
 ```
 
-Runtime enrichment also stores a summary:
+## Architecture section
 
-```json
-{
-  "runtime_enrichment": {
-    "status": "runtime_enriched",
-    "summary": {
-      "events": 1996,
-      "events_after_filter": 1707,
-      "events_filtered_out": 289,
-      "dynamic_relationships_added": 32,
-      "observed_argument_types": 808,
-      "observed_return_types": 860,
-      "observed_exceptions": 0
-    }
-  }
-}
-```
-
-## Architecture information
-
-The architecture recovery stage adds `structure_model`:
-
-```json
-{
-  "structure_model": {
-    "components": [],
-    "structure_relationships": [],
-    "containment_relationships": [],
-    "control_loops": [],
-    "subsystems": []
-  }
-}
-```
-
-## AI suggestions
-
-Pre-review agents add `ai_enrichment`. These suggestions are not applied automatically.
-
-```json
-{
-  "ai_enrichment": {
-    "status": "pre_review_enriched",
-    "suggestions": [],
-    "summary": {
-      "suggestions": 6,
-      "raw_suggestions": 7,
-      "deduplicated_suggestions": 1
-    }
-  }
-}
-```
-
-## Human review
-
-The GUI writes review decisions into the reviewed architecture JSON. This reviewed JSON is authoritative for final KDM generation.
+Architecture recovery adds a `structure_model` section with components, subsystems, control loops and architecture-level relationships.

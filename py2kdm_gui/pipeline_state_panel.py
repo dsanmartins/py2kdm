@@ -15,9 +15,8 @@ class PipelineStatePanel(QWidget):
     """
     Displays the state of the py2kdm process based on generated artifacts.
 
-    The panel is intentionally artifact-based. It does not assume that the GUI
-    itself created the files. If the user generated artifacts from the CLI, the
-    state panel can still detect them.
+    The Path column shows expected paths, but explicitly marks them as EXISTS
+    or MISSING to avoid confusion after cleaning outputs.
     """
 
     STEPS = [
@@ -45,7 +44,9 @@ class PipelineStatePanel(QWidget):
         layout = QVBoxLayout(self)
 
         self.table = QTableWidget(0, 4)
-        self.table.setHorizontalHeaderLabels(["Step", "Status", "Artifact", "Path"])
+        self.table.setHorizontalHeaderLabels(
+            ["Step", "Status", "Artifact", "Path / Availability"]
+        )
         self.table.horizontalHeader().setSectionResizeMode(
             0,
             QHeaderView.ResizeMode.ResizeToContents,
@@ -165,4 +166,5 @@ class PipelineStatePanel(QWidget):
             path = self._artifact_for_step(output_dir, step_id, dynamic_enabled)
 
             if path is not None:
-                self.table.setItem(row, 3, QTableWidgetItem(str(path)))
+                status = "EXISTS" if path.exists() else "MISSING"
+                self.table.setItem(row, 3, QTableWidgetItem(f"{status}: {path}"))

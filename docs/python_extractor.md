@@ -1,44 +1,17 @@
-# Python Extractor
+# Python extractor
 
-The Python extractor produces the initial intermediate JSON model from a Python project.
+The Python extractor reads a Python project and produces `python_model.json`.
+
+## Command
 
 ```bash
-python python_kdm_extractor/main.py \
-  --input examples/pymape_hierarchical \
-  --output outputs/pymape_hierarchical/python_model.json
+python python_kdm_extractor/main.py   --input examples/three_layer_system   --output outputs/three_layer_system/python_model.json
 ```
 
 ## Extracted information
 
-The extractor collects:
+The extractor records files, modules, classes, functions, methods, parameters, local variables, imports, static calls, value relations, type relations, return relations, exception relations, and block/action structure used later by the KDM generator.
 
-- source files and modules;
-- classes, functions, methods, parameters, and variables;
-- imports and inheritance relationships;
-- calls and constructor-like calls when statically resolvable;
-- body actions represented as executable statements;
-- reads, writes, values, returns, and exceptions;
-- source references for traceability.
+## Output role
 
-## Static limitations
-
-Python is dynamic, so static extraction may not resolve every call or type. Examples include:
-
-- duck typing;
-- dynamically injected dependencies;
-- decorators;
-- framework callbacks;
-- runtime-bound object methods;
-- external libraries without static project definitions.
-
-The dynamic analysis stage complements this by observing real calls and concrete runtime types during scenario execution.
-
-## Output
-
-The main output is:
-
-```text
-python_model.json
-```
-
-This artifact is the base input for optional dynamic enrichment, architecture recovery, and KDM generation.
+`python_model.json` is the base artifact for all later stages. Dynamic analysis, architecture recovery, agents and KDM generation all depend on it directly or indirectly.

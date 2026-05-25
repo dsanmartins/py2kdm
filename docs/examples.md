@@ -1,61 +1,41 @@
-# Examples and Case Studies
+# Examples and case studies
 
-The repository includes examples used to validate the pipeline.
+The repository includes example systems under `examples/`.
 
-## `three_layer_system`
+## three_layer_system
 
-A small example project used to test extraction, architecture recovery, and KDM generation on a conventional layered architecture.
+A compact example used for static extraction, architecture recovery and KDM generation.
 
-Typical outputs:
+CLI example:
 
-```text
-outputs/three_layer_system/python_model.json
-outputs/three_layer_system/python_model.architecture.json
-outputs/three_layer_system/model.kdm.xmi
+```bash
+python run_pipeline.py --config configs/three_layer_system.json
 ```
 
-## `pymape_hierarchical`
+## pymape_hierarchical
 
-A self-adaptive MAPE-K example used to test:
+A richer example used to exercise dynamic analysis, MAPE-K recovery, pre-review agents and human review.
 
-- static extraction;
-- dynamic tracing;
-- runtime call enrichment;
-- MAPE-K recovery;
-- pre-review architecture agents;
-- KDM generation with runtime `action::Calls`.
+Typical GUI workflow:
 
-Runtime scenarios include:
-
-```text
-scenarios/cruise_control_scenario.py
-scenarios/hold_distance_scenario.py
+```bash
+python -m py2kdm_gui.main
 ```
 
-Typical runtime outputs:
+Then:
 
 ```text
-runtime_trace.cruise_control.json
-runtime_trace.hold_distance.json
-python_model.runtime_enriched.combined.json
-model.runtime_enriched.combined.kdm.xmi
+Configuration -> configure PyMAPE project and scenarios
+Process -> Run until Human Review
+Human Review -> validate and export reviewed JSON
+Process -> Generate final KDM
+Artifacts -> inspect outputs
 ```
 
-## Expected dynamic results
+## Adding a new project
 
-A successful dynamic run should report completed traces and dynamic relationships, for example:
-
-```text
-Runtime trace generated.
-- events: 1996
-- status: completed
-Code model dynamically enriched.
-- events after filter: 1707
-- dynamic relationships added: 151
-```
-
-The generated KDM should validate with:
-
-```text
-Errors: 0
-```
+1. Add the Python project under `examples/` or point to an external project path.
+2. Create one or more dynamic scenarios if runtime evidence is needed.
+3. Configure the project in the GUI or create a CLI config.
+4. Run the pipeline.
+5. Review the architecture before KDM generation.

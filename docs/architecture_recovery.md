@@ -1,50 +1,21 @@
-# Architecture Recovery
+# Architecture recovery
 
-Architecture recovery builds a `structure_model` from the intermediate JSON. It focuses on software architecture elements, especially MAPE-K concepts for self-adaptive systems.
+Architecture recovery reads the intermediate JSON model and creates a `structure_model` section.
+
+## Command
 
 ```bash
-python kdm_architecture_recovery/main.py \
-  --input outputs/pymape_hierarchical/python_model.runtime_enriched.combined.json \
-  --output outputs/pymape_hierarchical/python_model.runtime_enriched.architecture.json
+python kdm_architecture_recovery/main.py   --input outputs/pymape_hierarchical/python_model.runtime_enriched.combined.json   --output outputs/pymape_hierarchical/python_model.runtime_enriched.architecture.json
 ```
-
-## Inputs
-
-Architecture recovery can use either:
-
-- the static `python_model.json`; or
-- the runtime-enriched `python_model.runtime_enriched.combined.json`.
-
-Using the runtime-enriched model is recommended when execution scenarios are available.
 
 ## Output
 
-The recovery stage adds:
+The recovery stage can create subsystems, control loops, architecture components, containment relationships, and structure relationships.
 
-```json
-{
-  "structure_model": {
-    "components": [],
-    "structure_relationships": [],
-    "containment_relationships": [],
-    "control_loops": [],
-    "subsystems": [],
-    "architecture_consistency": {}
-  }
-}
-```
+## MAPE-K focus
 
-## Recovery responsibilities
+The current architecture recovery includes rules for autonomic and MAPE-K-like systems. It can infer roles such as Monitor, Analyzer, Planner, Executor, Knowledge, Managed Element, Sensor, Effector, Reference Input, and Measured Output.
 
-The recovery engine detects and organizes:
+## Applicability gate
 
-- components and their candidate architectural roles;
-- MAPE-K control-loop elements;
-- containment relationships;
-- structure relationships;
-- adaptive stereotypes;
-- traceability from architecture components to code elements.
-
-## Human review requirement
-
-The recovered structure model is a proposal. It should be reviewed in the GUI, especially when an element has multiple possible roles or when a MAPE-K role is missing.
+Architecture recovery is guarded by an applicability gate. If the project does not provide enough evidence for an adaptive architecture, the recovery can be disabled or marked as not applicable.
