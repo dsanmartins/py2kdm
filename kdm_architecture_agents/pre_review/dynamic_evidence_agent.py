@@ -11,23 +11,13 @@ class DynamicEvidenceAgent:
     """
     Pre-review agent for dynamic evidence.
 
-    This first version does not execute the target system by itself. Instead,
-    it can consume an optional dynamic trace JSON file. This keeps the agent
-    safe and deterministic while preparing the architecture for future dynamic
-    instrumentation.
+    The agent is now runtime-enriched-model aware. It first reads
+    relationships[type="runtime_calls"] from the input JSON. If those are not
+    available, it can still consume a raw dynamic trace JSON through
+    --dynamic-trace for backwards compatibility.
 
-    Expected trace shape:
-
-    {
-      "events": [
-        {
-          "type": "call",
-          "source": "function:...",
-          "target": "method:...",
-          "scenario": "..."
-        }
-      ]
-    }
+    The agent does not modify structure_model. It only produces reviewable
+    architecture suggestions.
     """
 
     def run(
@@ -36,21 +26,35 @@ class DynamicEvidenceAgent:
         context: dict[str, Any],
         trace_path: str | Path | None = None,
     ) -> list[dict[str, Any]]:
+        runtime_relationships = [
+            relationship
+            for relationship in model.get("relationships", [])
+            if relationship.get("type") == "runtime_calls"
+        ]
+
+        if runtime_relationships:
+            return self._suggest_from_runtime_relationships(
+                context=context,
+                runtime_relationships=runtime_relationships,
+                source_label="runtime_enriched_model",
+            )
+
         if not trace_path:
             return [
                 AISuggestion(
                     suggestion_type="dynamic_evidence_not_available",
                     message=(
-                        "No dynamic trace was provided. Dynamic evidence "
-                        "enrichment was skipped."
+                        "No runtime_calls relationships or dynamic trace were "
+                        "provided. Dynamic evidence enrichment was skipped."
                     ),
                     confidence=1.0,
                     status="informational",
                     source="dynamic_evidence",
                     severity="info",
                     evidence=[
-                        "DynamicEvidenceAgent requires an optional trace JSON "
-                        "to enrich relationships with runtime evidence."
+                        "DynamicEvidenceAgent can use "
+                        "relationships[type='runtime_calls'] from the model "
+                        "or an optional trace JSON."
                     ],
                 ).to_dict()
             ]
@@ -79,22 +83,53 @@ class DynamicEvidenceAgent:
         context: dict[str, Any],
         trace: dict[str, Any],
     ) -> list[dict[str, Any]]:
-        suggestions = []
-
-        implementation_to_components = context.get(
-            "components_by_implementation", {}
-        )
+        runtime_relationships = []
 
         for event in trace.get("events", []):
             if event.get("type") != "call":
                 continue
 
-            source_impl = event.get("source")
-            target_impl = event.get("target")
-            scenario = event.get("scenario", "unknown_scenario")
+            runtime_relationships.append(
+                {
+                    "source": event.get("source"),
+                    "target": event.get("target"),
+                    "scenario": event.get("scenario", "unknown_scenario"),
+                    "type": "runtime_calls",
+                }
+            )
 
-            source_components = implementation_to_components.get(source_impl, [])
-            target_components = implementation_to_components.get(target_impl, [])
+        return self._suggest_from_runtime_relationships(
+            context=context,
+            runtime_relationships=runtime_relationships,
+            source_label="dynamic_trace",
+        )
+
+    def _suggest_from_runtime_relationships(
+        self,
+        context: dict[str, Any],
+        runtime_relationships: list[dict[str, Any]],
+        source_label: str,
+    ) -> list[dict[str, Any]]:
+        suggestions = []
+        implementation_to_components = context.get(
+            "components_by_implementation", {}
+        )
+
+        seen = set()
+
+        for relationship in runtime_relationships:
+            source_impl = relationship.get("source")
+            target_impl = relationship.get("target")
+            scenario = relationship.get("scenario", "unknown_scenario")
+
+            source_components = self._find_components_for_runtime_name(
+                source_impl,
+                implementation_to_components,
+            )
+            target_components = self._find_components_for_runtime_name(
+                target_impl,
+                implementation_to_components,
+            )
 
             for source_component in source_components:
                 for target_component in target_components:
@@ -106,18 +141,30 @@ class DynamicEvidenceAgent:
                     if not relationship_type:
                         continue
 
+                    key = (
+                        relationship_type,
+                        source_component.get("id"),
+                        target_component.get("id"),
+                        scenario,
+                    )
+
+                    if key in seen:
+                        continue
+
+                    seen.add(key)
+
                     suggestions.append(
                         AISuggestion(
                             suggestion_type="dynamic_relation",
                             message=(
-                                f"Runtime trace suggests "
+                                f"Runtime evidence suggests "
                                 f"{source_component.get('name')} "
                                 f"--{relationship_type}--> "
                                 f"{target_component.get('name')}."
                             ),
                             confidence=0.90,
                             status="needs_review",
-                            source="dynamic_evidence",
+                            source=f"dynamic_evidence:{source_label}",
                             severity="info",
                             affected_elements=[
                                 source_component.get("id"),
@@ -143,7 +190,88 @@ class DynamicEvidenceAgent:
                         ).to_dict()
                     )
 
+        if not suggestions:
+            runtime_summary = context.get("runtime_summary", {})
+            total = runtime_summary.get("total_runtime_calls", len(runtime_relationships))
+
+            return [
+                AISuggestion(
+                    suggestion_type="dynamic_evidence_available",
+                    message=(
+                        f"Runtime evidence is available ({total} runtime "
+                        "calls), but no direct architecture-level relation "
+                        "suggestion matched the current component roles."
+                    ),
+                    confidence=1.0,
+                    status="informational",
+                    source=f"dynamic_evidence:{source_label}",
+                    severity="info",
+                    evidence=[
+                        "Runtime calls were used as context for later "
+                        "architecture reasoning and LLM-assisted suggestions."
+                    ],
+                ).to_dict()
+            ]
+
         return suggestions
+
+    def _find_components_for_runtime_name(
+        self,
+        runtime_name: str | None,
+        implementation_index: dict,
+    ) -> list[dict[str, Any]]:
+        if not runtime_name:
+            return []
+
+        if runtime_name in implementation_index:
+            return implementation_index[runtime_name]
+
+        normalized_runtime_name = self._normalize(runtime_name)
+        matches = []
+
+        for implementation, components in implementation_index.items():
+            normalized_implementation = self._normalize(implementation)
+
+            if normalized_implementation == normalized_runtime_name:
+                matches.extend(components)
+                continue
+
+            if normalized_runtime_name.endswith("." + normalized_implementation):
+                matches.extend(components)
+                continue
+
+            if normalized_implementation.endswith("." + normalized_runtime_name):
+                matches.extend(components)
+                continue
+
+            runtime_parts = normalized_runtime_name.split(".")
+            implementation_parts = normalized_implementation.split(".")
+
+            if len(runtime_parts) >= 2 and len(implementation_parts) >= 2:
+                if runtime_parts[-2:] == implementation_parts[-2:]:
+                    matches.extend(components)
+
+        seen = set()
+        unique = []
+
+        for component in matches:
+            component_id = component.get("id")
+
+            if component_id in seen:
+                continue
+
+            seen.add(component_id)
+            unique.append(component)
+
+        return unique
+
+    def _normalize(self, name: str) -> str:
+        return (
+            str(name)
+            .replace("-", "_")
+            .replace("/", ".")
+            .replace("\\", ".")
+        )
 
     def _relationship_type(self, source_role, target_role):
         if source_role == "Executor" and target_role == "Effector":

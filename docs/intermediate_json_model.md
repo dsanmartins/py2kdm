@@ -1,127 +1,97 @@
 # Intermediate JSON Model
 
-## Purpose
+The intermediate JSON model is the central artifact exchanged between pipeline stages. It contains the static CodeModel, optional runtime enrichment, recovered architecture, AI suggestions, and user review data.
 
-The intermediate JSON model is the contract between:
+## Main sections
 
-```text
-python_kdm_extractor
-kdm_architecture_recovery
-kdm_pyecore_generator
-```
-
-It stores source-code information in a language-aware but KDM-independent format.
-
-## Top-level structure
-
-A typical JSON model contains:
+Typical top-level fields include:
 
 ```json
 {
   "projectName": "pymape_hierarchical",
   "language": "python",
   "files": [],
-  "elements": [],
   "relationships": [],
-  "symbol_table": {},
-  "summary": {}
+  "runtime_enrichment": {},
+  "structure_model": {},
+  "ai_enrichment": {},
+  "architecture_review": {}
 }
 ```
 
-When architecture recovery is enabled, the model may also contain:
+## CodeModel information
+
+Static code information is stored mainly under `files` and `relationships`. Static relationships may include imports, calls, creates, reads, writes, types, values, returns, and exceptions.
+
+## Runtime enrichment
+
+Runtime evidence is added to the same model without replacing static facts.
 
 ```json
 {
-  "architecture_recovery": {},
-  "structure_model": {}
+  "type": "runtime_calls",
+  "source": "...",
+  "target": "...",
+  "relationship_level": "code",
+  "source_level": "runtime",
+  "evidence": "dynamic_trace",
+  "scenario": "cruise_control"
 }
 ```
 
-## File model
-
-Each file can include:
+Runtime enrichment also stores a summary:
 
 ```json
 {
-  "id": "file:example.app",
-  "name": "app.py",
-  "path": "example/app.py",
-  "qualified_name": "example.app",
-  "imports": [],
-  "classes": [],
-  "functions": [],
-  "global_variables": []
-}
-```
-
-## Class model
-
-Classes may include:
-
-```json
-{
-  "id": "class:example.app.Service",
-  "name": "Service",
-  "qualified_name": "example.app.Service",
-  "bases": [],
-  "methods": [],
-  "attributes": [],
-  "instance_attributes": []
-}
-```
-
-## Callable model
-
-Functions and methods can include:
-
-```json
-{
-  "id": "function:example.app.main",
-  "name": "main",
-  "qualified_name": "example.app.main",
-  "parameters": [],
-  "local_variables": [],
-  "calls": [],
-  "body": [],
-  "decorators": []
-}
-```
-
-## Body model
-
-The `body` section preserves executable statements. It is used by the KDM generator to create body-level action elements and relations.
-
-Typical statement kinds include:
-
-- assignment;
-- expression call;
-- return;
-- raise;
-- if;
-- for;
-- while;
-- try;
-- except;
-- finally.
-
-## Architecture-enriched JSON
-
-After architecture recovery, the JSON can contain:
-
-```json
-{
-  "structure_model": {
-    "software_system": {},
-    "architecture_views": [],
-    "role_suggestions": [],
-    "components": [],
-    "control_loops": [],
-    "subsystems": [],
-    "structure_relationships": [],
-    "containment_relationships": [],
-    "architecture_consistency": {}
+  "runtime_enrichment": {
+    "status": "runtime_enriched",
+    "summary": {
+      "events": 1996,
+      "events_after_filter": 1707,
+      "events_filtered_out": 289,
+      "dynamic_relationships_added": 32,
+      "observed_argument_types": 808,
+      "observed_return_types": 860,
+      "observed_exceptions": 0
+    }
   }
 }
 ```
 
-This section is the source of architectural truth for KDM `StructureModel` generation.
+## Architecture information
+
+The architecture recovery stage adds `structure_model`:
+
+```json
+{
+  "structure_model": {
+    "components": [],
+    "structure_relationships": [],
+    "containment_relationships": [],
+    "control_loops": [],
+    "subsystems": []
+  }
+}
+```
+
+## AI suggestions
+
+Pre-review agents add `ai_enrichment`. These suggestions are not applied automatically.
+
+```json
+{
+  "ai_enrichment": {
+    "status": "pre_review_enriched",
+    "suggestions": [],
+    "summary": {
+      "suggestions": 6,
+      "raw_suggestions": 7,
+      "deduplicated_suggestions": 1
+    }
+  }
+}
+```
+
+## Human review
+
+The GUI writes review decisions into the reviewed architecture JSON. This reviewed JSON is authoritative for final KDM generation.

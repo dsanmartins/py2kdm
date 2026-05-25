@@ -1,121 +1,89 @@
 # Development Guide
 
-## Project layout
+## Repository organization
 
 ```text
-py2kdm/
-├── run_pipeline.py
-├── python_kdm_extractor/
-├── kdm_architecture_recovery/
-├── kdm_architecture_review/
-├── kdm_pyecore_generator/
-├── configs/
-├── examples/
-├── outputs/
-└── docs/
+python_kdm_extractor/          Static Python extraction
+kdm_dynamic_analysis/          Runtime tracing and CodeModel enrichment
+kdm_architecture_recovery/     Architecture recovery
+kdm_architecture_agents/       Pre-review AI suggestions
+kdm_architecture_review/       Human review GUI
+kdm_pyecore_generator/         KDM XMI generation
+schemas/                       JSON Schemas
+configs/                       Pipeline configurations
+docs/                          MkDocs documentation
+run_pipeline.py                Configurable pipeline runner
 ```
 
-## Development principles
+## Development workflow
 
-The project follows these principles:
+1. Implement or modify one pipeline stage.
+2. Run unit tests for that stage.
+3. Run schema validation on affected JSON artifacts.
+4. Run an E2E pipeline on `three_layer_system` or `pymape_hierarchical`.
+5. Generate KDM and check validation errors.
+6. Update documentation and examples.
 
-1. Keep extraction independent from KDM generation.
-2. Use JSON as the contract between stages.
-3. Keep architecture recovery evidence-driven.
-4. Preserve traceability from architecture elements to code elements.
-5. Prefer explicit KDM metaclasses over ad-hoc XML.
-6. Use semantic construction rules during architecture recovery.
-7. Avoid inventing architecture abstractions without evidence.
+## Environment variables
 
-## Adding extractor features
+For Gemini:
 
-Extractor changes usually belong in `python_kdm_extractor/extractor/`.
+```bash
+export GEMINI_API_KEY="your_key_here"
+```
 
-When adding a new extracted construct:
+Or use `.env` if `python-dotenv` is installed:
 
-1. Extend the AST extraction logic.
-2. Add the field to the intermediate JSON.
-3. Update relationship or symbol-table logic if needed.
-4. Update `intermediate_json_model.md`.
-5. Add tests or example snippets.
-6. Verify KDM generation.
+```bash
+pip install python-dotenv
+```
 
-## Adding KDM mappings
+`.env`:
 
-Generator changes usually belong in `kdm_pyecore_generator/generator/`.
+```bash
+GEMINI_API_KEY=your_key_here
+```
 
-When adding a new KDM mapping:
+Never commit `.env`.
 
-1. Add factory support in `kdm_factory.py` if needed.
-2. Add mapping logic to the appropriate mapper or resolver.
-3. Register generated elements in the relevant index.
-4. Add validation rules when useful.
-5. Update `json_to_kdm_mapping.md`.
+## Adding a new dynamic scenario
 
-## Adding architecture recovery rules
-
-Architecture recovery changes usually belong in `kdm_architecture_recovery/`.
-
-Important files:
-
-| File | Purpose |
-|---|---|
-| `autonomic_applicability_gate.py` | Decides whether MAPE-K recovery is enabled. |
-| `rule_based_mapek_role_inferer.py` | Infers MAPE-K roles. |
-| `control_io_recoverer.py` | Infers Reference Input, Measured Output, Sensor and Effector. |
-| `containment_recoverer.py` | Builds containment relations. |
-| `semantic_architecture_rules.py` | Constrains semantic construction. |
-| `structure_relationship_recoverer.py` | Recovers technical and architectural relationships. |
-| `adaptive_stereotype_catalog.py` | Defines Adaptive System Domain stereotypes. |
-
-## Adding stereotypes
-
-Add the stereotype to:
+Create a scenario under the target project, for example:
 
 ```text
-kdm_architecture_recovery/adaptive_stereotype_catalog.py
-kdm_pyecore_generator/generator/adaptive_stereotype_builder.py
+examples/my_project/scenarios/my_scenario.py
 ```
 
-Then update:
+Then run:
+
+```bash
+python run_pipeline.py \
+  --config configs/my_project.json \
+  --enable-dynamic-analysis \
+  --dynamic-project-root examples/my_project \
+  --dynamic-scenario my_scenario:scenarios/my_scenario.py
+```
+
+## Adding an agent suggestion
+
+Agents should only add suggestions under `ai_enrichment.suggestions`. They must not directly modify `structure_model`.
+
+Suggestions should include:
+
+- `suggestion_type`;
+- `message`;
+- `status`;
+- `confidence`;
+- `affected_elements`;
+- `proposed_changes`;
+- `evidence`.
+
+## KDM semantic rule
+
+When KDM has a native semantic construct, use it. For example:
 
 ```text
-docs/architecture_recovery.md
-docs/structure_model_mapping.md
-docs/json_to_kdm_mapping.md
+runtime_calls -> action::Calls
 ```
 
-## Running checks
-
-Compile Python files:
-
-```bash
-python -m py_compile run_pipeline.py
-python -m py_compile kdm_architecture_recovery/*.py
-python -m py_compile kdm_pyecore_generator/generator/*.py
-```
-
-Run pipeline:
-
-```bash
-python run_pipeline.py --config configs/pymape_hierarchical.json
-```
-
-Run documentation locally:
-
-```bash
-mkdocs serve
-```
-
-## Documentation updates
-
-When code behavior changes, update the corresponding documentation:
-
-| Change | Documentation |
-|---|---|
-| Pipeline config | `pipeline_configuration.md` |
-| Extractor output | `intermediate_json_model.md` |
-| Architecture recovery | `architecture_recovery.md`, `mapek_recovery_rules.md` |
-| StructureModel generation | `structure_model_mapping.md`, `json_to_kdm_mapping.md` |
-| Traceability | `kdm_traceability_links.md` |
-| Validation | `validation_rules.md` |
+Do not encode semantic facts only as `TaggedValue` if KDM has an appropriate relation.

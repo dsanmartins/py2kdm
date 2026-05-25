@@ -20,6 +20,7 @@ from generator.reference_resolver import ReferenceResolver
 from generator.external_model_builder import ExternalModelBuilder
 from generator.inventory_builder import InventoryBuilder
 from generator.validation import BasicValidator
+from generator.runtime_aware_validation import RuntimeAwareBasicValidator
 from generator.type_resolver import TypeResolver
 from generator.type_relation_resolver import TypeRelationResolver
 from generator.value_resolver import ValueResolver
@@ -31,6 +32,7 @@ from generator.exception_relation_resolver import ExceptionRelationResolver
 from generator.kdm_validator import KDMValidator
 from generator.structure_model_builder import StructureModelBuilder
 from generator.adaptive_stereotype_builder import AdaptiveStereotypeBuilder
+from generator.runtime_call_resolver import RuntimeCallResolver
 
 
 GENERATOR_ROOT = Path(__file__).resolve().parent
@@ -198,6 +200,26 @@ def generate_kdm(
     body_action_mapper.map_body_actions(data)
 
     # ------------------------------------------------------------
+    # 8c. Resolve runtime-observed Calls
+    #
+    # Runtime facts collected from sys.setprofile are represented using
+    # native KDM action::Calls relations. Runtime call ActionElements are
+    # inserted into BlockUnit bodies, not directly under CallableUnit or
+    # MethodUnit, to preserve KDM action containment semantics.
+    # Existing static Calls are not duplicated.
+    # ------------------------------------------------------------
+
+    runtime_call_resolver = RuntimeCallResolver(
+        factory=factory,
+        qualified_name_index=mapper.qualified_name_index,
+        id_index=mapper.id_index,
+        inventory_builder=inventory_builder,
+        language=language,
+    )
+
+    runtime_call_resolver.add_runtime_call_relations(data)
+
+    # ------------------------------------------------------------
     # 8c. Create Python builtins model
     # ------------------------------------------------------------
 
@@ -307,7 +329,7 @@ def generate_kdm(
     # ------------------------------------------------------------
 
     if validate:
-        validator = BasicValidator()
+        validator = RuntimeAwareBasicValidator()
         report = validator.validate_unresolved_calls(data, mapper.id_index)
         report.print_report()
 
@@ -338,6 +360,9 @@ def generate_kdm(
         "statement_body_actions": len(body_action_mapper.statement_action_index),
         "callable_body_blocks": len(body_action_mapper.callable_body_block_index),
         "finally_units": len(body_action_mapper.finally_action_index),
+        "runtime_calls_created": runtime_call_resolver.created_runtime_calls,
+        "runtime_calls_skipped_duplicates": runtime_call_resolver.skipped_duplicates,
+        "runtime_calls_unresolved": runtime_call_resolver.unresolved_runtime_calls,
         "inventory_model_generated": inventory_builder.inventory_model is not None,
         "source_files": len(inventory_builder.source_files),
         "external_model_generated": external_builder.external_code_model is not None,
@@ -397,6 +422,9 @@ def main():
     print(f"Statement/body actions: {summary['statement_body_actions']}")
     print(f"Callable body blocks: {summary['callable_body_blocks']}")
     print(f"Finally units: {summary['finally_units']}")
+    print(f"Runtime Calls created: {summary['runtime_calls_created']}")
+    print(f"Runtime Calls skipped as duplicates: {summary['runtime_calls_skipped_duplicates']}")
+    print(f"Runtime Calls unresolved: {summary['runtime_calls_unresolved']}")
 
     if summary["inventory_model_generated"]:
         print("InventoryModel generated.")

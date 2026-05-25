@@ -1,80 +1,36 @@
 # py2kdm
 
-`py2kdm` is a configurable Python-to-KDM 1.4 toolchain for reverse engineering Python projects into KDM/EMF-compatible models.
+`py2kdm` is a model-driven reverse engineering pipeline that transforms Python projects into KDM-compatible XMI models. It combines static extraction, optional runtime evidence, architecture recovery, pre-review AI suggestions, human review, and final KDM generation.
 
-It supports both code-level recovery and architecture-level recovery.
+The current methodological flow is:
 
 ```text
 Python project
-   ↓
-Intermediate JSON
-   ↓
-Architecture-enriched JSON
-   ↓
-KDM 1.4 XMI
+  -> static extraction
+  -> optional dynamic analysis
+  -> runtime-enriched intermediate JSON
+  -> architecture recovery
+  -> pre-review AI suggestions
+  -> human review
+  -> final KDM XMI
 ```
 
-## Main subprojects
+The AI agents are used only before human review. After the user accepts, rejects, or edits suggestions in the review GUI, the reviewed architecture is treated as authoritative and is directly transformed into the final KDM model.
 
-```text
-python_kdm_extractor
-  Python source code → intermediate JSON model
+## Main features
 
-kdm_architecture_recovery
-  intermediate JSON → architecture-enriched JSON model
+- Static extraction of Python files, classes, functions, methods, parameters, variables, calls, imports, values, exceptions, and body actions.
+- Runtime tracing through `sys.setprofile` to observe calls, argument types, return types, and exceptions.
+- Semantic KDM mapping of runtime calls as native `action::Calls`, not as generic metadata.
+- Architecture recovery for MAPE-K oriented self-adaptive systems.
+- Pre-review AI suggestions based on deterministic rules, runtime evidence, and optional LLM reasoning.
+- Human review through a GUI before generating the final KDM model.
+- JSON Schema validation for intermediate, architecture, AI-enriched, and reviewed models.
 
-kdm_architecture_review
-  review support for architecture proposals
+## Recommended documentation path
 
-kdm_pyecore_generator
-  JSON model → KDM 1.4 XMI model
-```
-
-## What py2kdm generates
-
-The final KDM XMI can contain:
-
-- source inventory information;
-- code structure;
-- body-level action elements;
-- calls, creates, reads, writes, imports, types and values;
-- exception and return-flow relations;
-- external library models;
-- built-in Python type references;
-- an optional architecture `StructureModel`;
-- Adaptive System Domain stereotypes for self-adaptive systems;
-- architecture containment and traceability links.
-
-## Recommended usage
-
-Run the full configurable pipeline from the project root:
-
-```bash
-python run_pipeline.py --config configs/pymape_hierarchical.json
-```
-
-Run without KDM generation:
-
-```bash
-python run_pipeline.py --config configs/pymape_hierarchical.json --skip-kdm
-```
-
-Generate documentation locally:
-
-```bash
-mkdocs serve
-```
-
-## Documentation map
-
-Use the navigation menu to inspect:
-
-- the general architecture;
-- pipeline configuration;
-- the Python extractor;
-- the intermediate JSON model;
-- architecture recovery and MAPE-K rules;
-- JSON-to-KDM mapping;
-- validation rules;
-- command-line usage;
-- examples and limitations.
+1. Read [Architecture](architecture.md) for the high-level design.
+2. Read [Pipeline Configuration](pipeline_configuration.md) for configuration files and outputs.
+3. Read [Dynamic Analysis](dynamic_analysis.md) if runtime evidence is required.
+4. Read [Architecture Agents](architecture_agents.md) if AI-assisted suggestions are enabled.
+5. Read [JSON to KDM Mapping](json_to_kdm_mapping.md) for the final KDM generation semantics.

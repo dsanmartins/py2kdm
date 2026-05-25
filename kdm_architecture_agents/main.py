@@ -10,21 +10,39 @@ if str(PY2KDM_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PY2KDM_PROJECT_ROOT))
 
 
+def load_dotenv_if_available() -> None:
+    """
+    Loads .env from the py2kdm project root when python-dotenv is installed.
+
+    This is optional. If python-dotenv is not installed, the tool still works
+    with normal environment variables such as GEMINI_API_KEY.
+    """
+
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        return
+
+    load_dotenv(PY2KDM_PROJECT_ROOT / ".env")
+
+
+load_dotenv_if_available()
+
+
 from py2kdm_common.paths import ensure_parent, resolve_from_root
 
 from kdm_architecture_agents.agent_context_builder import AgentContextBuilder
+from kdm_architecture_agents.llm.provider_factory import create_llm_provider
 from kdm_architecture_agents.pre_review.architecture_enrichment_agent import (
     ArchitectureEnrichmentAgent,
 )
 from kdm_architecture_agents.pre_review.dynamic_evidence_agent import (
     DynamicEvidenceAgent,
 )
-from kdm_architecture_agents.post_review.kdm_readiness_agent import (
-    KDMReadinessAgent,
+from kdm_architecture_agents.pre_review.llm_architecture_reasoning_agent import (
+    LLMArchitectureReasoningAgent,
 )
-from kdm_architecture_agents.post_review.review_consistency_agent import (
-    ReviewConsistencyAgent,
-)
+from kdm_architecture_agents.suggestion_deduplicator import SuggestionDeduplicator
 
 
 def load_json(path: Path):
@@ -39,12 +57,19 @@ def save_json(data: dict, path: Path):
         json.dump(data, handle, indent=2, ensure_ascii=False)
 
 
-def run_pre_review(model, trace_path=None):
+def run_pre_review(
+    model,
+    trace_path=None,
+    llm_provider_name="none",
+    llm_model=None,
+    llm_base_url=None,
+    llm_timeout=300,
+):
     """
-    Runs agents that enrich the architecture proposal before human review.
+    Runs pre-review architecture agents.
 
-    These agents should not directly materialize KDM elements. They only add
-    suggestions under `ai_enrichment`.
+    The agents only create reviewable suggestions. They do not modify the
+    structure_model directly.
     """
 
     context = AgentContextBuilder().build(model)
@@ -59,7 +84,25 @@ def run_pre_review(model, trace_path=None):
         context=context,
     )
 
-    all_suggestions = dynamic_suggestions + enrichment_suggestions
+    provider = create_llm_provider(
+        provider_name=llm_provider_name,
+        model=llm_model,
+        base_url=llm_base_url,
+        timeout_seconds=llm_timeout,
+    )
+
+    llm_suggestions = LLMArchitectureReasoningAgent(provider).run(
+        model=model,
+        context=context,
+    )
+
+    raw_suggestions = (
+        dynamic_suggestions
+        + enrichment_suggestions
+        + llm_suggestions
+    )
+
+    all_suggestions = SuggestionDeduplicator().deduplicate(raw_suggestions)
 
     model.setdefault("ai_enrichment", {})
     model["ai_enrichment"].update(
@@ -69,53 +112,14 @@ def run_pre_review(model, trace_path=None):
             "suggestions": all_suggestions,
             "summary": {
                 "suggestions": len(all_suggestions),
+                "raw_suggestions": len(raw_suggestions),
+                "deduplicated_suggestions": len(raw_suggestions) - len(all_suggestions),
                 "dynamic_suggestions": len(dynamic_suggestions),
                 "architecture_suggestions": len(enrichment_suggestions),
-            },
-        }
-    )
-
-    return model
-
-
-def run_post_review(model):
-    """
-    Runs agents that audit the reviewed architecture before KDM generation.
-
-    These agents should not overwrite human decisions. They only add findings
-    under `post_review_ai_check`.
-    """
-
-    context = AgentContextBuilder().build(model)
-
-    consistency_findings = ReviewConsistencyAgent().run(
-        model=model,
-        context=context,
-    )
-    readiness_findings = KDMReadinessAgent().run(
-        model=model,
-        context=context,
-    )
-
-    all_findings = consistency_findings + readiness_findings
-
-    blocking = [
-        finding for finding in all_findings
-        if finding.get("severity") == "blocking"
-        or finding.get("status") == "ai_blocking_issue"
-    ]
-
-    model.setdefault("post_review_ai_check", {})
-    model["post_review_ai_check"].update(
-        {
-            "status": "blocking_issues_found" if blocking else "ready_with_warnings",
-            "source": "kdm_architecture_agents.post_review",
-            "findings": all_findings,
-            "summary": {
-                "findings": len(all_findings),
-                "blocking": len(blocking),
-                "warnings": len(all_findings) - len(blocking),
-                "kdm_ready": len(blocking) == 0,
+                "llm_suggestions": len(llm_suggestions),
+                "llm_provider": getattr(provider, "name", "unknown"),
+                "llm_model": getattr(provider, "model", None),
+                "llm_timeout": llm_timeout,
             },
         }
     )
@@ -126,35 +130,51 @@ def run_post_review(model):
 def parse_args():
     parser = argparse.ArgumentParser(
         description=(
-            "Run py2kdm architecture agents before or after human review."
+            "Run py2kdm pre-review architecture agents. "
+            "Post-review agents are intentionally not part of the default "
+            "methodological pipeline: after human review, the reviewed model "
+            "is treated as authoritative and should feed KDM generation."
         )
     )
 
     parser.add_argument(
         "--mode",
-        choices=["pre-review", "post-review", "all"],
-        required=True,
+        choices=["pre-review"],
+        default="pre-review",
+        help="Only pre-review mode is supported in the main agent workflow.",
+    )
+    parser.add_argument("--input", required=True)
+    parser.add_argument("--output", required=True)
+    parser.add_argument(
+        "--dynamic-trace",
         help=(
-            "pre-review adds AI suggestions before GUI review; post-review "
-            "checks reviewed JSON before KDM generation; all runs both."
+            "Optional dynamic trace JSON. Usually not needed when the input "
+            "model already contains relationships[type='runtime_calls']."
         ),
     )
 
     parser.add_argument(
-        "--input",
-        required=True,
-        help="Input architecture JSON.",
+        "--llm-provider",
+        choices=["none", "ollama", "gemini"],
+        default="none",
+        help="Optional LLM provider. Default: none.",
     )
-
     parser.add_argument(
-        "--output",
-        required=True,
-        help="Output JSON enriched with agent results.",
+        "--llm-model",
+        help=(
+            "Optional LLM model name, for example qwen2.5-coder:1.5b, "
+            "gemini-2.5-flash-lite, or gemini-2.5-flash."
+        ),
     )
-
     parser.add_argument(
-        "--dynamic-trace",
-        help="Optional dynamic trace JSON used by DynamicEvidenceAgent.",
+        "--llm-base-url",
+        help="Optional LLM base URL, used by providers such as Ollama.",
+    )
+    parser.add_argument(
+        "--llm-timeout",
+        type=int,
+        default=300,
+        help="Timeout in seconds for local or remote LLM calls. Default: 300.",
     )
 
     return parser.parse_args()
@@ -173,29 +193,31 @@ def main():
 
     model = load_json(input_path)
 
-    if args.mode in {"pre-review", "all"}:
-        model = run_pre_review(model, trace_path=trace_path)
-
-    if args.mode in {"post-review", "all"}:
-        model = run_post_review(model)
+    model = run_pre_review(
+        model,
+        trace_path=trace_path,
+        llm_provider_name=args.llm_provider,
+        llm_model=args.llm_model,
+        llm_base_url=args.llm_base_url,
+        llm_timeout=args.llm_timeout,
+    )
 
     save_json(model, output_path)
 
     print("Architecture agents completed.")
-    print(f"- mode: {args.mode}")
+    print("- mode: pre-review")
     print(f"- input: {input_path}")
     print(f"- output: {output_path}")
 
     if model.get("ai_enrichment"):
-        print(
-            "- pre-review suggestions:",
-            model["ai_enrichment"].get("summary", {}).get("suggestions", 0),
-        )
-
-    if model.get("post_review_ai_check"):
-        summary = model["post_review_ai_check"].get("summary", {})
-        print("- post-review findings:", summary.get("findings", 0))
-        print("- kdm_ready:", summary.get("kdm_ready"))
+        summary = model["ai_enrichment"].get("summary", {})
+        print("- pre-review suggestions:", summary.get("suggestions", 0))
+        print("- raw_suggestions:", summary.get("raw_suggestions", 0))
+        print("- deduplicated_suggestions:", summary.get("deduplicated_suggestions", 0))
+        print("- llm_provider:", summary.get("llm_provider"))
+        print("- llm_model:", summary.get("llm_model"))
+        print("- llm_suggestions:", summary.get("llm_suggestions", 0))
+        print("- llm_timeout:", summary.get("llm_timeout"))
 
     return 0
 

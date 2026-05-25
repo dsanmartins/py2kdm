@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://py2kdm.local/schemas/runtime_trace.schema.json",
+  "title": "py2kdm Runtime Trace",
+  "type": "object",
+  "required": [
+    "version",
+    "type",
+    "generated_by",
+    "metadata",
+    "events"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "type": {
+      "const": "runtime_trace"
+    },
+    "generated_by": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "type"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "call",
+              "return",
+              "exception",
+              "scenario_execution"
+            ]
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "target": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "qualified_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "file": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "line": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "arg_types": {
+            "type": "object"
+          },
+          "return_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "exception_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scenario": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mode": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "desktop",
+              "web",
+              null
+            ]
+          }
+        }
+      }
+    }
+  }
+}

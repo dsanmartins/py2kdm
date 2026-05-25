@@ -1,148 +1,59 @@
 # Architecture
 
-## Overview
-
-`py2kdm` is organized as a modular pipeline. Each stage produces an artifact that can be inspected independently.
+`py2kdm` is organized as a set of independent pipeline stages. Each stage produces an explicit artifact that can be inspected, validated, or reused by later stages.
 
 ```text
-Python project
-   ↓
 python_kdm_extractor
-   ↓
-Intermediate JSON model
-   ↓
+  -> python_model.json
+
+kdm_dynamic_analysis   optional
+  -> runtime_trace.<scenario>.json
+  -> python_model.runtime_enriched.combined.json
+
 kdm_architecture_recovery
-   ↓
-Architecture-enriched JSON model
-   ↓
+  -> python_model.runtime_enriched.architecture.json
+
+kdm_architecture_agents   optional pre-review
+  -> python_model.runtime_enriched.ai_architecture.json
+
+kdm_architecture_review   human review
+  -> python_model.runtime_enriched.reviewed_architecture.json
+
 kdm_pyecore_generator
-   ↓
-KDM 1.4 XMI model
+  -> model.runtime_enriched.reviewed.kdm.xmi
 ```
 
-This design separates language-specific extraction from KDM generation and from architecture recovery.
+## Design principles
 
-## Subprojects
+### CodeModel is factual
 
-### `python_kdm_extractor`
+The code-level model is built from static analysis and optional runtime evidence. It should represent facts about the program, such as code elements, calls, reads, writes, types, values, returns, and exceptions.
 
-The extractor analyzes Python source code and creates a JSON model. It uses Python's `ast` module and enriches the model with symbol-table, import-resolution, call-resolution and relationship information.
-
-### `kdm_architecture_recovery`
-
-The architecture recovery module analyzes the intermediate JSON model and, when applicable, creates a candidate self-adaptive architecture.
-
-It can add:
-
-- `architecture_recovery`;
-- `structure_model`;
-- `components`;
-- `control_loops`;
-- `subsystems`;
-- `structure_relationships`;
-- `containment_relationships`;
-- `architecture_consistency`.
-
-### `kdm_architecture_review`
-
-The review module is intended to support human revision of proposed architectures. It separates automatic recovery from user-controlled corrections and is useful for future graphical or DSL-based architecture editing.
-
-### `kdm_pyecore_generator`
-
-The generator loads the KDM 1.4 Ecore metamodel with PyEcore and creates the final KDM XMI model.
-
-It maps JSON data to:
-
-- `InventoryModel`;
-- `CodeModel`;
-- external library models;
-- Python builtins;
-- KDM code elements;
-- KDM action elements;
-- KDM relations;
-- optional `StructureModel`.
-
-## Code-level recovery
-
-At code level, the generator creates KDM elements such as:
-
-- `CompilationUnit`;
-- `ClassUnit`;
-- `MethodUnit`;
-- `CallableUnit`;
-- `ParameterUnit`;
-- `StorableUnit`;
-- `BlockUnit`;
-- `ActionElement`;
-- `TryUnit`;
-- `CatchUnit`;
-- `FinallyUnit`.
-
-It also creates relations such as:
-
-- `Calls`;
-- `Creates`;
-- `Reads`;
-- `Writes`;
-- `HasType`;
-- `HasValue`;
-- `Imports`;
-- `Extends`;
-- `Throws`;
-- `ExceptionFlow`;
-- `ExitFlow`.
-
-## Architecture-level recovery
-
-When the input project contains enough self-adaptive evidence, the architecture recovery stage creates an inferred `StructureModel`.
-
-The recovered structure can include:
+LLMs should not construct or modify the CodeModel. Runtime evidence is injected automatically and semantically, for example:
 
 ```text
-Managing Subsystem
-  └── CL Manager
-        └── Control Loop
-              ├── Monitor
-              ├── Analyzer
-              ├── Planner
-              ├── Executor
-              └── Knowledge
-
-Managed Subsystem
-  ├── Sensor
-  ├── Effector
-  └── Measured Output
+relationships[type="runtime_calls"] -> KDM action::Calls
 ```
 
-The architecture is generated through semantic construction rules. The system avoids creating invalid containment relationships such as `Managed Subsystem -> Planner`.
+### StructureModel is reviewable
 
-## KDM architecture stereotypes
+The architecture-level model is recovered from the code model and can be refined by the user. It contains architectural elements such as components, subsystems, control loops, MAPE-K roles, and structural relationships.
 
-The generator creates an Adaptive System Domain `extensionFamily` under the KDM segment. It contains stereotypes such as:
+AI agents may suggest improvements to the StructureModel, but they do not apply those changes directly.
 
-- `Monitor`
-- `Analyzer`
-- `Planner`
-- `Executor`
-- `Knowledge`
-- `Reference Input`
-- `Measured Output`
-- `CL Manager`
-- `Control Loop`
-- `Sensor`
-- `Effector`
-- `Managing Subsystem`
-- `Managed Subsystem`
+### Human review is authoritative
 
-These stereotypes are referenced by `structure::Component` and `structure::Subsystem` elements.
+After the user reviews the architecture in the GUI, no further AI agent is executed by default. The reviewed architecture JSON is the authoritative input for KDM generation.
 
-## Traceability
+## Main modules
 
-The architecture model remains linked to code through:
-
-- `implementation` references;
-- stable JSON identifiers;
-- `implemented_by_id` attributes;
-- evidence attributes;
-- relationship metadata;
-- `AggregatedRelationship` objects.
+| Module | Responsibility |
+|---|---|
+| `python_kdm_extractor` | Static Python extraction into intermediate JSON. |
+| `kdm_dynamic_analysis` | Runtime tracing and dynamic CodeModel enrichment. |
+| `kdm_architecture_recovery` | Architecture recovery and MAPE-K role inference. |
+| `kdm_architecture_agents` | Pre-review AI suggestions only. |
+| `kdm_architecture_review` | Human review GUI. |
+| `kdm_pyecore_generator` | KDM XMI generation and validation. |
+| `schemas` | JSON Schemas for pipeline artifacts. |
+| `run_pipeline.py` | Configurable orchestration script. |

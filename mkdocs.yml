@@ -9,11 +9,11 @@ nav:
   - Pipeline Configuration: pipeline_configuration.md
   - Python Extractor: python_extractor.md
   - Intermediate JSON Model: intermediate_json_model.md
+  - Dynamic Analysis: dynamic_analysis.md
   - Architecture Recovery:
       - Overview: architecture_recovery.md
       - MAPE-K Recovery Rules: mapek_recovery_rules.md
       - Structure Model Mapping: structure_model_mapping.md
-      - KDM Traceability Links: kdm_traceability_links.md
       - Architecture Review GUI: architecture_review_gui.md
       - Architecture Agents: architecture_agents.md
   - KDM Generation:
@@ -21,7 +21,6 @@ nav:
       - Validation Rules: validation_rules.md
   - Usage:
       - CLI Usage: cli_usage.md
-      - E2E Schema Validation: e2e_schema_validation.md
       - Examples and Case Studies: examples.md
   - Development:
       - Development Guide: development_guide.md

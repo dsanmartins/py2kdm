@@ -1,0 +1,9 @@
+{
+  "project_root": "examples/pymape_hierarchical",
+  "script": "scenarios/cruise_control_scenario.py",
+  "scenario": "cruise_control",
+  "mode": "desktop",
+  "trace_output": "outputs/pymape_hierarchical/runtime_trace.json",
+  "runtime_enriched_json": "outputs/pymape_hierarchical/python_model.runtime_enriched.json",
+  "max_events": 20000
+}

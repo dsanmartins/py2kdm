@@ -1,12 +1,6 @@
 # Python Extractor
 
-## Purpose
-
-`python_kdm_extractor` analyzes a Python project and produces an intermediate JSON model. The extractor does not generate KDM directly. It creates a normalized source model that can be consumed by architecture recovery and KDM generation.
-
-## Entry point
-
-Preferred usage:
+The Python extractor produces the initial intermediate JSON model from a Python project.
 
 ```bash
 python python_kdm_extractor/main.py \
@@ -14,79 +8,37 @@ python python_kdm_extractor/main.py \
   --output outputs/pymape_hierarchical/python_model.json
 ```
 
-Backward-compatible usage:
+## Extracted information
 
-```bash
-python python_kdm_extractor/main.py examples/pymape_hierarchical
+The extractor collects:
+
+- source files and modules;
+- classes, functions, methods, parameters, and variables;
+- imports and inheritance relationships;
+- calls and constructor-like calls when statically resolvable;
+- body actions represented as executable statements;
+- reads, writes, values, returns, and exceptions;
+- source references for traceability.
+
+## Static limitations
+
+Python is dynamic, so static extraction may not resolve every call or type. Examples include:
+
+- duck typing;
+- dynamically injected dependencies;
+- decorators;
+- framework callbacks;
+- runtime-bound object methods;
+- external libraries without static project definitions.
+
+The dynamic analysis stage complements this by observing real calls and concrete runtime types during scenario execution.
+
+## Output
+
+The main output is:
+
+```text
+python_model.json
 ```
 
-## Extraction pipeline
-
-The extractor performs the following steps:
-
-1. Scans the input directory for Python files.
-2. Parses each file using Python's `ast` module.
-3. Extracts file-level, class-level and callable-level information.
-4. Builds a symbol table.
-5. Resolves imports and calls when possible.
-6. Synchronizes body-level statements with calls.
-7. Builds project-level relationships.
-8. Computes summary information.
-9. Writes the intermediate JSON model.
-
-## Extracted elements
-
-The extractor identifies:
-
-- source files;
-- imports;
-- classes;
-- methods;
-- functions;
-- parameters;
-- local variables;
-- global variables;
-- instance attributes;
-- calls;
-- constructor calls;
-- assignments;
-- reads and writes;
-- returns;
-- raises;
-- try, except and finally blocks;
-- body-level statements.
-
-## Body extraction
-
-Function and method bodies are represented explicitly in the JSON. This enables the KDM generator to create `BlockUnit`, body-level `ActionElement` nodes and relations such as `Calls`, `Reads`, `Writes`, `Throws`, `ExceptionFlow` and `ExitFlow`.
-
-## Symbol and call resolution
-
-The extractor builds a symbol table and attempts to resolve:
-
-- internal class references;
-- function calls;
-- method calls;
-- constructor calls;
-- imported elements;
-- external calls.
-
-When a target cannot be resolved, the unresolved information is still preserved for traceability and later validation.
-
-## Output structure
-
-The output JSON contains:
-
-```json
-{
-  "projectName": "example_project",
-  "language": "python",
-  "files": [],
-  "elements": [],
-  "relationships": [],
-  "symbol_table": {},
-  "summary": {}
-}
-```
-
-The architecture recovery stage may enrich this JSON with additional architecture-level fields.
+This artifact is the base input for optional dynamic enrichment, architecture recovery, and KDM generation.

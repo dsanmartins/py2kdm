@@ -2,18 +2,18 @@
 
 `py2kdm` is a configurable Python-to-KDM 1.4 toolchain for reverse engineering Python projects into KDM/EMF-compatible models.
 
-The project supports two complementary levels of recovery:
+The toolchain supports two complementary recovery levels:
 
-1. **Code-level recovery**, where Python source code is transformed into an intermediate JSON model and then into KDM `CodeModel`, `InventoryModel`, action elements and code relations.
+1. **Code-level recovery**, where Python source code is transformed into an intermediate JSON model and then into KDM `CodeModel`, `InventoryModel`, action elements, source references and semantic code relations.
 2. **Architecture-level recovery**, where candidate self-adaptive architectures are inferred from the intermediate JSON model and represented as a KDM `StructureModel` with Adaptive System Domain stereotypes.
 
-The toolchain supports Architecture-Driven Modernization, model-driven analysis, architectural recovery, KDM-based transformation workflows, human-in-the-loop review, and traceable modernization experiments.
+`py2kdm` supports Architecture-Driven Modernization, model-driven analysis, architectural recovery, KDM-based transformation workflows, human-in-the-loop review, runtime-informed analysis, and traceable modernization experiments.
 
 ---
 
 ## Current status
 
-The current version supports an end-to-end pipeline with deterministic architecture agents and human review:
+The current version supports an end-to-end pipeline with optional dynamic analysis, pre-review architecture agents, human review, and final KDM generation.
 
 ```text
 1. Project selection
@@ -23,99 +23,62 @@ The current version supports an end-to-end pipeline with deterministic architect
 
 2. Reverse engineering
    2.1 Run the static extractor.
-       Input:
-         Python project
        Output:
          python_model.json
 
-   2.2 Run architectural recovery.
+   2.2 Optionally run dynamic analysis scenarios.
+       Output:
+         runtime_trace.<scenario>.json
+         python_model.runtime_enriched.combined.json
+
+   2.3 Run architecture recovery.
        Input:
          python_model.json
+         or python_model.runtime_enriched.combined.json
        Output:
          python_model.architecture.json
+         or python_model.runtime_enriched.architecture.json
 
-   2.3 Run pre-review agents.
-       Input:
-         python_model.architecture.json
+   2.4 Run pre-review architecture agents.
        Output:
-         python_model.ai_architecture.json
+         AI-enriched architecture JSON
 
 3. Human architecture review
-   3.1 Open the enriched architectural proposal.
-       Input:
-         python_model.ai_architecture.json
+   3.1 Open the enriched architecture proposal in the GUI.
+   3.2 Accept, reject or manually incorporate suggestions.
+   3.3 Export the reviewed architecture JSON.
 
-   3.2 Review the recovered architecture.
-       The user can:
-         - accept or reject agent suggestions;
-         - modify architectural roles;
-         - enable or disable KDM materialization;
-         - review relationships;
-         - move elements visually;
-         - inspect traceability to source code.
-
-   3.3 Validate the reviewed architecture.
-       The GUI displays:
-         - OK;
-         - WARNING;
-         - FORBIDDEN.
-
-   3.4 Export the reviewed architecture.
-       Output:
-         python_model.reviewed_architecture.json
-
-4. Post-review agent check
-   4.1 Run post-review agents over the reviewed architecture.
+4. Final KDM generation
+   4.1 Run the KDM generator.
        Input:
          python_model.reviewed_architecture.json
-       Output:
-         python_model.reviewed.ai_checked.json
-
-   4.2 Check whether the model is ready for KDM generation.
-       Expected result:
-         kdm_ready = true
-
-5. Final KDM generation
-   5.1 Run the KDM generator.
-       Input:
-         python_model.reviewed.ai_checked.json
        Output:
          model.reviewed.kdm.xmi
-
-6. Artifact visualization and management
-   6.1 Display the generated artifacts:
-       - python_model.json
-       - python_model.architecture.json
-       - python_model.ai_architecture.json
-       - python_model.reviewed_architecture.json
-       - python_model.reviewed.ai_checked.json
-       - model.reviewed.kdm.xmi
-
-   6.2 Display reports:
-       - extraction report;
-       - architectural recovery report;
-       - pre-review suggestions;
-       - human validation;
-       - post-review findings;
-       - KDM validation.
 ```
+
+After human review, the reviewed architecture is treated as authoritative. No additional AI agent modifies or reinterprets the model before final KDM generation.
 
 Implemented capabilities:
 
 ```text
 ✓ Python static extraction
 ✓ Intermediate JSON model
+✓ Optional runtime tracing with sys.setprofile
+✓ Dynamic CodeModel enrichment from runtime calls
+✓ Runtime calls mapped to native KDM action::Calls relations
+✓ Runtime-aware static validation reporting
 ✓ MAPE-K architecture recovery
 ✓ Adaptive System Domain stereotypes
 ✓ KDM StructureModel generation
 ✓ Nested architectural containment
 ✓ KDM traceability links
-✓ Deterministic pre-review architecture agents
-✓ Deterministic post-review architecture agents
+✓ Pre-review architecture agents
+✓ Optional LLM-assisted architecture suggestions
+✓ Gemini and Ollama provider support
 ✓ Human-in-the-loop Architecture Review GUI
 ✓ AI Suggestions tab in the GUI
 ✓ Reviewed JSON export
-✓ Reviewed KDM generation
+✓ Final KDM generation
 ✓ MkDocs documentation
 ✓ Root-level execution of all main entry points
 ```
@@ -132,16 +95,22 @@ py2kdm/
 ├── configs/
 │   └── pipeline configuration files
 ├── examples/
-│   └── example Python systems
+│   └── example Python systems and optional runtime scenarios
 ├── outputs/
-│   └── generated JSON and KDM XMI artifacts
+│   └── generated JSON, runtime traces and KDM XMI artifacts
 ├── python_kdm_extractor/
 │   └── Python source code → intermediate JSON model
+├── kdm_dynamic_analysis/
+│   └── runtime tracing and CodeModel enrichment
 ├── kdm_architecture_recovery/
 │   └── intermediate JSON → architecture-enriched JSON
 ├── kdm_architecture_agents/
 │   ├── pre_review/
-│   └── post_review/
+│   ├── llm/
+│   ├── agent_context_builder.py
+│   ├── ai_suggestion_model.py
+│   ├── suggestion_deduplicator.py
+│   └── main.py
 ├── kdm_architecture_review/
 │   ├── review validator
 │   └── gui/
@@ -174,26 +143,34 @@ This executes:
 To stop after architecture recovery:
 
 ```bash
-python run_pipeline.py --config configs/pymape_hierarchical.json --skip-kdm
+python run_pipeline.py   --config configs/pymape_hierarchical.json   --skip-kdm
 ```
 
 To run architecture recovery plus pre-review agents:
 
 ```bash
-python run_pipeline.py \
-  --config configs/pymape_hierarchical.json \
-  --with-agents pre-review \
-  --skip-kdm
+python run_pipeline.py   --config configs/pymape_hierarchical.json   --with-agents pre-review   --skip-kdm
 ```
 
-Expected outputs:
+To run the generic dynamic-analysis pipeline:
+
+```bash
+python run_pipeline.py   --config configs/pymape_hierarchical.json   --enable-dynamic-analysis   --dynamic-project-root examples/pymape_hierarchical   --dynamic-scenario cruise_control:scenarios/cruise_control_scenario.py   --dynamic-scenario hold_distance:scenarios/hold_distance_scenario.py
+```
+
+Expected outputs include:
 
 ```text
 outputs/pymape_hierarchical/python_model.json
-outputs/pymape_hierarchical/python_model.architecture.json
-outputs/pymape_hierarchical/python_model.ai_architecture.json
-outputs/pymape_hierarchical/model.kdm.xmi
+outputs/pymape_hierarchical/runtime_trace.cruise_control.json
+outputs/pymape_hierarchical/runtime_trace.hold_distance.json
+outputs/pymape_hierarchical/python_model.runtime_enriched.combined.json
+outputs/pymape_hierarchical/python_model.runtime_enriched.architecture.json
+outputs/pymape_hierarchical/python_model.runtime_enriched.ai_architecture.json
+outputs/pymape_hierarchical/model.runtime_enriched.combined.kdm.xmi
 ```
+
+The dynamic pipeline is generic. It does not hardcode project-specific scenarios. Runtime scenarios are provided through CLI arguments or configuration files.
 
 ---
 
@@ -202,22 +179,19 @@ outputs/pymape_hierarchical/model.kdm.xmi
 All main entry points are intended to run from the `py2kdm` root.
 
 ```bash
-python python_kdm_extractor/main.py \
-  --input examples/pymape_hierarchical \
-  --output outputs/pymape_hierarchical/python_model.json
+python python_kdm_extractor/main.py   --input examples/pymape_hierarchical   --output outputs/pymape_hierarchical/python_model.json
 ```
 
 ```bash
-python kdm_architecture_recovery/main.py \
-  --input outputs/pymape_hierarchical/python_model.json \
-  --output outputs/pymape_hierarchical/python_model.architecture.json
+python kdm_dynamic_analysis/main.py trace-and-enrich   --project-root examples/pymape_hierarchical   --script scenarios/cruise_control_scenario.py   --input outputs/pymape_hierarchical/python_model.json   --trace-output outputs/pymape_hierarchical/runtime_trace.cruise_control.json   --output outputs/pymape_hierarchical/python_model.runtime_enriched.cruise_control.json   --scenario cruise_control   --mode desktop
 ```
 
 ```bash
-python kdm_architecture_agents/main.py \
-  --mode pre-review \
-  --input outputs/pymape_hierarchical/python_model.architecture.json \
-  --output outputs/pymape_hierarchical/python_model.ai_architecture.json
+python kdm_architecture_recovery/main.py   --input outputs/pymape_hierarchical/python_model.runtime_enriched.combined.json   --output outputs/pymape_hierarchical/python_model.runtime_enriched.architecture.json
+```
+
+```bash
+python kdm_architecture_agents/main.py   --mode pre-review   --input outputs/pymape_hierarchical/python_model.runtime_enriched.architecture.json   --output outputs/pymape_hierarchical/python_model.runtime_enriched.ai_architecture.json   --llm-provider none
 ```
 
 ```bash
@@ -225,15 +199,7 @@ python -m kdm_architecture_review.gui.main
 ```
 
 ```bash
-python kdm_pyecore_generator/main.py \
-  --input outputs/pymape_hierarchical/python_model.reviewed.ai_checked.json \
-  --output outputs/pymape_hierarchical/model.reviewed.kdm.xmi
-```
-
-The common path utilities are provided by:
-
-```text
-py2kdm_common/paths.py
+python kdm_pyecore_generator/main.py   --input outputs/pymape_hierarchical/python_model.reviewed_architecture.json   --output outputs/pymape_hierarchical/model.reviewed.kdm.xmi
 ```
 
 ---
@@ -264,22 +230,65 @@ symbol-table information
 Direct execution:
 
 ```bash
-python python_kdm_extractor/main.py \
-  --input examples/pymape_hierarchical \
-  --output outputs/pymape_hierarchical/python_model.json
+python python_kdm_extractor/main.py   --input examples/pymape_hierarchical   --output outputs/pymape_hierarchical/python_model.json
 ```
 
-Backward-compatible positional execution is also supported:
+---
+
+## Dynamic analysis
+
+Dynamic analysis is optional. It enriches the CodeModel with factual runtime evidence collected from execution traces.
+
+The runtime tracer uses `sys.setprofile` to observe:
+
+```text
+function calls
+returns
+exceptions
+runtime argument types
+runtime return types
+scenario names
+```
+
+The dynamic enrichment phase adds runtime relationships to the JSON model:
+
+```json
+{
+  "type": "runtime_calls",
+  "source": "source.qualified.name",
+  "target": "target.qualified.name",
+  "relationship_level": "code",
+  "source_level": "runtime",
+  "evidence": "dynamic_trace",
+  "scenario": "cruise_control"
+}
+```
+
+During KDM generation, these runtime facts are mapped to native KDM semantic relations:
+
+```text
+runtime_calls -> action::Calls
+```
+
+They are not represented as `TaggedValue` entries.
+
+Example:
 
 ```bash
-python python_kdm_extractor/main.py examples/pymape_hierarchical
+python kdm_dynamic_analysis/main.py trace-and-enrich   --project-root examples/pymape_hierarchical   --script scenarios/cruise_control_scenario.py   --input outputs/pymape_hierarchical/python_model.json   --trace-output outputs/pymape_hierarchical/runtime_trace.cruise_control.json   --output outputs/pymape_hierarchical/python_model.runtime_enriched.cruise_control.json   --scenario cruise_control   --mode desktop
+```
+
+Multiple scenarios can be combined by enriching sequentially:
+
+```bash
+python kdm_dynamic_analysis/main.py enrich   --input outputs/pymape_hierarchical/python_model.runtime_enriched.cruise_control.json   --trace outputs/pymape_hierarchical/runtime_trace.hold_distance.json   --output outputs/pymape_hierarchical/python_model.runtime_enriched.combined.json
 ```
 
 ---
 
 ## Architecture recovery
 
-The architecture recovery module identifies candidate self-adaptive architecture abstractions from the intermediate JSON model.
+The architecture recovery module identifies candidate self-adaptive architecture abstractions from the intermediate or runtime-enriched JSON model.
 
 Supported Adaptive System Domain abstractions include:
 
@@ -311,9 +320,7 @@ Reference Input  evidence such as target_speed, desired_distance, setpoint, goal
 Direct execution:
 
 ```bash
-python kdm_architecture_recovery/main.py \
-  --input outputs/pymape_hierarchical/python_model.json \
-  --output outputs/pymape_hierarchical/python_model.architecture.json
+python kdm_architecture_recovery/main.py   --input outputs/pymape_hierarchical/python_model.runtime_enriched.combined.json   --output outputs/pymape_hierarchical/python_model.runtime_enriched.architecture.json
 ```
 
 ---
@@ -407,8 +414,6 @@ The architecture JSON may contain:
 }
 ```
 
-This section is a construction report.
-
 ---
 
 ## Managed interaction recovery
@@ -426,26 +431,19 @@ Analyzer/Planner -> Reference Input  uses_reference_input
 Analyzer/Planner -> Measured Output  evaluates_measured_output
 ```
 
-These relations are generated only when there is meaningful name or implementation evidence.
-
-Example:
-
-```text
-gas_brake <<Executor>> --acts_through--> gas   <<Effector>>
-gas_brake <<Executor>> --acts_through--> brake <<Effector>>
-```
+Runtime evidence can also support architectural interaction suggestions before human review.
 
 ---
 
 ## Architecture agents
 
-`py2kdm` includes an initial architecture-agent layer:
+`py2kdm` includes a pre-review architecture-agent layer:
 
 ```text
 kdm_architecture_agents/
 ```
 
-The current agents are deterministic Python modules. They are **not LLM-based yet** and do not use an external agent framework. They generate structured suggestions and findings in the architecture JSON.
+Agents generate structured suggestions in the architecture JSON. They do not modify `structure_model` directly. Suggestions are intended for human review.
 
 ### Agent package structure
 
@@ -455,20 +453,20 @@ kdm_architecture_agents/
 ├── main.py
 ├── agent_context_builder.py
 ├── ai_suggestion_model.py
+├── suggestion_deduplicator.py
 │
-├── pre_review/
-│   ├── __init__.py
-│   ├── architecture_enrichment_agent.py
-│   ├── dynamic_evidence_agent.py
-│   └── prompts/
-│       └── pre_enrichment.md
+├── llm/
+│   ├── gemini_provider.py
+│   ├── ollama_provider.py
+│   ├── null_provider.py
+│   ├── provider_factory.py
+│   └── schema_guard.py
 │
-└── post_review/
-    ├── __init__.py
-    ├── kdm_readiness_agent.py
-    ├── review_consistency_agent.py
+└── pre_review/
+    ├── architecture_enrichment_agent.py
+    ├── dynamic_evidence_agent.py
+    ├── llm_architecture_reasoning_agent.py
     └── prompts/
-        └── post_review.md
 ```
 
 ### Pre-review agents
@@ -476,10 +474,7 @@ kdm_architecture_agents/
 Pre-review agents run after rule-based architecture recovery and before human review.
 
 ```bash
-python kdm_architecture_agents/main.py \
-  --mode pre-review \
-  --input outputs/pymape_hierarchical/python_model.architecture.json \
-  --output outputs/pymape_hierarchical/python_model.ai_architecture.json
+python kdm_architecture_agents/main.py   --mode pre-review   --input outputs/pymape_hierarchical/python_model.runtime_enriched.architecture.json   --output outputs/pymape_hierarchical/python_model.runtime_enriched.ai_architecture.json   --llm-provider none
 ```
 
 They add:
@@ -497,9 +492,10 @@ Current pre-review agents:
 ```text
 DynamicEvidenceAgent
 ArchitectureEnrichmentAgent
+LLMArchitectureReasoningAgent
 ```
 
-They suggest:
+They can suggest:
 
 ```text
 missing ReferenceInput
@@ -507,76 +503,86 @@ missing MeasuredOutput
 missing Sensor
 possible role disambiguation
 partial control loop interpretation
-optional dynamic relations from a trace
+architecture-level relations supported by runtime evidence
+LLM-assisted reviewable architecture improvements
 ```
 
-### Optional dynamic trace
+### Runtime-aware suggestions
 
-The `DynamicEvidenceAgent` can consume a dynamic trace JSON:
-
-```json
-{
-  "events": [
-    {
-      "type": "call",
-      "source": "function:pymape_hierarchical.control.gas_brake",
-      "target": "method:pymape_hierarchical.fixtures.VirtualCarSpeed.brake",
-      "scenario": "cruise_control_test"
-    }
-  ]
-}
-```
-
-Usage:
-
-```bash
-python run_pipeline.py \
-  --config configs/pymape_hierarchical.json \
-  --with-agents pre-review \
-  --dynamic-trace outputs/pymape_hierarchical/runtime_trace.json \
-  --skip-kdm
-```
-
-### Post-review agents
-
-Post-review agents run after the user exports the reviewed JSON from the GUI.
-
-```bash
-python kdm_architecture_agents/main.py \
-  --mode post-review \
-  --input outputs/pymape_hierarchical/python_model.reviewed_architecture.json \
-  --output outputs/pymape_hierarchical/python_model.reviewed.ai_checked.json
-```
-
-They add:
-
-```json
-"post_review_ai_check": {
-  "summary": {
-    "kdm_ready": true
-  },
-  "findings": []
-}
-```
-
-Current post-review agents:
+When the input model contains:
 
 ```text
-ReviewConsistencyAgent
-KDMReadinessAgent
+relationships[type="runtime_calls"]
+runtime_enrichment.summary
 ```
 
-They check:
+the agents use this evidence to create reviewable architecture suggestions. For example:
 
 ```text
-Executor without Effector
-Monitor without Sensor or MeasuredOutput
-Knowledge without uses_knowledge
-materialized relationships with missing endpoints
-required top-level JSON fields
-valid roles
-valid relationship types
-KDM readiness
+Runtime evidence suggests gas_brake --acts_through--> gas.
+Runtime evidence suggests gas_brake --acts_through--> brake.
+```
+
+These are suggestions over the `StructureModel`, not automatic modifications.
+
+### LLM providers
+
+The architecture-agent layer supports:
+
+```text
+none
+ollama
+gemini
+```
+
+Example with Gemini:
+
+```bash
+python kdm_architecture_agents/main.py   --mode pre-review   --input outputs/pymape_hierarchical/python_model.runtime_enriched.architecture.json   --output outputs/pymape_hierarchical/python_model.runtime_enriched.ai_architecture.json   --llm-provider gemini   --llm-model gemini-2.5-flash-lite
+```
+
+The Gemini provider reads the key from environment variables:
+
+```bash
+GEMINI_API_KEY
+```
+
+or:
+
+```bash
+GOOGLE_API_KEY
+```
+
+For local development, create `.env` in the project root:
+
+```bash
+GEMINI_API_KEY=your_key_here
+```
+
+If `python-dotenv` is installed, `kdm_architecture_agents/main.py` can load `.env` automatically:
+
+```bash
+pip install python-dotenv
+```
+
+Ensure `.env` is ignored by Git:
+
+```bash
+grep -qxF '.env' .gitignore || echo '.env' >> .gitignore
+```
+
+### Suggestion deduplication
+
+The pre-review pipeline deduplicates semantically equivalent suggestions. When deterministic and LLM-based agents report the same issue, the deterministic suggestion is kept as primary, and the LLM suggestion is merged into metadata as supporting information.
+
+Example:
+
+```json
+"summary": {
+  "raw_suggestions": 7,
+  "deduplicated_suggestions": 1,
+  "suggestions": 6
+}
 ```
 
 ---
@@ -594,13 +600,13 @@ python -m kdm_architecture_review.gui.main
 Open:
 
 ```text
-outputs/pymape_hierarchical/python_model.ai_architecture.json
+outputs/pymape_hierarchical/python_model.runtime_enriched.ai_architecture.json
 ```
 
 or, without agents:
 
 ```text
-outputs/pymape_hierarchical/python_model.architecture.json
+outputs/pymape_hierarchical/python_model.runtime_enriched.architecture.json
 ```
 
 The GUI supports:
@@ -608,8 +614,6 @@ The GUI supports:
 ```text
 ✓ Architecture tree view
 ✓ Architecture graph view
-✓ Zoom with mouse wheel
-✓ Pan with mouse drag
 ✓ Movable architecture nodes
 ✓ Component editing
 ✓ Relationship editing
@@ -624,13 +628,6 @@ The `AI Suggestions` tab reads:
 
 ```json
 .ai_enrichment.suggestions
-.post_review_ai_check.findings
-```
-
-and displays:
-
-```text
-Phase | Type | Severity | Confidence | Status | Message
 ```
 
 The panel is read-only. AI suggestions are not applied automatically.
@@ -642,32 +639,18 @@ The panel is read-only. AI suggestions are not applied automatically.
 Recommended human-in-the-loop workflow:
 
 ```text
-1. Run pipeline with pre-review agents.
-
+1. Run extraction, optional dynamic analysis, architecture recovery and pre-review agents.
 2. Open AI-enriched architecture JSON in the GUI.
-
-3. Review:
-   - Architecture tree
-   - Architecture graph
-   - Components
-   - Relationships
-   - Validation panel
-   - AI Suggestions
-
-4. Export reviewed JSON.
-
-5. Run post-review agents.
-
-6. If kdm_ready is true, generate KDM.
+3. Review architecture, relationships, validation and AI suggestions.
+4. Accept, reject or manually incorporate suggestions.
+5. Export reviewed architecture JSON.
+6. Generate the final KDM model directly from the reviewed JSON.
 ```
 
 Commands:
 
 ```bash
-python run_pipeline.py \
-  --config configs/pymape_hierarchical.json \
-  --with-agents pre-review \
-  --skip-kdm
+python run_pipeline.py   --config configs/pymape_hierarchical.json   --enable-dynamic-analysis   --dynamic-project-root examples/pymape_hierarchical   --dynamic-scenario cruise_control:scenarios/cruise_control_scenario.py   --dynamic-scenario hold_distance:scenarios/hold_distance_scenario.py   --with-agents pre-review   --skip-kdm
 ```
 
 ```bash
@@ -680,22 +663,13 @@ Export from the GUI as:
 outputs/pymape_hierarchical/python_model.reviewed_architecture.json
 ```
 
-Then run:
+Then generate the final KDM:
 
 ```bash
-python kdm_architecture_agents/main.py \
-  --mode post-review \
-  --input outputs/pymape_hierarchical/python_model.reviewed_architecture.json \
-  --output outputs/pymape_hierarchical/python_model.reviewed.ai_checked.json
+python kdm_pyecore_generator/main.py   --input outputs/pymape_hierarchical/python_model.reviewed_architecture.json   --output outputs/pymape_hierarchical/model.reviewed.kdm.xmi
 ```
 
-Finally:
-
-```bash
-python kdm_pyecore_generator/main.py \
-  --input outputs/pymape_hierarchical/python_model.reviewed.ai_checked.json \
-  --output outputs/pymape_hierarchical/model.reviewed.kdm.xmi
-```
+After human review, no additional AI agent modifies or reinterprets the reviewed architecture.
 
 ---
 
@@ -723,6 +697,7 @@ Calls, Creates, Reads, Writes
 HasType, HasValue
 Imports, Extends
 Throws, ExceptionFlow, ExitFlow
+runtime_calls mapped to action::Calls
 optional architecture StructureModel
 Adaptive System Domain extensionFamily
 StructureRelationship
@@ -733,26 +708,13 @@ architecture implementation links
 Direct execution:
 
 ```bash
-python kdm_pyecore_generator/main.py \
-  --input outputs/pymape_hierarchical/python_model.architecture.json \
-  --output outputs/pymape_hierarchical/model.kdm.xmi
+python kdm_pyecore_generator/main.py   --input outputs/pymape_hierarchical/python_model.runtime_enriched.architecture.json   --output outputs/pymape_hierarchical/model.runtime_enriched.kdm.xmi
 ```
 
 Reviewed execution:
 
 ```bash
-python kdm_pyecore_generator/main.py \
-  --input outputs/pymape_hierarchical/python_model.reviewed.ai_checked.json \
-  --output outputs/pymape_hierarchical/model.reviewed.kdm.xmi
-```
-
-If needed, the metamodel can be passed explicitly:
-
-```bash
-python kdm_pyecore_generator/main.py \
-  --input outputs/pymape_hierarchical/python_model.reviewed.ai_checked.json \
-  --output outputs/pymape_hierarchical/model.reviewed.kdm.xmi \
-  --metamodel kdm_pyecore_generator/metamodels/kdm_1_4.ecore
+python kdm_pyecore_generator/main.py   --input outputs/pymape_hierarchical/python_model.reviewed_architecture.json   --output outputs/pymape_hierarchical/model.reviewed.kdm.xmi
 ```
 
 ---
@@ -823,22 +785,29 @@ A warning does not necessarily mean the architecture is incorrect. It indicates 
 After generating KDM, check stereotypes:
 
 ```bash
-grep -n "extensionFamily\|Adaptive System Domain" \
-  outputs/pymape_hierarchical/model.reviewed.kdm.xmi | head -40
+grep -n "extensionFamily\|Adaptive System Domain"   outputs/pymape_hierarchical/model.reviewed.kdm.xmi | head -40
 ```
 
 Check architecture elements:
 
 ```bash
-grep -n "Managing Subsystem\|Managed Subsystem\|Control Loop\|speed_executor\|speed_monitor" \
-  outputs/pymape_hierarchical/model.reviewed.kdm.xmi | head -100
+grep -n "Managing Subsystem\|Managed Subsystem\|Control Loop\|speed_executor\|speed_monitor"   outputs/pymape_hierarchical/model.reviewed.kdm.xmi | head -100
 ```
 
 Check architecture relationships:
 
 ```bash
-grep -n "contains\|mapek_flow\|uses_knowledge\|acts_through" \
-  outputs/pymape_hierarchical/model.reviewed.kdm.xmi | head -120
+grep -n "contains\|mapek_flow\|uses_knowledge\|acts_through"   outputs/pymape_hierarchical/model.reviewed.kdm.xmi | head -120
+```
+
+Check dynamic runtime calls mapped to KDM:
+
+```bash
+grep -c 'runtime_call:'   outputs/pymape_hierarchical/model.runtime_enriched.combined.kdm.xmi
+```
+
+```bash
+grep -c 'xsi:type="action:Calls"'   outputs/pymape_hierarchical/model.runtime_enriched.combined.kdm.xmi
 ```
 
 ---
@@ -859,32 +828,11 @@ Open:
 http://127.0.0.1:8000
 ```
 
-Recommended navigation structure:
+The documentation source is in:
 
-```yaml
-nav:
-  - Home: index.md
-  - Architecture: architecture.md
-  - Pipeline Configuration: pipeline_configuration.md
-  - Python Extractor: python_extractor.md
-  - Intermediate JSON Model: intermediate_json_model.md
-  - Architecture Recovery:
-      - Overview: architecture_recovery.md
-      - MAPE-K Recovery Rules: mapek_recovery_rules.md
-      - Structure Model Mapping: structure_model_mapping.md
-      - KDM Traceability Links: kdm_traceability_links.md
-      - Architecture Review GUI: architecture_review_gui.md
-      - Architecture Agents: architecture_agents.md
-  - KDM Generation:
-      - JSON to KDM Mapping: json_to_kdm_mapping.md
-      - Validation Rules: validation_rules.md
-  - Usage:
-      - CLI Usage: cli_usage.md
-      - Examples and Case Studies: examples.md
-  - Development:
-      - Development Guide: development_guide.md
-      - Testing Strategy: testing_strategy.md
-      - Limitations: limitations.md
+```text
+docs/
+mkdocs.yml
 ```
 
 ---
@@ -894,21 +842,11 @@ nav:
 Before considering a version stable, run:
 
 ```bash
-python run_pipeline.py \
-  --config configs/pymape_hierarchical.json \
-  --with-agents pre-review \
-  --skip-kdm
+python run_pipeline.py   --config configs/pymape_hierarchical.json   --enable-dynamic-analysis   --dynamic-project-root examples/pymape_hierarchical   --dynamic-scenario cruise_control:scenarios/cruise_control_scenario.py   --dynamic-scenario hold_distance:scenarios/hold_distance_scenario.py   --with-agents pre-review   --skip-kdm
 
 python -m kdm_architecture_review.gui.main
 
-python kdm_architecture_agents/main.py \
-  --mode post-review \
-  --input outputs/pymape_hierarchical/python_model.reviewed_architecture.json \
-  --output outputs/pymape_hierarchical/python_model.reviewed.ai_checked.json
-
-python kdm_pyecore_generator/main.py \
-  --input outputs/pymape_hierarchical/python_model.reviewed.ai_checked.json \
-  --output outputs/pymape_hierarchical/model.reviewed.kdm.xmi
+python kdm_pyecore_generator/main.py   --input outputs/pymape_hierarchical/python_model.reviewed_architecture.json   --output outputs/pymape_hierarchical/model.reviewed.kdm.xmi
 
 mkdocs serve
 ```
@@ -917,16 +855,20 @@ Check:
 
 ```text
 ✓ Extractor runs from root.
-✓ Architecture recovery runs from root.
+✓ Dynamic scenarios run from root.
+✓ Runtime traces are generated.
+✓ Runtime-enriched JSON is generated.
+✓ Architecture recovery runs over runtime-enriched JSON.
 ✓ Pre-review agents run from root.
+✓ LLM suggestions are optional and reviewable.
+✓ Duplicate deterministic/LLM suggestions are consolidated.
 ✓ GUI opens AI-enriched architecture JSON.
 ✓ GUI displays AI Suggestions.
-✓ GUI validation has no false forbidden findings.
 ✓ GUI exports reviewed JSON.
-✓ Post-review agents report kdm_ready = true.
 ✓ Reviewed KDM is generated successfully.
 ✓ KDM contains extensionFamily.
 ✓ KDM contains StructureModel.
+✓ KDM contains runtime-derived action::Calls when dynamic analysis is enabled.
 ✓ MkDocs renders all pages.
 ```
 
@@ -934,19 +876,11 @@ Check:
 
 ## Limitations
 
-The current version is static-analysis based. It does not fully resolve all dynamic Python behavior, such as:
-
-```text
-dynamic imports
-monkey patching
-reflection
-runtime-generated attributes
-dependency injection patterns without static evidence
-```
+Dynamic analysis is scenario dependent. It only observes behavior executed by the provided runtime scenarios.
 
 Architecture recovery is conservative. It does not create `Reference Input`, `Measured Output`, or `Sensor` unless explicit evidence exists.
 
-The current architecture agents are deterministic and rule-based. They are not LLM-based yet.
+LLM-assisted suggestions are optional, reviewable and non-authoritative. They do not modify the `StructureModel` directly.
 
 The GUI node positions are visual only and are not persisted in the reviewed JSON.
 
@@ -959,11 +893,9 @@ Possible next steps include:
 ```text
 persistent GUI layout positions
 GUI accept/reject workflow for AI suggestions
-dynamic instrumentation for runtime traces
-LLM-based architecture reasoning agent
-schema validation for LLM outputs
-integration of AI pre-enrichment and post-review suggestions in a global desktop app
 richer dynamic-analysis support
+web runtime tracing scenarios
 multi-language extraction
+schema validation for reviewed architecture artifacts
 model-to-model transformations from KDM to additional architecture viewpoints
 ```

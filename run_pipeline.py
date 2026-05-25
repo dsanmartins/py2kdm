@@ -29,7 +29,20 @@ Expected config structure
     "intermediate_json": "outputs/pymape_hierarchical/python_model.json",
     "architecture_json": "outputs/pymape_hierarchical/python_model.architecture.json",
     "ai_architecture_json": "outputs/pymape_hierarchical/python_model.ai_architecture.json",
+    "runtime_enriched_json": "outputs/pymape_hierarchical/python_model.runtime_enriched.combined.json",
     "kdm_xmi": "outputs/pymape_hierarchical/model.kdm.xmi"
+  },
+
+  "dynamic_analysis": {
+    "enabled": false,
+    "mode": "desktop",
+    "project_root": "examples/pymape_hierarchical",
+    "scenarios": [
+      {
+        "name": "cruise_control",
+        "script": "scenarios/cruise_control_scenario.py"
+      }
+    ]
   },
 
   "architecture_recovery": {
@@ -61,10 +74,31 @@ import json
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 
 ROOT = Path(__file__).resolve().parent
+
+
+class DynamicScenario:
+    """
+    Runtime scenario descriptor used by the generic dynamic analysis pipeline.
+
+    The pipeline does not know project-specific scenarios. It only receives
+    scenario descriptors through CLI arguments or configuration files.
+    """
+
+    def __init__(self, name: str, script: str, script_args: list[str] | None = None):
+        if not name:
+            raise ValueError("Dynamic scenario name cannot be empty.")
+
+        if not script:
+            raise ValueError("Dynamic scenario script cannot be empty.")
+
+        self.name = name
+        self.script = script
+        self.script_args = script_args or []
+
 
 
 def main() -> int:
@@ -109,11 +143,24 @@ def main() -> int:
         skip=args.skip_extractor,
     )
 
-    architecture_input_for_kdm = intermediate_json
+    model_input_for_recovery = intermediate_json
+
+    dynamic_outputs = run_dynamic_analysis_if_requested(
+        config=config,
+        args=args,
+        source_path=source_path,
+        intermediate_json=intermediate_json,
+        python_executable=args.python,
+    )
+
+    if dynamic_outputs.get("runtime_enriched_json"):
+        model_input_for_recovery = dynamic_outputs["runtime_enriched_json"]
+
+    architecture_input_for_kdm = model_input_for_recovery
 
     if is_enabled(config.get("architecture_recovery", {})) and not args.skip_architecture:
         run_architecture_recovery(
-            input_path=intermediate_json,
+            input_path=model_input_for_recovery,
             output_path=architecture_json,
             python_executable=args.python,
         )
@@ -136,6 +183,7 @@ def main() -> int:
             config=config,
             intermediate_json=intermediate_json,
             architecture_json=architecture_json,
+            runtime_enriched_json=dynamic_outputs.get("runtime_enriched_json"),
             default_input=architecture_input_for_kdm,
         )
 
@@ -150,6 +198,11 @@ def main() -> int:
 
     print_header("Pipeline completed")
     print(f"Intermediate JSON: {intermediate_json}")
+    if dynamic_outputs.get("runtime_enriched_json"):
+        print(f"Runtime-enriched JSON: {dynamic_outputs['runtime_enriched_json']}")
+    for trace_path in dynamic_outputs.get("runtime_traces", []):
+        if trace_path.exists():
+            print(f"Runtime trace: {trace_path}")
     if architecture_json.exists():
         print(f"Architecture JSON: {architecture_json}")
     if ai_architecture_json.exists():
@@ -197,13 +250,12 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--with-agents",
-        choices=["none", "pre-review", "all"],
+        choices=["none", "pre-review"],
         default="none",
         help=(
-            "Run architecture agents as part of the pipeline. "
-            "Currently, pre-review agents are supported before human GUI review. "
-            "The value 'all' currently behaves as pre-review inside run_pipeline; "
-            "post-review should be run after exporting reviewed JSON from the GUI."
+            "Run pre-review architecture agents before human GUI review. "
+            "After human review, the reviewed architecture is treated as authoritative. "
+            "and is used directly for KDM generation. "
         ),
     )
 
@@ -212,6 +264,44 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Optional dynamic trace JSON consumed by DynamicEvidenceAgent "
             "when --with-agents pre-review or all is used."
+        ),
+    )
+
+    parser.add_argument(
+        "--enable-dynamic-analysis",
+        action="store_true",
+        help=(
+            "Enable generic runtime tracing and CodeModel enrichment before "
+            "architecture recovery and KDM generation."
+        ),
+    )
+
+    parser.add_argument(
+        "--dynamic-project-root",
+        help=(
+            "Project root used by kdm_dynamic_analysis. Defaults to "
+            "dynamic_analysis.project_root from config, or input.source_path."
+        ),
+    )
+
+    parser.add_argument(
+        "--dynamic-mode",
+        choices=["desktop", "web"],
+        help=(
+            "Dynamic analysis mode. Defaults to dynamic_analysis.mode from "
+            "config, or desktop."
+        ),
+    )
+
+    parser.add_argument(
+        "--dynamic-scenario",
+        action="append",
+        default=[],
+        metavar="NAME:SCRIPT",
+        help=(
+            "Dynamic scenario descriptor. Can be repeated. The pipeline does "
+            "not hardcode scenarios; each descriptor has the form "
+            "name:relative_script_path."
         ),
     )
 
@@ -298,6 +388,195 @@ def run_architecture_recovery(
 
     run_command(command, cwd=ROOT)
 
+
+
+
+
+def run_dynamic_analysis_if_requested(
+    config: Dict[str, Any],
+    args: argparse.Namespace,
+    source_path: Path,
+    intermediate_json: Path,
+    python_executable: str,
+) -> Dict[str, Any]:
+    """
+    Runs generic dynamic analysis if enabled.
+
+    The pipeline is project-agnostic. It does not know scenario names or
+    project-specific behavior. Scenarios are provided by configuration or CLI.
+    """
+
+    dynamic_config = config.get("dynamic_analysis", {})
+    enabled = bool(args.enable_dynamic_analysis or dynamic_config.get("enabled", False))
+
+    if not enabled:
+        print_step("Dynamic analysis skipped")
+        return {
+            "runtime_enriched_json": None,
+            "runtime_traces": [],
+        }
+
+    scenarios = collect_dynamic_scenarios(dynamic_config, args.dynamic_scenario)
+
+    if not scenarios:
+        raise ValueError(
+            "Dynamic analysis is enabled, but no scenarios were provided. "
+            "Use --dynamic-scenario name:script or dynamic_analysis.scenarios."
+        )
+
+    project_root = resolve_path(
+        args.dynamic_project_root
+        or dynamic_config.get("project_root")
+        or source_path
+    )
+
+    mode = args.dynamic_mode or dynamic_config.get("mode", "desktop")
+
+    runtime_enriched_json = resolve_path(
+        config.get("outputs", {}).get(
+            "runtime_enriched_json",
+            str(intermediate_json).replace(".json", ".runtime_enriched.combined.json"),
+        )
+    )
+    ensure_parent(runtime_enriched_json)
+
+    print_step("Running dynamic analysis")
+    print(f"Dynamic project root: {project_root}")
+    print(f"Dynamic mode: {mode}")
+    print(f"Dynamic scenarios: {', '.join(s.name for s in scenarios)}")
+
+    current_input = intermediate_json
+    runtime_traces: list[Path] = []
+
+    for index, scenario in enumerate(scenarios):
+        is_last = index == len(scenarios) - 1
+
+        trace_output = intermediate_json.with_name(
+            f"runtime_trace.{scenario.name}.json"
+        )
+
+        if is_last:
+            enriched_output = runtime_enriched_json
+        else:
+            enriched_output = intermediate_json.with_name(
+                f"{intermediate_json.stem}.runtime_enriched.{scenario.name}.json"
+            )
+
+        run_dynamic_trace_and_enrich(
+            project_root=project_root,
+            script=scenario.script,
+            input_path=current_input,
+            trace_output=trace_output,
+            output_path=enriched_output,
+            scenario_name=scenario.name,
+            mode=mode,
+            script_args=scenario.script_args,
+            python_executable=python_executable,
+        )
+
+        runtime_traces.append(trace_output)
+        current_input = enriched_output
+
+    return {
+        "runtime_enriched_json": runtime_enriched_json,
+        "runtime_traces": runtime_traces,
+    }
+
+
+def collect_dynamic_scenarios(
+    dynamic_config: Dict[str, Any],
+    cli_scenarios: list[str],
+) -> List[DynamicScenario]:
+    scenarios: list[DynamicScenario] = []
+
+    for item in dynamic_config.get("scenarios", []):
+        scenarios.append(parse_config_dynamic_scenario(item))
+
+    for item in cli_scenarios:
+        scenarios.append(parse_cli_dynamic_scenario(item))
+
+    return scenarios
+
+
+def parse_config_dynamic_scenario(item: Any) -> DynamicScenario:
+    if isinstance(item, str):
+        return parse_cli_dynamic_scenario(item)
+
+    if not isinstance(item, dict):
+        raise ValueError(
+            "dynamic_analysis.scenarios entries must be either strings "
+            "name:script or objects with name and script."
+        )
+
+    return DynamicScenario(
+        name=item.get("name"),
+        script=item.get("script"),
+        script_args=list(item.get("args", [])),
+    )
+
+
+def parse_cli_dynamic_scenario(value: str) -> DynamicScenario:
+    if ":" not in value:
+        raise ValueError(
+            f"Invalid dynamic scenario '{value}'. Expected format: name:script"
+        )
+
+    name, script = value.split(":", 1)
+
+    return DynamicScenario(
+        name=name.strip(),
+        script=script.strip(),
+    )
+
+
+def run_dynamic_trace_and_enrich(
+    project_root: Path,
+    script: str,
+    input_path: Path,
+    trace_output: Path,
+    output_path: Path,
+    scenario_name: str,
+    mode: str,
+    script_args: list[str],
+    python_executable: str,
+) -> None:
+    print_step(f"Running dynamic scenario: {scenario_name}")
+
+    dynamic_main = ROOT / "kdm_dynamic_analysis" / "main.py"
+
+    if not dynamic_main.exists():
+        raise FileNotFoundError(f"Dynamic analysis main.py not found: {dynamic_main}")
+
+    if not input_path.exists():
+        raise FileNotFoundError(f"Dynamic analysis input JSON not found: {input_path}")
+
+    ensure_parent(trace_output)
+    ensure_parent(output_path)
+
+    command = [
+        python_executable,
+        str(dynamic_main),
+        "trace-and-enrich",
+        "--project-root",
+        str(project_root),
+        "--script",
+        script,
+        "--input",
+        str(input_path),
+        "--trace-output",
+        str(trace_output),
+        "--output",
+        str(output_path),
+        "--scenario",
+        scenario_name,
+        "--mode",
+        mode,
+    ]
+
+    if script_args:
+        command.extend(script_args)
+
+    run_command(command, cwd=ROOT)
 
 
 def run_architecture_agents(
@@ -396,6 +675,7 @@ def select_kdm_input(
     config: Dict[str, Any],
     intermediate_json: Path,
     architecture_json: Path,
+    runtime_enriched_json: Path | None,
     default_input: Path,
 ) -> Path:
     """
@@ -418,6 +698,14 @@ def select_kdm_input(
 
     if input_selector == "architecture_json":
         return architecture_json
+
+    if input_selector == "runtime_enriched_json":
+        if runtime_enriched_json is None:
+            raise ValueError(
+                "kdm_generation.input is runtime_enriched_json, but dynamic "
+                "analysis did not produce a runtime-enriched JSON."
+            )
+        return runtime_enriched_json
 
     return resolve_path(input_selector)
 

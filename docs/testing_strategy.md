@@ -1,128 +1,94 @@
 # Testing Strategy
 
-## Purpose
+Testing covers static extraction, dynamic enrichment, architecture recovery, agent suggestions, JSON schemas, and KDM generation.
 
-The testing strategy should verify each pipeline stage independently and then verify the complete end-to-end flow.
+## Unit tests
 
-The main artifacts to test are:
+Run unit tests with:
 
-- intermediate JSON;
-- architecture-enriched JSON;
-- generated KDM XMI;
-- validation reports;
-- documentation examples.
+```bash
+pytest
+```
 
-## Test levels
+Important areas:
+
+- Python extraction edge cases;
+- body action mapping;
+- semantic KDM relations;
+- exception relations;
+- return relations;
+- serialization stability;
+- KDM validation rules.
+
+## JSON schema validation
+
+Validate each major artifact:
+
+```bash
+python scripts/validate_json_schema.py \
+  --input outputs/pymape_hierarchical/python_model.json \
+  --schema schemas/python_model.schema.json
+```
+
+Recommended E2E schema checks:
 
 ```text
-Unit tests
-  ↓
-Subproject integration tests
-  ↓
-Pipeline tests
-  ↓
-Artifact inspection tests
+python_model.json
+python_model.runtime_enriched.combined.json
+python_model.runtime_enriched.architecture.json
+python_model.runtime_enriched.ai_architecture.json
+python_model.runtime_enriched.reviewed_architecture.json
+runtime_trace.<scenario>.json
 ```
 
-## Extractor tests
+## Dynamic analysis tests
 
-Extractor tests should verify that Python code is correctly represented in the intermediate JSON.
+Dynamic scenarios should verify:
 
-Suggested cases:
-
-- imports;
-- classes and inheritance;
-- functions and methods;
-- parameters and local variables;
-- calls and constructor calls;
-- assignments;
-- returns and raises;
-- try, except and finally;
-- decorators;
-- nested body statements.
-
-## Architecture recovery tests
-
-Architecture recovery tests should verify:
-
-- autonomic applicability gate decisions;
-- role suggestions;
-- promotion of role suggestions to components;
-- control-loop grouping;
-- recovery of `Sensor`, `Effector`, `ReferenceInput` and `MeasuredOutput`;
-- containment relationships;
-- semantic construction rules;
-- architecture consistency report.
-
-Example check:
-
-```bash
-python run_pipeline.py --config configs/pymape_hierarchical.json --skip-kdm
-```
-
-Then:
-
-```bash
-jq '.structure_model.architecture_consistency' \
-  outputs/pymape_hierarchical/python_model.architecture.json
-```
-
-## KDM generation tests
-
-KDM generation tests should verify:
-
-- valid KDM XMI serialization;
-- presence of inventory and code models;
-- body actions and relations;
-- type and value relations;
-- exception and return-flow relations;
-- architecture `StructureModel`;
-- `extensionFamily` stereotypes;
-- nested architecture containment;
-- implementation references;
-- aggregated relationships.
+- trace status is `completed`;
+- event count is greater than zero;
+- filtered events are fewer than raw events;
+- runtime calls are added;
+- observed argument and return types are collected.
 
 Example checks:
 
 ```bash
-grep -n "extensionFamily\\|Adaptive System Domain" \
-  outputs/pymape_hierarchical/model.kdm.xmi
+jq '.metadata.execution_status, .metadata.event_count' \
+  outputs/pymape_hierarchical/runtime_trace.cruise_control.json
+
+jq '.runtime_enrichment.summary' \
+  outputs/pymape_hierarchical/python_model.runtime_enriched.combined.json
 ```
+
+## KDM generation tests
+
+A successful generator run should show:
+
+```text
+=== KDM VALIDATION REPORT ===
+Errors: 0
+```
+
+Runtime-specific checks:
 
 ```bash
-grep -n "Managing Subsystem\\|Control Loop\\|Effector" \
-  outputs/pymape_hierarchical/model.kdm.xmi
+grep -c 'xsi:type="action:Calls"' outputs/pymape_hierarchical/model.runtime_enriched.combined.kdm.xmi
+grep -c 'runtime_call:' outputs/pymape_hierarchical/model.runtime_enriched.combined.kdm.xmi
 ```
 
-## Regression tests
+## Regression script
 
-Regression tests should ensure that:
+The E2E regression should include:
 
-- previous examples still generate JSON;
-- previous examples still generate KDM;
-- validation errors do not reappear;
-- architecture recovery does not over-detect roles;
-- conventional systems are not incorrectly classified as self-adaptive.
-
-## Manual review checklist
-
-For architecture recovery outputs, inspect:
-
-- Are the promoted roles reasonable?
-- Are weak suggestions excluded from components?
-- Is `Control Loop` nested correctly?
-- Are MAPE-K components inside the loop?
-- Are `Effector`, `Sensor` and `Measured Output` inside `Managed Subsystem`?
-- Are `Reference Input` elements only created when explicit evidence exists?
-- Are stereotypes referenced correctly?
-- Are implementation links present when code evidence exists?
-
-## Documentation tests
-
-Run:
-
-```bash
-mkdocs serve
+```text
+static extraction
+optional dynamic analysis
+architecture recovery
+pre-review agents
+schema validation
+KDM generation
+KDM validation
 ```
 
-Check that all pages from `mkdocs.yml` exist and render correctly.
+Post-review agents are not part of the default testing path because the reviewed architecture is considered authoritative.
