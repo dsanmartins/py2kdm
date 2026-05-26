@@ -681,12 +681,16 @@ class JsonToKDMMapper:
 
         # Do not add attribute 'target'. It is treated as obsolete by the
         # validator. Use called_signature instead.
+        relationship_line = relationship.get("line") or relationship.get("lineStart") or relationship.get("line_start")
+
         self.factory.add_attributes_from_dict(
             action,
             {
+                "original_id": self._generic_relationship_action_id(relationship),
                 "call_source": source_key,
                 "called_signature": target_key,
                 "relationship_type": "calls",
+                "source_line": relationship_line,
             },
         )
 
@@ -771,6 +775,36 @@ class JsonToKDMMapper:
     # ------------------------------------------------------------------
     # Callable bodies and calls
     # ------------------------------------------------------------------
+
+    def _generic_relationship_action_id(self, relationship: dict):
+        """
+        Builds a stable identifier for an ActionElement created from a generic
+        relationship.
+
+        Java models may contain several calls to the same target inside the
+        same callable, for example repeated builder.append(...) calls. The KDM
+        validator uses traceability identifiers to distinguish valid repeated
+        actions. Therefore each generic calls relationship must generate a
+        unique original_id based on source, target and source location.
+        """
+
+        relation_type = relationship.get("type") or "relationship"
+        source = relationship.get("source") or "unknown_source"
+        target = relationship.get("target") or "unknown_target"
+        source_file = (
+            relationship.get("sourceFile")
+            or relationship.get("source_file")
+            or relationship.get("file")
+            or "unknown_file"
+        )
+        line = (
+            relationship.get("line")
+            or relationship.get("lineStart")
+            or relationship.get("line_start")
+            or "unknown_line"
+        )
+
+        return f"generic:{relation_type}:{source}:{target}:{source_file}:{line}"
 
     def _get_or_create_callable_body(self, callable_unit):
         """

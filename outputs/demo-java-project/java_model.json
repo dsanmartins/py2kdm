@@ -2,57 +2,122 @@
   "projectName" : "demo-java-project",
   "language" : "java",
   "files" : [ {
-    "path" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
-    "packageName" : "com.example.repository",
-    "imports" : [ ]
-  }, {
-    "path" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "path" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/TrackedField.java",
     "packageName" : "com.example.service",
-    "imports" : [ "com.example.repository.UserRepository" ]
+    "imports" : [ "java.lang.annotation.Retention", "java.lang.annotation.RetentionPolicy" ]
+  }, {
+    "path" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/InjectDependency.java",
+    "packageName" : "com.example.service",
+    "imports" : [ "java.lang.annotation.Retention", "java.lang.annotation.RetentionPolicy" ]
+  }, {
+    "path" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/Audit.java",
+    "packageName" : "com.example.service",
+    "imports" : [ "java.lang.annotation.Retention", "java.lang.annotation.RetentionPolicy" ]
+  }, {
+    "path" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/ServiceComponent.java",
+    "packageName" : "com.example.service",
+    "imports" : [ "java.lang.annotation.Retention", "java.lang.annotation.RetentionPolicy" ]
+  }, {
+    "path" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "packageName" : "com.example.service",
+    "imports" : [ "com.example.repository.UserRepository", "java.util.ArrayList", "java.util.List" ]
+  }, {
+    "path" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/NotNull.java",
+    "packageName" : "com.example.service",
+    "imports" : [ "java.lang.annotation.Retention", "java.lang.annotation.RetentionPolicy" ]
+  }, {
+    "path" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/QueryOperation.java",
+    "packageName" : "com.example.repository",
+    "imports" : [ "java.lang.annotation.Retention", "java.lang.annotation.RetentionPolicy" ]
+  }, {
+    "path" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/CommandOperation.java",
+    "packageName" : "com.example.repository",
+    "imports" : [ "java.lang.annotation.Retention", "java.lang.annotation.RetentionPolicy" ]
+  }, {
+    "path" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/RepositoryComponent.java",
+    "packageName" : "com.example.repository",
+    "imports" : [ "java.lang.annotation.Retention", "java.lang.annotation.RetentionPolicy" ]
+  }, {
+    "path" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "packageName" : "com.example.repository",
+    "imports" : [ "com.example.service.NotNull", "com.example.service.TrackedField", "java.util.ArrayList", "java.util.HashMap", "java.util.List", "java.util.Map" ]
   } ],
   "elements" : [ {
-    "name" : "UserRepository",
-    "qualifiedName" : "com.example.repository.UserRepository",
-    "kind" : "class",
-    "packageName" : "com.example.repository",
-    "filePath" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "name" : "TrackedField",
+    "qualifiedName" : "com.example.service.TrackedField",
+    "kind" : null,
+    "packageName" : "com.example.service",
+    "filePath" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/TrackedField.java",
     "modifiers" : [ "public" ],
-    "annotations" : [ ],
+    "annotations" : [ "Retention" ],
     "extendsTypes" : [ ],
     "implementsTypes" : [ ],
     "fields" : [ ],
-    "methods" : [ {
-      "name" : "findNameById",
-      "returnType" : "String",
-      "kind" : "method",
-      "signature" : "findNameById(Long)",
-      "qualifiedSignature" : "com.example.repository.UserRepository.findNameById(java.lang.Long)",
-      "resolvedReturnType" : "java.lang.String",
-      "modifiers" : [ "public" ],
-      "annotations" : [ ],
-      "parameters" : [ {
-        "name" : "id",
-        "type" : "Long",
-        "resolvedType" : "java.lang.Long"
-      } ],
-      "calls" : [ ]
-    } ]
+    "methods" : [ ]
+  }, {
+    "name" : "InjectDependency",
+    "qualifiedName" : "com.example.service.InjectDependency",
+    "kind" : null,
+    "packageName" : "com.example.service",
+    "filePath" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/InjectDependency.java",
+    "modifiers" : [ "public" ],
+    "annotations" : [ "Retention" ],
+    "extendsTypes" : [ ],
+    "implementsTypes" : [ ],
+    "fields" : [ ],
+    "methods" : [ ]
+  }, {
+    "name" : "Audit",
+    "qualifiedName" : "com.example.service.Audit",
+    "kind" : null,
+    "packageName" : "com.example.service",
+    "filePath" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/Audit.java",
+    "modifiers" : [ "public" ],
+    "annotations" : [ "Retention" ],
+    "extendsTypes" : [ ],
+    "implementsTypes" : [ ],
+    "fields" : [ ],
+    "methods" : [ ]
+  }, {
+    "name" : "ServiceComponent",
+    "qualifiedName" : "com.example.service.ServiceComponent",
+    "kind" : null,
+    "packageName" : "com.example.service",
+    "filePath" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/ServiceComponent.java",
+    "modifiers" : [ "public" ],
+    "annotations" : [ "Retention" ],
+    "extendsTypes" : [ ],
+    "implementsTypes" : [ ],
+    "fields" : [ ],
+    "methods" : [ ]
   }, {
     "name" : "UserService",
     "qualifiedName" : "com.example.service.UserService",
     "kind" : "class",
     "packageName" : "com.example.service",
-    "filePath" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "filePath" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
     "modifiers" : [ "public" ],
-    "annotations" : [ ],
+    "annotations" : [ "Deprecated", "ServiceComponent" ],
     "extendsTypes" : [ ],
     "implementsTypes" : [ ],
     "fields" : [ {
       "name" : "repository",
       "type" : "UserRepository",
       "modifiers" : [ "private" ],
-      "annotations" : [ ],
+      "annotations" : [ "InjectDependency" ],
       "resolvedType" : "com.example.repository.UserRepository"
+    }, {
+      "name" : "lastUserName",
+      "type" : "String",
+      "modifiers" : [ "private" ],
+      "annotations" : [ "TrackedField" ],
+      "resolvedType" : "java.lang.String"
+    }, {
+      "name" : "requestCount",
+      "type" : "int",
+      "modifiers" : [ "private" ],
+      "annotations" : [ "TrackedField" ],
+      "resolvedType" : "int"
     } ],
     "methods" : [ {
       "name" : "getUserName",
@@ -62,7 +127,7 @@
       "qualifiedSignature" : "com.example.service.UserService.getUserName(java.lang.Long)",
       "resolvedReturnType" : "java.lang.String",
       "modifiers" : [ "public" ],
-      "annotations" : [ ],
+      "annotations" : [ "Audit" ],
       "parameters" : [ {
         "name" : "id",
         "type" : "Long",
@@ -75,6 +140,214 @@
         "resolvedTarget" : "com.example.repository.UserRepository.findNameById(java.lang.Long)"
       } ]
     }, {
+      "name" : "buildUserLabel",
+      "returnType" : "String",
+      "kind" : "method",
+      "signature" : "buildUserLabel(Long)",
+      "qualifiedSignature" : "com.example.service.UserService.buildUserLabel(java.lang.Long)",
+      "resolvedReturnType" : "java.lang.String",
+      "modifiers" : [ "public" ],
+      "annotations" : [ "Audit" ],
+      "parameters" : [ {
+        "name" : "id",
+        "type" : "Long",
+        "resolvedType" : "java.lang.Long"
+      } ],
+      "calls" : [ {
+        "methodName" : "findNameById",
+        "scope" : "repository",
+        "argumentCount" : 1,
+        "resolvedTarget" : "com.example.repository.UserRepository.findNameById(java.lang.Long)"
+      }, {
+        "methodName" : "append",
+        "scope" : "builder",
+        "argumentCount" : 1,
+        "resolvedTarget" : "java.lang.StringBuilder.append(java.lang.String)"
+      }, {
+        "methodName" : "append",
+        "scope" : "builder",
+        "argumentCount" : 1,
+        "resolvedTarget" : "java.lang.StringBuilder.append(java.lang.String)"
+      }, {
+        "methodName" : "append",
+        "scope" : "builder",
+        "argumentCount" : 1,
+        "resolvedTarget" : "java.lang.StringBuilder.append(java.lang.String)"
+      }, {
+        "methodName" : "append",
+        "scope" : "builder",
+        "argumentCount" : 1,
+        "resolvedTarget" : "java.lang.StringBuilder.append(java.lang.String)"
+      }, {
+        "methodName" : "toString",
+        "scope" : "builder",
+        "argumentCount" : 0,
+        "resolvedTarget" : "java.lang.StringBuilder.toString()"
+      } ]
+    }, {
+      "name" : "updateUserName",
+      "returnType" : "boolean",
+      "kind" : "method",
+      "signature" : "updateUserName(Long,String)",
+      "qualifiedSignature" : "com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String)",
+      "resolvedReturnType" : "boolean",
+      "modifiers" : [ "public" ],
+      "annotations" : [ "Audit" ],
+      "parameters" : [ {
+        "name" : "id",
+        "type" : "Long",
+        "resolvedType" : "java.lang.Long"
+      }, {
+        "name" : "newName",
+        "type" : "String",
+        "resolvedType" : "java.lang.String"
+      } ],
+      "calls" : [ {
+        "methodName" : "isBlank",
+        "scope" : "newName",
+        "argumentCount" : 0,
+        "resolvedTarget" : "java.lang.String.isBlank()"
+      }, {
+        "methodName" : "trim",
+        "scope" : "newName",
+        "argumentCount" : 0,
+        "resolvedTarget" : "java.lang.String.trim()"
+      }, {
+        "methodName" : "existsById",
+        "scope" : "repository",
+        "argumentCount" : 1,
+        "resolvedTarget" : "com.example.repository.UserRepository.existsById(java.lang.Long)"
+      }, {
+        "methodName" : "saveName",
+        "scope" : "repository",
+        "argumentCount" : 2,
+        "resolvedTarget" : "com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String)"
+      }, {
+        "methodName" : "saveName",
+        "scope" : "repository",
+        "argumentCount" : 2,
+        "resolvedTarget" : "com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String)"
+      } ]
+    }, {
+      "name" : "collectUserLabels",
+      "returnType" : "List<String>",
+      "kind" : "method",
+      "signature" : "collectUserLabels()",
+      "qualifiedSignature" : "com.example.service.UserService.collectUserLabels()",
+      "resolvedReturnType" : "java.util.List<java.lang.String>",
+      "modifiers" : [ "public" ],
+      "annotations" : [ "Audit" ],
+      "parameters" : [ ],
+      "calls" : [ {
+        "methodName" : "findAllNames",
+        "scope" : "repository",
+        "argumentCount" : 0,
+        "resolvedTarget" : "com.example.repository.UserRepository.findAllNames()"
+      }, {
+        "methodName" : "add",
+        "scope" : "labels",
+        "argumentCount" : 1,
+        "resolvedTarget" : "java.util.List.add(E)"
+      } ]
+    }, {
+      "name" : "countKnownUsers",
+      "returnType" : "int",
+      "kind" : "method",
+      "signature" : "countKnownUsers()",
+      "qualifiedSignature" : "com.example.service.UserService.countKnownUsers()",
+      "resolvedReturnType" : "int",
+      "modifiers" : [ "public" ],
+      "annotations" : [ "Audit" ],
+      "parameters" : [ ],
+      "calls" : [ {
+        "methodName" : "findAllNames",
+        "scope" : "repository",
+        "argumentCount" : 0,
+        "resolvedTarget" : "com.example.repository.UserRepository.findAllNames()"
+      }, {
+        "methodName" : "size",
+        "scope" : "names",
+        "argumentCount" : 0,
+        "resolvedTarget" : "java.util.List.size()"
+      }, {
+        "methodName" : "get",
+        "scope" : "names",
+        "argumentCount" : 1,
+        "resolvedTarget" : "java.util.List.get(int)"
+      }, {
+        "methodName" : "isBlank",
+        "scope" : "name",
+        "argumentCount" : 0,
+        "resolvedTarget" : "java.lang.String.isBlank()"
+      } ]
+    }, {
+      "name" : "classifyUser",
+      "returnType" : "String",
+      "kind" : "method",
+      "signature" : "classifyUser(Long)",
+      "qualifiedSignature" : "com.example.service.UserService.classifyUser(java.lang.Long)",
+      "resolvedReturnType" : "java.lang.String",
+      "modifiers" : [ "public" ],
+      "annotations" : [ "Audit" ],
+      "parameters" : [ {
+        "name" : "id",
+        "type" : "Long",
+        "resolvedType" : "java.lang.Long"
+      } ],
+      "calls" : [ {
+        "methodName" : "findNameById",
+        "scope" : "repository",
+        "argumentCount" : 1,
+        "resolvedTarget" : "com.example.repository.UserRepository.findNameById(java.lang.Long)"
+      }, {
+        "methodName" : "length",
+        "scope" : "name",
+        "argumentCount" : 0,
+        "resolvedTarget" : "java.lang.String.length()"
+      } ]
+    }, {
+      "name" : "safeUserName",
+      "returnType" : "String",
+      "kind" : "method",
+      "signature" : "safeUserName(Long)",
+      "qualifiedSignature" : "com.example.service.UserService.safeUserName(java.lang.Long)",
+      "resolvedReturnType" : "java.lang.String",
+      "modifiers" : [ "public" ],
+      "annotations" : [ "Audit" ],
+      "parameters" : [ {
+        "name" : "id",
+        "type" : "Long",
+        "resolvedType" : "java.lang.Long"
+      } ],
+      "calls" : [ {
+        "methodName" : "findNameById",
+        "scope" : "repository",
+        "argumentCount" : 1,
+        "resolvedTarget" : "com.example.repository.UserRepository.findNameById(java.lang.Long)"
+      } ]
+    }, {
+      "name" : "getLastUserName",
+      "returnType" : "String",
+      "kind" : "method",
+      "signature" : "getLastUserName()",
+      "qualifiedSignature" : "com.example.service.UserService.getLastUserName()",
+      "resolvedReturnType" : "java.lang.String",
+      "modifiers" : [ "public" ],
+      "annotations" : [ ],
+      "parameters" : [ ],
+      "calls" : [ ]
+    }, {
+      "name" : "getRequestCount",
+      "returnType" : "int",
+      "kind" : "method",
+      "signature" : "getRequestCount()",
+      "qualifiedSignature" : "com.example.service.UserService.getRequestCount()",
+      "resolvedReturnType" : "int",
+      "modifiers" : [ "public" ],
+      "annotations" : [ ],
+      "parameters" : [ ],
+      "calls" : [ ]
+    }, {
       "name" : "UserService",
       "returnType" : "void",
       "kind" : "constructor",
@@ -82,7 +355,7 @@
       "qualifiedSignature" : "com.example.service.UserService.<init>(com.example.repository.UserRepository)",
       "resolvedReturnType" : "void",
       "modifiers" : [ "public" ],
-      "annotations" : [ ],
+      "annotations" : [ "Deprecated" ],
       "parameters" : [ {
         "name" : "repository",
         "type" : "UserRepository",
@@ -90,54 +363,783 @@
       } ],
       "calls" : [ ]
     } ]
+  }, {
+    "name" : "NotNull",
+    "qualifiedName" : "com.example.service.NotNull",
+    "kind" : null,
+    "packageName" : "com.example.service",
+    "filePath" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/NotNull.java",
+    "modifiers" : [ "public" ],
+    "annotations" : [ "Retention" ],
+    "extendsTypes" : [ ],
+    "implementsTypes" : [ ],
+    "fields" : [ ],
+    "methods" : [ ]
+  }, {
+    "name" : "QueryOperation",
+    "qualifiedName" : "com.example.repository.QueryOperation",
+    "kind" : null,
+    "packageName" : "com.example.repository",
+    "filePath" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/QueryOperation.java",
+    "modifiers" : [ "public" ],
+    "annotations" : [ "Retention" ],
+    "extendsTypes" : [ ],
+    "implementsTypes" : [ ],
+    "fields" : [ ],
+    "methods" : [ ]
+  }, {
+    "name" : "CommandOperation",
+    "qualifiedName" : "com.example.repository.CommandOperation",
+    "kind" : null,
+    "packageName" : "com.example.repository",
+    "filePath" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/CommandOperation.java",
+    "modifiers" : [ "public" ],
+    "annotations" : [ "Retention" ],
+    "extendsTypes" : [ ],
+    "implementsTypes" : [ ],
+    "fields" : [ ],
+    "methods" : [ ]
+  }, {
+    "name" : "RepositoryComponent",
+    "qualifiedName" : "com.example.repository.RepositoryComponent",
+    "kind" : null,
+    "packageName" : "com.example.repository",
+    "filePath" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/RepositoryComponent.java",
+    "modifiers" : [ "public" ],
+    "annotations" : [ "Retention" ],
+    "extendsTypes" : [ ],
+    "implementsTypes" : [ ],
+    "fields" : [ ],
+    "methods" : [ ]
+  }, {
+    "name" : "UserRepository",
+    "qualifiedName" : "com.example.repository.UserRepository",
+    "kind" : "class",
+    "packageName" : "com.example.repository",
+    "filePath" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "modifiers" : [ "public" ],
+    "annotations" : [ "RepositoryComponent" ],
+    "extendsTypes" : [ ],
+    "implementsTypes" : [ ],
+    "fields" : [ {
+      "name" : "users",
+      "type" : "Map<Long,String>",
+      "modifiers" : [ "private" ],
+      "annotations" : [ "TrackedField" ],
+      "resolvedType" : "java.util.Map<java.lang.Long, java.lang.String>"
+    } ],
+    "methods" : [ {
+      "name" : "findNameById",
+      "returnType" : "String",
+      "kind" : "method",
+      "signature" : "findNameById(Long)",
+      "qualifiedSignature" : "com.example.repository.UserRepository.findNameById(java.lang.Long)",
+      "resolvedReturnType" : "java.lang.String",
+      "modifiers" : [ "public" ],
+      "annotations" : [ "QueryOperation" ],
+      "parameters" : [ {
+        "name" : "id",
+        "type" : "Long",
+        "resolvedType" : "java.lang.Long"
+      } ],
+      "calls" : [ {
+        "methodName" : "get",
+        "scope" : "users",
+        "argumentCount" : 1,
+        "resolvedTarget" : "java.util.Map.get(java.lang.Object)"
+      } ]
+    }, {
+      "name" : "existsById",
+      "returnType" : "boolean",
+      "kind" : "method",
+      "signature" : "existsById(Long)",
+      "qualifiedSignature" : "com.example.repository.UserRepository.existsById(java.lang.Long)",
+      "resolvedReturnType" : "boolean",
+      "modifiers" : [ "public" ],
+      "annotations" : [ "QueryOperation" ],
+      "parameters" : [ {
+        "name" : "id",
+        "type" : "Long",
+        "resolvedType" : "java.lang.Long"
+      } ],
+      "calls" : [ {
+        "methodName" : "containsKey",
+        "scope" : "users",
+        "argumentCount" : 1,
+        "resolvedTarget" : "java.util.Map.containsKey(java.lang.Object)"
+      } ]
+    }, {
+      "name" : "saveName",
+      "returnType" : "void",
+      "kind" : "method",
+      "signature" : "saveName(Long,String)",
+      "qualifiedSignature" : "com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String)",
+      "resolvedReturnType" : "void",
+      "modifiers" : [ "public" ],
+      "annotations" : [ "CommandOperation" ],
+      "parameters" : [ {
+        "name" : "id",
+        "type" : "Long",
+        "resolvedType" : "java.lang.Long"
+      }, {
+        "name" : "name",
+        "type" : "String",
+        "resolvedType" : "java.lang.String"
+      } ],
+      "calls" : [ {
+        "methodName" : "normalizeName",
+        "scope" : null,
+        "argumentCount" : 1,
+        "resolvedTarget" : "com.example.repository.UserRepository.normalizeName(java.lang.String)"
+      }, {
+        "methodName" : "put",
+        "scope" : "users",
+        "argumentCount" : 2,
+        "resolvedTarget" : "java.util.Map.put(K,V)"
+      } ]
+    }, {
+      "name" : "findAllNames",
+      "returnType" : "List<String>",
+      "kind" : "method",
+      "signature" : "findAllNames()",
+      "qualifiedSignature" : "com.example.repository.UserRepository.findAllNames()",
+      "resolvedReturnType" : "java.util.List<java.lang.String>",
+      "modifiers" : [ "public" ],
+      "annotations" : [ "QueryOperation" ],
+      "parameters" : [ ],
+      "calls" : [ {
+        "methodName" : "values",
+        "scope" : "users",
+        "argumentCount" : 0,
+        "resolvedTarget" : "java.util.Map.values()"
+      }, {
+        "methodName" : "add",
+        "scope" : "names",
+        "argumentCount" : 1,
+        "resolvedTarget" : "java.util.List.add(E)"
+      } ]
+    }, {
+      "name" : "countActiveUsers",
+      "returnType" : "int",
+      "kind" : "method",
+      "signature" : "countActiveUsers()",
+      "qualifiedSignature" : "com.example.repository.UserRepository.countActiveUsers()",
+      "resolvedReturnType" : "int",
+      "modifiers" : [ "public" ],
+      "annotations" : [ "QueryOperation" ],
+      "parameters" : [ ],
+      "calls" : [ {
+        "methodName" : "values",
+        "scope" : "users",
+        "argumentCount" : 0,
+        "resolvedTarget" : "java.util.Map.values()"
+      }, {
+        "methodName" : "isBlank",
+        "scope" : "name",
+        "argumentCount" : 0,
+        "resolvedTarget" : "java.lang.String.isBlank()"
+      } ]
+    }, {
+      "name" : "normalizeName",
+      "returnType" : "String",
+      "kind" : "method",
+      "signature" : "normalizeName(String)",
+      "qualifiedSignature" : "com.example.repository.UserRepository.normalizeName(java.lang.String)",
+      "resolvedReturnType" : "java.lang.String",
+      "modifiers" : [ "public" ],
+      "annotations" : [ "QueryOperation" ],
+      "parameters" : [ {
+        "name" : "name",
+        "type" : "String",
+        "resolvedType" : "java.lang.String"
+      } ],
+      "calls" : [ {
+        "methodName" : "trim",
+        "scope" : "name",
+        "argumentCount" : 0,
+        "resolvedTarget" : "java.lang.String.trim()"
+      }, {
+        "methodName" : "length",
+        "scope" : "trimmed",
+        "argumentCount" : 0,
+        "resolvedTarget" : "java.lang.String.length()"
+      } ]
+    }, {
+      "name" : "findNameOrDefault",
+      "returnType" : "String",
+      "kind" : "method",
+      "signature" : "findNameOrDefault(Long,String)",
+      "qualifiedSignature" : "com.example.repository.UserRepository.findNameOrDefault(java.lang.Long,java.lang.String)",
+      "resolvedReturnType" : "java.lang.String",
+      "modifiers" : [ "public" ],
+      "annotations" : [ "QueryOperation" ],
+      "parameters" : [ {
+        "name" : "id",
+        "type" : "Long",
+        "resolvedType" : "java.lang.Long"
+      }, {
+        "name" : "defaultName",
+        "type" : "String",
+        "resolvedType" : "java.lang.String"
+      } ],
+      "calls" : [ {
+        "methodName" : "findNameById",
+        "scope" : null,
+        "argumentCount" : 1,
+        "resolvedTarget" : "com.example.repository.UserRepository.findNameById(java.lang.Long)"
+      } ]
+    }, {
+      "name" : "UserRepository",
+      "returnType" : "void",
+      "kind" : "constructor",
+      "signature" : "UserRepository()",
+      "qualifiedSignature" : "com.example.repository.UserRepository.<init>()",
+      "resolvedReturnType" : "void",
+      "modifiers" : [ "public" ],
+      "annotations" : [ ],
+      "parameters" : [ ],
+      "calls" : [ ]
+    } ]
   } ],
   "relationships" : [ {
-    "type" : "uses_type",
-    "source" : "com.example.repository.UserRepository.findNameById(java.lang.Long):return",
-    "target" : "java.lang.String",
-    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
-    "line" : 5
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/TrackedField.java",
+    "target" : "java.lang.annotation.Retention",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/TrackedField.java",
+    "line" : 3
   }, {
-    "type" : "uses_type",
-    "source" : "com.example.repository.UserRepository.findNameById(java.lang.Long):parameter:id",
-    "target" : "java.lang.Long",
-    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/TrackedField.java",
+    "target" : "java.lang.annotation.RetentionPolicy",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/TrackedField.java",
+    "line" : 4
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/InjectDependency.java",
+    "target" : "java.lang.annotation.Retention",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/InjectDependency.java",
+    "line" : 3
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/InjectDependency.java",
+    "target" : "java.lang.annotation.RetentionPolicy",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/InjectDependency.java",
+    "line" : 4
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/Audit.java",
+    "target" : "java.lang.annotation.Retention",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/Audit.java",
+    "line" : 3
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/Audit.java",
+    "target" : "java.lang.annotation.RetentionPolicy",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/Audit.java",
+    "line" : 4
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/ServiceComponent.java",
+    "target" : "java.lang.annotation.Retention",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/ServiceComponent.java",
+    "line" : 3
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/ServiceComponent.java",
+    "target" : "java.lang.annotation.RetentionPolicy",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/ServiceComponent.java",
+    "line" : 4
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "target" : "com.example.repository.UserRepository",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 3
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "target" : "java.util.ArrayList",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
     "line" : 5
   }, {
     "type" : "imports",
-    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
-    "target" : "com.example.repository.UserRepository",
-    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
-    "line" : 3
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "target" : "java.util.List",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 6
   }, {
     "type" : "uses_type",
     "source" : "com.example.service.UserService.repository",
     "target" : "com.example.repository.UserRepository",
-    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
-    "line" : 7
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 13
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.lastUserName",
+    "target" : "java.lang.String",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 16
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.requestCount",
+    "target" : "int",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 19
   }, {
     "type" : "uses_type",
     "source" : "com.example.service.UserService.getUserName(java.lang.Long):return",
     "target" : "java.lang.String",
-    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
-    "line" : 13
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 28
   }, {
     "type" : "uses_type",
     "source" : "com.example.service.UserService.getUserName(java.lang.Long):parameter:id",
     "target" : "java.lang.Long",
-    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
-    "line" : 13
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 28
   }, {
     "type" : "calls",
     "source" : "com.example.service.UserService.getUserName(java.lang.Long)",
     "target" : "com.example.repository.UserRepository.findNameById(java.lang.Long)",
-    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
-    "line" : 14
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 32
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.buildUserLabel(java.lang.Long):return",
+    "target" : "java.lang.String",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 42
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.buildUserLabel(java.lang.Long):parameter:id",
+    "target" : "java.lang.Long",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 42
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.buildUserLabel(java.lang.Long)",
+    "target" : "com.example.repository.UserRepository.findNameById(java.lang.Long)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 44
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.buildUserLabel(java.lang.Long)",
+    "target" : "java.lang.StringBuilder.append(java.lang.String)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 52
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.buildUserLabel(java.lang.Long)",
+    "target" : "java.lang.StringBuilder.append(java.lang.String)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 53
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.buildUserLabel(java.lang.Long)",
+    "target" : "java.lang.StringBuilder.append(java.lang.String)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 54
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.buildUserLabel(java.lang.Long)",
+    "target" : "java.lang.StringBuilder.append(java.lang.String)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 57
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.buildUserLabel(java.lang.Long)",
+    "target" : "java.lang.StringBuilder.toString()",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 60
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String):return",
+    "target" : "boolean",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 66
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String):parameter:id",
+    "target" : "java.lang.Long",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 66
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String):parameter:newName",
+    "target" : "java.lang.String",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 66
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String)",
+    "target" : "java.lang.String.isBlank()",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 72
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String)",
+    "target" : "java.lang.String.trim()",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 76
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String)",
+    "target" : "com.example.repository.UserRepository.existsById(java.lang.Long)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 77
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String)",
+    "target" : "com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 80
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String)",
+    "target" : "com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 85
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.collectUserLabels():return",
+    "target" : "java.util.List<java.lang.String>",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 91
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.collectUserLabels()",
+    "target" : "com.example.repository.UserRepository.findAllNames()",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 93
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.collectUserLabels()",
+    "target" : "java.util.List.add(E)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 102
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.countKnownUsers():return",
+    "target" : "int",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 108
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.countKnownUsers()",
+    "target" : "com.example.repository.UserRepository.findAllNames()",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 110
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.countKnownUsers()",
+    "target" : "java.util.List.size()",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 114
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.countKnownUsers()",
+    "target" : "java.util.List.get(int)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 115
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.countKnownUsers()",
+    "target" : "java.lang.String.isBlank()",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 117
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.classifyUser(java.lang.Long):return",
+    "target" : "java.lang.String",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 127
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.classifyUser(java.lang.Long):parameter:id",
+    "target" : "java.lang.Long",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 127
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.classifyUser(java.lang.Long)",
+    "target" : "com.example.repository.UserRepository.findNameById(java.lang.Long)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 129
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.classifyUser(java.lang.Long)",
+    "target" : "java.lang.String.length()",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 135
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.safeUserName(java.lang.Long):return",
+    "target" : "java.lang.String",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 149
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.safeUserName(java.lang.Long):parameter:id",
+    "target" : "java.lang.Long",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 149
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.safeUserName(java.lang.Long)",
+    "target" : "com.example.repository.UserRepository.findNameById(java.lang.Long)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 152
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.getLastUserName():return",
+    "target" : "java.lang.String",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 164
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.getRequestCount():return",
+    "target" : "int",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 168
   }, {
     "type" : "uses_type",
     "source" : "com.example.service.UserService.<init>(com.example.repository.UserRepository):parameter:repository",
     "target" : "com.example.repository.UserRepository",
-    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 21
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/NotNull.java",
+    "target" : "java.lang.annotation.Retention",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/NotNull.java",
+    "line" : 3
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/NotNull.java",
+    "target" : "java.lang.annotation.RetentionPolicy",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/NotNull.java",
+    "line" : 4
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/QueryOperation.java",
+    "target" : "java.lang.annotation.Retention",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/QueryOperation.java",
+    "line" : 3
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/QueryOperation.java",
+    "target" : "java.lang.annotation.RetentionPolicy",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/QueryOperation.java",
+    "line" : 4
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/CommandOperation.java",
+    "target" : "java.lang.annotation.Retention",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/CommandOperation.java",
+    "line" : 3
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/CommandOperation.java",
+    "target" : "java.lang.annotation.RetentionPolicy",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/CommandOperation.java",
+    "line" : 4
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/RepositoryComponent.java",
+    "target" : "java.lang.annotation.Retention",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/RepositoryComponent.java",
+    "line" : 3
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/RepositoryComponent.java",
+    "target" : "java.lang.annotation.RetentionPolicy",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/RepositoryComponent.java",
+    "line" : 4
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "target" : "com.example.service.NotNull",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 3
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "target" : "com.example.service.TrackedField",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 4
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "target" : "java.util.ArrayList",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 6
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "target" : "java.util.HashMap",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 7
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "target" : "java.util.List",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 8
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "target" : "java.util.Map",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
     "line" : 9
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.repository.UserRepository.users",
+    "target" : "java.util.Map<java.lang.Long, java.lang.String>",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 15
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.repository.UserRepository.findNameById(java.lang.Long):return",
+    "target" : "java.lang.String",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 24
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.repository.UserRepository.findNameById(java.lang.Long):parameter:id",
+    "target" : "java.lang.Long",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 24
+  }, {
+    "type" : "calls",
+    "source" : "com.example.repository.UserRepository.findNameById(java.lang.Long)",
+    "target" : "java.util.Map.get(java.lang.Object)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 30
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.repository.UserRepository.existsById(java.lang.Long):return",
+    "target" : "boolean",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 33
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.repository.UserRepository.existsById(java.lang.Long):parameter:id",
+    "target" : "java.lang.Long",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 33
+  }, {
+    "type" : "calls",
+    "source" : "com.example.repository.UserRepository.existsById(java.lang.Long)",
+    "target" : "java.util.Map.containsKey(java.lang.Object)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 39
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String):parameter:id",
+    "target" : "java.lang.Long",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 42
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String):parameter:name",
+    "target" : "java.lang.String",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 42
+  }, {
+    "type" : "calls",
+    "source" : "com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String)",
+    "target" : "com.example.repository.UserRepository.normalizeName(java.lang.String)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 52
+  }, {
+    "type" : "calls",
+    "source" : "com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String)",
+    "target" : "java.util.Map.put(K,V)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 53
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.repository.UserRepository.findAllNames():return",
+    "target" : "java.util.List<java.lang.String>",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 56
+  }, {
+    "type" : "calls",
+    "source" : "com.example.repository.UserRepository.findAllNames()",
+    "target" : "java.util.Map.values()",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 60
+  }, {
+    "type" : "calls",
+    "source" : "com.example.repository.UserRepository.findAllNames()",
+    "target" : "java.util.List.add(E)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 61
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.repository.UserRepository.countActiveUsers():return",
+    "target" : "int",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 67
+  }, {
+    "type" : "calls",
+    "source" : "com.example.repository.UserRepository.countActiveUsers()",
+    "target" : "java.util.Map.values()",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 71
+  }, {
+    "type" : "calls",
+    "source" : "com.example.repository.UserRepository.countActiveUsers()",
+    "target" : "java.lang.String.isBlank()",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 72
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.repository.UserRepository.normalizeName(java.lang.String):return",
+    "target" : "java.lang.String",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 80
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.repository.UserRepository.normalizeName(java.lang.String):parameter:name",
+    "target" : "java.lang.String",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 80
+  }, {
+    "type" : "calls",
+    "source" : "com.example.repository.UserRepository.normalizeName(java.lang.String)",
+    "target" : "java.lang.String.trim()",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 86
+  }, {
+    "type" : "calls",
+    "source" : "com.example.repository.UserRepository.normalizeName(java.lang.String)",
+    "target" : "java.lang.String.length()",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 88
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.repository.UserRepository.findNameOrDefault(java.lang.Long,java.lang.String):return",
+    "target" : "java.lang.String",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 96
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.repository.UserRepository.findNameOrDefault(java.lang.Long,java.lang.String):parameter:id",
+    "target" : "java.lang.Long",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 96
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.repository.UserRepository.findNameOrDefault(java.lang.Long,java.lang.String):parameter:defaultName",
+    "target" : "java.lang.String",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 96
+  }, {
+    "type" : "calls",
+    "source" : "com.example.repository.UserRepository.findNameOrDefault(java.lang.Long,java.lang.String)",
+    "target" : "com.example.repository.UserRepository.findNameById(java.lang.Long)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 99
   } ]
 }

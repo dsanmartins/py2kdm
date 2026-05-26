@@ -1,52 +1,54 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <kdm:Segment xmlns:xmi="http://www.omg.org/XMI" xmlns:kdm="http://www.omg.org/spec/KDM/20160201/kdm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:source="http://www.omg.org/spec/KDM/20160201/source" xmlns:code="http://www.omg.org/spec/KDM/20160201/code" xmlns:action="http://www.omg.org/spec/KDM/20160201/action" name="demo-java-project" xmi:version="2.0">
   <model xsi:type="source:InventoryModel" name="demo-java-project_InventoryModel">
-    <inventoryElement xsi:type="source:SourceFile" name="UserRepository.java" path="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java" format="text" language="java" encoding="UTF-8"/>
-    <inventoryElement xsi:type="source:SourceFile" name="UserService.java" path="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java" format="text" language="java" encoding="UTF-8"/>
+    <inventoryElement xsi:type="source:SourceFile" name="TrackedField.java" path="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/TrackedField.java" format="text" language="java" encoding="UTF-8"/>
+    <inventoryElement xsi:type="source:SourceFile" name="InjectDependency.java" path="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/InjectDependency.java" format="text" language="java" encoding="UTF-8"/>
+    <inventoryElement xsi:type="source:SourceFile" name="Audit.java" path="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/Audit.java" format="text" language="java" encoding="UTF-8"/>
+    <inventoryElement xsi:type="source:SourceFile" name="ServiceComponent.java" path="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/ServiceComponent.java" format="text" language="java" encoding="UTF-8"/>
+    <inventoryElement xsi:type="source:SourceFile" name="UserService.java" path="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java" format="text" language="java" encoding="UTF-8"/>
+    <inventoryElement xsi:type="source:SourceFile" name="NotNull.java" path="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/NotNull.java" format="text" language="java" encoding="UTF-8"/>
+    <inventoryElement xsi:type="source:SourceFile" name="QueryOperation.java" path="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/QueryOperation.java" format="text" language="java" encoding="UTF-8"/>
+    <inventoryElement xsi:type="source:SourceFile" name="CommandOperation.java" path="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/CommandOperation.java" format="text" language="java" encoding="UTF-8"/>
+    <inventoryElement xsi:type="source:SourceFile" name="RepositoryComponent.java" path="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/RepositoryComponent.java" format="text" language="java" encoding="UTF-8"/>
+    <inventoryElement xsi:type="source:SourceFile" name="UserRepository.java" path="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java" format="text" language="java" encoding="UTF-8"/>
   </model>
   <model xsi:type="code:CodeModel" name="demo-java-project_CodeModel">
-    <codeElement xsi:type="code:CompilationUnit" name="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java">
+    <codeElement xsi:type="code:CompilationUnit" name="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/TrackedField.java">
       <source language="java">
         <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="java"/>
       </source>
-      <attribute tag="package" value="com.example.repository"/>
-      <codeElement xsi:type="code:ClassUnit" name="UserRepository">
-        <source language="java">
-          <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="java"/>
-        </source>
-        <attribute tag="element_kind" value="class"/>
-        <attribute tag="modifiers" value="public"/>
-        <attribute tag="json_type" value="class"/>
-        <attribute tag="qualified_name" value="com.example.repository.UserRepository"/>
-        <attribute tag="package" value="com.example.repository"/>
-        <codeElement xsi:type="code:MethodUnit" name="findNameById">
-          <attribute tag="method_kind" value="method"/>
-          <attribute tag="signature" value="findNameById(Long)"/>
-          <attribute tag="return_type" value="String"/>
-          <attribute tag="resolved_return_type" value="java.lang.String"/>
-          <attribute tag="modifiers" value="public"/>
-          <attribute tag="json_type" value="method"/>
-          <attribute tag="qualified_signature" value="com.example.repository.UserRepository.findNameById(java.lang.Long)"/>
-          <codeElement xsi:type="code:ParameterUnit" name="id">
-            <attribute tag="declared_type" value="Long"/>
-            <attribute tag="resolved_type" value="java.lang.Long"/>
-            <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.0/@codeElement.0"/>
-          </codeElement>
-          <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.0/@codeElement.1"/>
-        </codeElement>
-      </codeElement>
+      <attribute tag="package" value="com.example.service"/>
     </codeElement>
-    <codeElement xsi:type="code:CompilationUnit" name="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java">
+    <codeElement xsi:type="code:CompilationUnit" name="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/InjectDependency.java">
       <source language="java">
         <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="java"/>
       </source>
       <attribute tag="package" value="com.example.service"/>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/Audit.java">
+      <source language="java">
+        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="java"/>
+      </source>
+      <attribute tag="package" value="com.example.service"/>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/ServiceComponent.java">
+      <source language="java">
+        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="java"/>
+      </source>
+      <attribute tag="package" value="com.example.service"/>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java">
+      <source language="java">
+        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+      </source>
+      <attribute tag="package" value="com.example.service"/>
       <codeElement xsi:type="code:ClassUnit" name="UserService">
         <source language="java">
-          <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="java"/>
+          <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
         </source>
         <attribute tag="element_kind" value="class"/>
         <attribute tag="modifiers" value="public"/>
+        <attribute tag="annotations" value="Deprecated, ServiceComponent"/>
         <attribute tag="json_type" value="class"/>
         <attribute tag="qualified_name" value="com.example.service.UserService"/>
         <attribute tag="package" value="com.example.service"/>
@@ -54,7 +56,22 @@
           <attribute tag="declared_type" value="UserRepository"/>
           <attribute tag="resolved_type" value="com.example.repository.UserRepository"/>
           <attribute tag="modifiers" value="private"/>
+          <attribute tag="annotations" value="InjectDependency"/>
+          <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.0/@codeElement.0"/>
+        </codeElement>
+        <codeElement xsi:type="code:StorableUnit" name="lastUserName">
+          <attribute tag="declared_type" value="String"/>
+          <attribute tag="resolved_type" value="java.lang.String"/>
+          <attribute tag="modifiers" value="private"/>
+          <attribute tag="annotations" value="TrackedField"/>
           <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
+        </codeElement>
+        <codeElement xsi:type="code:StorableUnit" name="requestCount">
+          <attribute tag="declared_type" value="int"/>
+          <attribute tag="resolved_type" value="int"/>
+          <attribute tag="modifiers" value="private"/>
+          <attribute tag="annotations" value="TrackedField"/>
+          <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.10/@codeElement.0"/>
         </codeElement>
         <codeElement xsi:type="code:MethodUnit" name="getUserName">
           <attribute tag="method_kind" value="method"/>
@@ -62,26 +79,398 @@
           <attribute tag="return_type" value="String"/>
           <attribute tag="resolved_return_type" value="java.lang.String"/>
           <attribute tag="modifiers" value="public"/>
+          <attribute tag="annotations" value="Audit"/>
           <attribute tag="json_type" value="method"/>
           <attribute tag="qualified_signature" value="com.example.service.UserService.getUserName(java.lang.Long)"/>
           <codeElement xsi:type="code:ParameterUnit" name="id">
             <attribute tag="declared_type" value="Long"/>
             <attribute tag="resolved_type" value="java.lang.Long"/>
-            <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.0/@codeElement.0"/>
+            <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.1"/>
           </codeElement>
           <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
             <attribute tag="role" value="callable_body"/>
             <codeElement xsi:type="action:ActionElement" name="findNameById" kind="call">
               <source language="java">
-                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="java" startLine="14" endLine="14"/>
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="32" endLine="32"/>
               </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.getUserName(java.lang.Long):com.example.repository.UserRepository.findNameById(java.lang.Long):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:32"/>
               <attribute tag="call_source" value="com.example.service.UserService.getUserName(java.lang.Long)"/>
               <attribute tag="called_signature" value="com.example.repository.UserRepository.findNameById(java.lang.Long)"/>
               <attribute tag="relationship_type" value="calls"/>
-              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.0"/>
+              <attribute tag="source_line" value="32"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.1"/>
             </codeElement>
           </codeElement>
-          <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.0/@codeElement.1"/>
+          <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
+        </codeElement>
+        <codeElement xsi:type="code:MethodUnit" name="buildUserLabel">
+          <attribute tag="method_kind" value="method"/>
+          <attribute tag="signature" value="buildUserLabel(Long)"/>
+          <attribute tag="return_type" value="String"/>
+          <attribute tag="resolved_return_type" value="java.lang.String"/>
+          <attribute tag="modifiers" value="public"/>
+          <attribute tag="annotations" value="Audit"/>
+          <attribute tag="json_type" value="method"/>
+          <attribute tag="qualified_signature" value="com.example.service.UserService.buildUserLabel(java.lang.Long)"/>
+          <codeElement xsi:type="code:ParameterUnit" name="id">
+            <attribute tag="declared_type" value="Long"/>
+            <attribute tag="resolved_type" value="java.lang.Long"/>
+            <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.1"/>
+          </codeElement>
+          <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+            <attribute tag="role" value="callable_body"/>
+            <codeElement xsi:type="action:ActionElement" name="findNameById" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="44" endLine="44"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.buildUserLabel(java.lang.Long):com.example.repository.UserRepository.findNameById(java.lang.Long):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:44"/>
+              <attribute tag="call_source" value="com.example.service.UserService.buildUserLabel(java.lang.Long)"/>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.findNameById(java.lang.Long)"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="44"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.1"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="append" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="52" endLine="52"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.buildUserLabel(java.lang.Long):java.lang.StringBuilder.append(java.lang.String):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:52"/>
+              <attribute tag="call_source" value="com.example.service.UserService.buildUserLabel(java.lang.Long)"/>
+              <attribute tag="called_signature" value="java.lang.StringBuilder.append(java.lang.String)"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="52"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.lang.StringBuilder.append(java.lang.String)"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="append" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="53" endLine="53"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.buildUserLabel(java.lang.Long):java.lang.StringBuilder.append(java.lang.String):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:53"/>
+              <attribute tag="call_source" value="com.example.service.UserService.buildUserLabel(java.lang.Long)"/>
+              <attribute tag="called_signature" value="java.lang.StringBuilder.append(java.lang.String)"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="53"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.lang.StringBuilder.append(java.lang.String)"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="append" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="54" endLine="54"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.buildUserLabel(java.lang.Long):java.lang.StringBuilder.append(java.lang.String):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:54"/>
+              <attribute tag="call_source" value="com.example.service.UserService.buildUserLabel(java.lang.Long)"/>
+              <attribute tag="called_signature" value="java.lang.StringBuilder.append(java.lang.String)"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="54"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.lang.StringBuilder.append(java.lang.String)"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="append" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="57" endLine="57"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.buildUserLabel(java.lang.Long):java.lang.StringBuilder.append(java.lang.String):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:57"/>
+              <attribute tag="call_source" value="com.example.service.UserService.buildUserLabel(java.lang.Long)"/>
+              <attribute tag="called_signature" value="java.lang.StringBuilder.append(java.lang.String)"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="57"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.lang.StringBuilder.append(java.lang.String)"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="toString" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="60" endLine="60"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.buildUserLabel(java.lang.Long):java.lang.StringBuilder.toString():/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:60"/>
+              <attribute tag="call_source" value="com.example.service.UserService.buildUserLabel(java.lang.Long)"/>
+              <attribute tag="called_signature" value="java.lang.StringBuilder.toString()"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="60"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.lang.StringBuilder.toString()"/>
+            </codeElement>
+          </codeElement>
+          <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
+        </codeElement>
+        <codeElement xsi:type="code:MethodUnit" name="updateUserName">
+          <attribute tag="method_kind" value="method"/>
+          <attribute tag="signature" value="updateUserName(Long,String)"/>
+          <attribute tag="return_type" value="boolean"/>
+          <attribute tag="resolved_return_type" value="boolean"/>
+          <attribute tag="modifiers" value="public"/>
+          <attribute tag="annotations" value="Audit"/>
+          <attribute tag="json_type" value="method"/>
+          <attribute tag="qualified_signature" value="com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String)"/>
+          <codeElement xsi:type="code:ParameterUnit" name="id">
+            <attribute tag="declared_type" value="Long"/>
+            <attribute tag="resolved_type" value="java.lang.Long"/>
+            <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.1"/>
+          </codeElement>
+          <codeElement xsi:type="code:ParameterUnit" name="newName">
+            <attribute tag="declared_type" value="String"/>
+            <attribute tag="resolved_type" value="java.lang.String"/>
+            <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
+          </codeElement>
+          <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+            <attribute tag="role" value="callable_body"/>
+            <codeElement xsi:type="action:ActionElement" name="isBlank" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="72" endLine="72"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String):java.lang.String.isBlank():/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:72"/>
+              <attribute tag="call_source" value="com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String)"/>
+              <attribute tag="called_signature" value="java.lang.String.isBlank()"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="72"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.lang.String.isBlank()"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="trim" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="76" endLine="76"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String):java.lang.String.trim():/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:76"/>
+              <attribute tag="call_source" value="com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String)"/>
+              <attribute tag="called_signature" value="java.lang.String.trim()"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="76"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.lang.String.trim()"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="existsById" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="77" endLine="77"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String):com.example.repository.UserRepository.existsById(java.lang.Long):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:77"/>
+              <attribute tag="call_source" value="com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String)"/>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.existsById(java.lang.Long)"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="77"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.2"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="saveName" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="80" endLine="80"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String):com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:80"/>
+              <attribute tag="call_source" value="com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String)"/>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String)"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="80"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.3"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="saveName" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="85" endLine="85"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String):com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:85"/>
+              <attribute tag="call_source" value="com.example.service.UserService.updateUserName(java.lang.Long,java.lang.String)"/>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String)"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="85"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.3"/>
+            </codeElement>
+          </codeElement>
+          <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.10/@codeElement.1"/>
+        </codeElement>
+        <codeElement xsi:type="code:MethodUnit" name="collectUserLabels">
+          <attribute tag="method_kind" value="method"/>
+          <attribute tag="signature" value="collectUserLabels()"/>
+          <attribute tag="return_type" value="List&lt;String&gt;"/>
+          <attribute tag="resolved_return_type" value="java.util.List&lt;java.lang.String&gt;"/>
+          <attribute tag="modifiers" value="public"/>
+          <attribute tag="annotations" value="Audit"/>
+          <attribute tag="json_type" value="method"/>
+          <attribute tag="qualified_signature" value="com.example.service.UserService.collectUserLabels()"/>
+          <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+            <attribute tag="role" value="callable_body"/>
+            <codeElement xsi:type="action:ActionElement" name="findAllNames" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="93" endLine="93"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.collectUserLabels():com.example.repository.UserRepository.findAllNames():/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:93"/>
+              <attribute tag="call_source" value="com.example.service.UserService.collectUserLabels()"/>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.findAllNames()"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="93"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.4"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="add" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="102" endLine="102"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.collectUserLabels():java.util.List.add(E):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:102"/>
+              <attribute tag="call_source" value="com.example.service.UserService.collectUserLabels()"/>
+              <attribute tag="called_signature" value="java.util.List.add(E)"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="102"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.util.List.add(E)"/>
+            </codeElement>
+          </codeElement>
+          <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.2"/>
+        </codeElement>
+        <codeElement xsi:type="code:MethodUnit" name="countKnownUsers">
+          <attribute tag="method_kind" value="method"/>
+          <attribute tag="signature" value="countKnownUsers()"/>
+          <attribute tag="return_type" value="int"/>
+          <attribute tag="resolved_return_type" value="int"/>
+          <attribute tag="modifiers" value="public"/>
+          <attribute tag="annotations" value="Audit"/>
+          <attribute tag="json_type" value="method"/>
+          <attribute tag="qualified_signature" value="com.example.service.UserService.countKnownUsers()"/>
+          <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+            <attribute tag="role" value="callable_body"/>
+            <codeElement xsi:type="action:ActionElement" name="findAllNames" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="110" endLine="110"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.countKnownUsers():com.example.repository.UserRepository.findAllNames():/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:110"/>
+              <attribute tag="call_source" value="com.example.service.UserService.countKnownUsers()"/>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.findAllNames()"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="110"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.4"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="size" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="114" endLine="114"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.countKnownUsers():java.util.List.size():/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:114"/>
+              <attribute tag="call_source" value="com.example.service.UserService.countKnownUsers()"/>
+              <attribute tag="called_signature" value="java.util.List.size()"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="114"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.util.List.size()"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="get" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="115" endLine="115"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.countKnownUsers():java.util.List.get(int):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:115"/>
+              <attribute tag="call_source" value="com.example.service.UserService.countKnownUsers()"/>
+              <attribute tag="called_signature" value="java.util.List.get(int)"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="115"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.util.List.get(int)"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="isBlank" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="117" endLine="117"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.countKnownUsers():java.lang.String.isBlank():/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:117"/>
+              <attribute tag="call_source" value="com.example.service.UserService.countKnownUsers()"/>
+              <attribute tag="called_signature" value="java.lang.String.isBlank()"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="117"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.lang.String.isBlank()"/>
+            </codeElement>
+          </codeElement>
+          <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.10/@codeElement.0"/>
+        </codeElement>
+        <codeElement xsi:type="code:MethodUnit" name="classifyUser">
+          <attribute tag="method_kind" value="method"/>
+          <attribute tag="signature" value="classifyUser(Long)"/>
+          <attribute tag="return_type" value="String"/>
+          <attribute tag="resolved_return_type" value="java.lang.String"/>
+          <attribute tag="modifiers" value="public"/>
+          <attribute tag="annotations" value="Audit"/>
+          <attribute tag="json_type" value="method"/>
+          <attribute tag="qualified_signature" value="com.example.service.UserService.classifyUser(java.lang.Long)"/>
+          <codeElement xsi:type="code:ParameterUnit" name="id">
+            <attribute tag="declared_type" value="Long"/>
+            <attribute tag="resolved_type" value="java.lang.Long"/>
+            <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.1"/>
+          </codeElement>
+          <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+            <attribute tag="role" value="callable_body"/>
+            <codeElement xsi:type="action:ActionElement" name="findNameById" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="129" endLine="129"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.classifyUser(java.lang.Long):com.example.repository.UserRepository.findNameById(java.lang.Long):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:129"/>
+              <attribute tag="call_source" value="com.example.service.UserService.classifyUser(java.lang.Long)"/>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.findNameById(java.lang.Long)"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="129"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.1"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="length" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="135" endLine="135"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.classifyUser(java.lang.Long):java.lang.String.length():/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:135"/>
+              <attribute tag="call_source" value="com.example.service.UserService.classifyUser(java.lang.Long)"/>
+              <attribute tag="called_signature" value="java.lang.String.length()"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="135"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.lang.String.length()"/>
+            </codeElement>
+          </codeElement>
+          <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
+        </codeElement>
+        <codeElement xsi:type="code:MethodUnit" name="safeUserName">
+          <attribute tag="method_kind" value="method"/>
+          <attribute tag="signature" value="safeUserName(Long)"/>
+          <attribute tag="return_type" value="String"/>
+          <attribute tag="resolved_return_type" value="java.lang.String"/>
+          <attribute tag="modifiers" value="public"/>
+          <attribute tag="annotations" value="Audit"/>
+          <attribute tag="json_type" value="method"/>
+          <attribute tag="qualified_signature" value="com.example.service.UserService.safeUserName(java.lang.Long)"/>
+          <codeElement xsi:type="code:ParameterUnit" name="id">
+            <attribute tag="declared_type" value="Long"/>
+            <attribute tag="resolved_type" value="java.lang.Long"/>
+            <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.1"/>
+          </codeElement>
+          <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+            <attribute tag="role" value="callable_body"/>
+            <codeElement xsi:type="action:ActionElement" name="findNameById" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java" startLine="152" endLine="152"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.service.UserService.safeUserName(java.lang.Long):com.example.repository.UserRepository.findNameById(java.lang.Long):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java:152"/>
+              <attribute tag="call_source" value="com.example.service.UserService.safeUserName(java.lang.Long)"/>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.findNameById(java.lang.Long)"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="152"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.1"/>
+            </codeElement>
+          </codeElement>
+          <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
+        </codeElement>
+        <codeElement xsi:type="code:MethodUnit" name="getLastUserName">
+          <attribute tag="method_kind" value="method"/>
+          <attribute tag="signature" value="getLastUserName()"/>
+          <attribute tag="return_type" value="String"/>
+          <attribute tag="resolved_return_type" value="java.lang.String"/>
+          <attribute tag="modifiers" value="public"/>
+          <attribute tag="json_type" value="method"/>
+          <attribute tag="qualified_signature" value="com.example.service.UserService.getLastUserName()"/>
+          <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
+          <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+            <attribute tag="role" value="callable_body"/>
+            <attribute tag="callable_body_id" value="com.example.service.UserService.getLastUserName()"/>
+          </codeElement>
+        </codeElement>
+        <codeElement xsi:type="code:MethodUnit" name="getRequestCount">
+          <attribute tag="method_kind" value="method"/>
+          <attribute tag="signature" value="getRequestCount()"/>
+          <attribute tag="return_type" value="int"/>
+          <attribute tag="resolved_return_type" value="int"/>
+          <attribute tag="modifiers" value="public"/>
+          <attribute tag="json_type" value="method"/>
+          <attribute tag="qualified_signature" value="com.example.service.UserService.getRequestCount()"/>
+          <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.10/@codeElement.0"/>
+          <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+            <attribute tag="role" value="callable_body"/>
+            <attribute tag="callable_body_id" value="com.example.service.UserService.getRequestCount()"/>
+          </codeElement>
         </codeElement>
         <codeElement xsi:type="code:MethodUnit" name="UserService">
           <attribute tag="method_kind" value="constructor"/>
@@ -89,25 +478,358 @@
           <attribute tag="return_type" value="void"/>
           <attribute tag="resolved_return_type" value="void"/>
           <attribute tag="modifiers" value="public"/>
+          <attribute tag="annotations" value="Deprecated"/>
           <attribute tag="json_type" value="constructor"/>
           <attribute tag="qualified_signature" value="com.example.service.UserService.&lt;init&gt;(com.example.repository.UserRepository)"/>
           <codeElement xsi:type="code:ParameterUnit" name="repository">
             <attribute tag="declared_type" value="UserRepository"/>
             <attribute tag="resolved_type" value="com.example.repository.UserRepository"/>
-            <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
+            <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.0/@codeElement.0"/>
+          </codeElement>
+          <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+            <attribute tag="role" value="callable_body"/>
+            <attribute tag="callable_body_id" value="com.example.service.UserService.&lt;init&gt;(com.example.repository.UserRepository)"/>
           </codeElement>
         </codeElement>
       </codeElement>
-      <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.0/@codeElement.0"/>
+      <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.9/@codeElement.0"/>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/service/NotNull.java">
+      <source language="java">
+        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.5" language="java"/>
+      </source>
+      <attribute tag="package" value="com.example.service"/>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/QueryOperation.java">
+      <source language="java">
+        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.6" language="java"/>
+      </source>
+      <attribute tag="package" value="com.example.repository"/>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/CommandOperation.java">
+      <source language="java">
+        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.7" language="java"/>
+      </source>
+      <attribute tag="package" value="com.example.repository"/>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/RepositoryComponent.java">
+      <source language="java">
+        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.8" language="java"/>
+      </source>
+      <attribute tag="package" value="com.example.repository"/>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java">
+      <source language="java">
+        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java"/>
+      </source>
+      <attribute tag="package" value="com.example.repository"/>
+      <codeElement xsi:type="code:ClassUnit" name="UserRepository">
+        <source language="java">
+          <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java"/>
+        </source>
+        <attribute tag="element_kind" value="class"/>
+        <attribute tag="modifiers" value="public"/>
+        <attribute tag="annotations" value="RepositoryComponent"/>
+        <attribute tag="json_type" value="class"/>
+        <attribute tag="qualified_name" value="com.example.repository.UserRepository"/>
+        <attribute tag="package" value="com.example.repository"/>
+        <codeElement xsi:type="code:StorableUnit" name="users">
+          <attribute tag="declared_type" value="Map&lt;Long,String&gt;"/>
+          <attribute tag="resolved_type" value="java.util.Map&lt;java.lang.Long, java.lang.String&gt;"/>
+          <attribute tag="modifiers" value="private"/>
+          <attribute tag="annotations" value="TrackedField"/>
+          <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.2"/>
+        </codeElement>
+        <codeElement xsi:type="code:MethodUnit" name="findNameById">
+          <attribute tag="method_kind" value="method"/>
+          <attribute tag="signature" value="findNameById(Long)"/>
+          <attribute tag="return_type" value="String"/>
+          <attribute tag="resolved_return_type" value="java.lang.String"/>
+          <attribute tag="modifiers" value="public"/>
+          <attribute tag="annotations" value="QueryOperation"/>
+          <attribute tag="json_type" value="method"/>
+          <attribute tag="qualified_signature" value="com.example.repository.UserRepository.findNameById(java.lang.Long)"/>
+          <codeElement xsi:type="code:ParameterUnit" name="id">
+            <attribute tag="declared_type" value="Long"/>
+            <attribute tag="resolved_type" value="java.lang.Long"/>
+            <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.1"/>
+          </codeElement>
+          <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+            <attribute tag="role" value="callable_body"/>
+            <codeElement xsi:type="action:ActionElement" name="get" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java" startLine="30" endLine="30"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.repository.UserRepository.findNameById(java.lang.Long):java.util.Map.get(java.lang.Object):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java:30"/>
+              <attribute tag="call_source" value="com.example.repository.UserRepository.findNameById(java.lang.Long)"/>
+              <attribute tag="called_signature" value="java.util.Map.get(java.lang.Object)"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="30"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.util.Map.get(java.lang.Object)"/>
+            </codeElement>
+          </codeElement>
+          <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
+        </codeElement>
+        <codeElement xsi:type="code:MethodUnit" name="existsById">
+          <attribute tag="method_kind" value="method"/>
+          <attribute tag="signature" value="existsById(Long)"/>
+          <attribute tag="return_type" value="boolean"/>
+          <attribute tag="resolved_return_type" value="boolean"/>
+          <attribute tag="modifiers" value="public"/>
+          <attribute tag="annotations" value="QueryOperation"/>
+          <attribute tag="json_type" value="method"/>
+          <attribute tag="qualified_signature" value="com.example.repository.UserRepository.existsById(java.lang.Long)"/>
+          <codeElement xsi:type="code:ParameterUnit" name="id">
+            <attribute tag="declared_type" value="Long"/>
+            <attribute tag="resolved_type" value="java.lang.Long"/>
+            <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.1"/>
+          </codeElement>
+          <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+            <attribute tag="role" value="callable_body"/>
+            <codeElement xsi:type="action:ActionElement" name="containsKey" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java" startLine="39" endLine="39"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.repository.UserRepository.existsById(java.lang.Long):java.util.Map.containsKey(java.lang.Object):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java:39"/>
+              <attribute tag="call_source" value="com.example.repository.UserRepository.existsById(java.lang.Long)"/>
+              <attribute tag="called_signature" value="java.util.Map.containsKey(java.lang.Object)"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="39"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.util.Map.containsKey(java.lang.Object)"/>
+            </codeElement>
+          </codeElement>
+          <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.10/@codeElement.1"/>
+        </codeElement>
+        <codeElement xsi:type="code:MethodUnit" name="saveName">
+          <attribute tag="method_kind" value="method"/>
+          <attribute tag="signature" value="saveName(Long,String)"/>
+          <attribute tag="return_type" value="void"/>
+          <attribute tag="resolved_return_type" value="void"/>
+          <attribute tag="modifiers" value="public"/>
+          <attribute tag="annotations" value="CommandOperation"/>
+          <attribute tag="json_type" value="method"/>
+          <attribute tag="qualified_signature" value="com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String)"/>
+          <codeElement xsi:type="code:ParameterUnit" name="id">
+            <attribute tag="declared_type" value="Long"/>
+            <attribute tag="resolved_type" value="java.lang.Long"/>
+            <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.1"/>
+          </codeElement>
+          <codeElement xsi:type="code:ParameterUnit" name="name">
+            <attribute tag="declared_type" value="String"/>
+            <attribute tag="resolved_type" value="java.lang.String"/>
+            <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
+          </codeElement>
+          <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+            <attribute tag="role" value="callable_body"/>
+            <codeElement xsi:type="action:ActionElement" name="normalizeName" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java" startLine="52" endLine="52"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String):com.example.repository.UserRepository.normalizeName(java.lang.String):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java:52"/>
+              <attribute tag="call_source" value="com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String)"/>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.normalizeName(java.lang.String)"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="52"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.6"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="put" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java" startLine="53" endLine="53"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String):java.util.Map.put(K,V):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java:53"/>
+              <attribute tag="call_source" value="com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String)"/>
+              <attribute tag="called_signature" value="java.util.Map.put(K,V)"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="53"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.util.Map.put(K,V)"/>
+            </codeElement>
+          </codeElement>
+        </codeElement>
+        <codeElement xsi:type="code:MethodUnit" name="findAllNames">
+          <attribute tag="method_kind" value="method"/>
+          <attribute tag="signature" value="findAllNames()"/>
+          <attribute tag="return_type" value="List&lt;String&gt;"/>
+          <attribute tag="resolved_return_type" value="java.util.List&lt;java.lang.String&gt;"/>
+          <attribute tag="modifiers" value="public"/>
+          <attribute tag="annotations" value="QueryOperation"/>
+          <attribute tag="json_type" value="method"/>
+          <attribute tag="qualified_signature" value="com.example.repository.UserRepository.findAllNames()"/>
+          <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+            <attribute tag="role" value="callable_body"/>
+            <codeElement xsi:type="action:ActionElement" name="values" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java" startLine="60" endLine="60"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.repository.UserRepository.findAllNames():java.util.Map.values():/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java:60"/>
+              <attribute tag="call_source" value="com.example.repository.UserRepository.findAllNames()"/>
+              <attribute tag="called_signature" value="java.util.Map.values()"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="60"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.util.Map.values()"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="add" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java" startLine="61" endLine="61"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.repository.UserRepository.findAllNames():java.util.List.add(E):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java:61"/>
+              <attribute tag="call_source" value="com.example.repository.UserRepository.findAllNames()"/>
+              <attribute tag="called_signature" value="java.util.List.add(E)"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="61"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.util.List.add(E)"/>
+            </codeElement>
+          </codeElement>
+          <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.2"/>
+        </codeElement>
+        <codeElement xsi:type="code:MethodUnit" name="countActiveUsers">
+          <attribute tag="method_kind" value="method"/>
+          <attribute tag="signature" value="countActiveUsers()"/>
+          <attribute tag="return_type" value="int"/>
+          <attribute tag="resolved_return_type" value="int"/>
+          <attribute tag="modifiers" value="public"/>
+          <attribute tag="annotations" value="QueryOperation"/>
+          <attribute tag="json_type" value="method"/>
+          <attribute tag="qualified_signature" value="com.example.repository.UserRepository.countActiveUsers()"/>
+          <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+            <attribute tag="role" value="callable_body"/>
+            <codeElement xsi:type="action:ActionElement" name="values" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java" startLine="71" endLine="71"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.repository.UserRepository.countActiveUsers():java.util.Map.values():/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java:71"/>
+              <attribute tag="call_source" value="com.example.repository.UserRepository.countActiveUsers()"/>
+              <attribute tag="called_signature" value="java.util.Map.values()"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="71"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.util.Map.values()"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="isBlank" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java" startLine="72" endLine="72"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.repository.UserRepository.countActiveUsers():java.lang.String.isBlank():/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java:72"/>
+              <attribute tag="call_source" value="com.example.repository.UserRepository.countActiveUsers()"/>
+              <attribute tag="called_signature" value="java.lang.String.isBlank()"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="72"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.lang.String.isBlank()"/>
+            </codeElement>
+          </codeElement>
+          <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.10/@codeElement.0"/>
+        </codeElement>
+        <codeElement xsi:type="code:MethodUnit" name="normalizeName">
+          <attribute tag="method_kind" value="method"/>
+          <attribute tag="signature" value="normalizeName(String)"/>
+          <attribute tag="return_type" value="String"/>
+          <attribute tag="resolved_return_type" value="java.lang.String"/>
+          <attribute tag="modifiers" value="public"/>
+          <attribute tag="annotations" value="QueryOperation"/>
+          <attribute tag="json_type" value="method"/>
+          <attribute tag="qualified_signature" value="com.example.repository.UserRepository.normalizeName(java.lang.String)"/>
+          <codeElement xsi:type="code:ParameterUnit" name="name">
+            <attribute tag="declared_type" value="String"/>
+            <attribute tag="resolved_type" value="java.lang.String"/>
+            <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
+          </codeElement>
+          <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+            <attribute tag="role" value="callable_body"/>
+            <codeElement xsi:type="action:ActionElement" name="trim" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java" startLine="86" endLine="86"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.repository.UserRepository.normalizeName(java.lang.String):java.lang.String.trim():/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java:86"/>
+              <attribute tag="call_source" value="com.example.repository.UserRepository.normalizeName(java.lang.String)"/>
+              <attribute tag="called_signature" value="java.lang.String.trim()"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="86"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.lang.String.trim()"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="length" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java" startLine="88" endLine="88"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.repository.UserRepository.normalizeName(java.lang.String):java.lang.String.length():/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java:88"/>
+              <attribute tag="call_source" value="com.example.repository.UserRepository.normalizeName(java.lang.String)"/>
+              <attribute tag="called_signature" value="java.lang.String.length()"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="88"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="java.lang.String.length()"/>
+            </codeElement>
+          </codeElement>
+          <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
+        </codeElement>
+        <codeElement xsi:type="code:MethodUnit" name="findNameOrDefault">
+          <attribute tag="method_kind" value="method"/>
+          <attribute tag="signature" value="findNameOrDefault(Long,String)"/>
+          <attribute tag="return_type" value="String"/>
+          <attribute tag="resolved_return_type" value="java.lang.String"/>
+          <attribute tag="modifiers" value="public"/>
+          <attribute tag="annotations" value="QueryOperation"/>
+          <attribute tag="json_type" value="method"/>
+          <attribute tag="qualified_signature" value="com.example.repository.UserRepository.findNameOrDefault(java.lang.Long,java.lang.String)"/>
+          <codeElement xsi:type="code:ParameterUnit" name="id">
+            <attribute tag="declared_type" value="Long"/>
+            <attribute tag="resolved_type" value="java.lang.Long"/>
+            <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.1"/>
+          </codeElement>
+          <codeElement xsi:type="code:ParameterUnit" name="defaultName">
+            <attribute tag="declared_type" value="String"/>
+            <attribute tag="resolved_type" value="java.lang.String"/>
+            <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
+          </codeElement>
+          <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+            <attribute tag="role" value="callable_body"/>
+            <codeElement xsi:type="action:ActionElement" name="findNameById" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java" startLine="99" endLine="99"/>
+              </source>
+              <attribute tag="original_id" value="generic:calls:com.example.repository.UserRepository.findNameOrDefault(java.lang.Long,java.lang.String):com.example.repository.UserRepository.findNameById(java.lang.Long):/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java:99"/>
+              <attribute tag="call_source" value="com.example.repository.UserRepository.findNameOrDefault(java.lang.Long,java.lang.String)"/>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.findNameById(java.lang.Long)"/>
+              <attribute tag="relationship_type" value="calls"/>
+              <attribute tag="source_line" value="99"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.1"/>
+            </codeElement>
+          </codeElement>
+          <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
+        </codeElement>
+        <codeElement xsi:type="code:MethodUnit" name="UserRepository">
+          <attribute tag="method_kind" value="constructor"/>
+          <attribute tag="signature" value="UserRepository()"/>
+          <attribute tag="return_type" value="void"/>
+          <attribute tag="resolved_return_type" value="void"/>
+          <attribute tag="modifiers" value="public"/>
+          <attribute tag="json_type" value="constructor"/>
+          <attribute tag="qualified_signature" value="com.example.repository.UserRepository.&lt;init&gt;()"/>
+          <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+            <attribute tag="role" value="callable_body"/>
+            <attribute tag="callable_body_id" value="com.example.repository.UserRepository.&lt;init&gt;()"/>
+          </codeElement>
+        </codeElement>
+      </codeElement>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="python_builtins_types">
+      <codeElement xsi:type="code:IntegerType" name="int"/>
+      <codeElement xsi:type="code:BooleanType" name="bool"/>
     </codeElement>
   </model>
   <model xsi:type="code:CodeModel" name="ExternalLibraries_CodeModel">
-    <codeElement xsi:type="code:CompilationUnit" name="java">
-      <codeElement xsi:type="code:ClassUnit" name="Long"/>
-      <codeElement xsi:type="code:ClassUnit" name="String"/>
-    </codeElement>
     <codeElement xsi:type="code:CompilationUnit" name="com">
       <codeElement xsi:type="code:ClassUnit" name="UserRepository"/>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="java">
+      <codeElement xsi:type="code:ClassUnit" name="String"/>
+      <codeElement xsi:type="code:ClassUnit" name="Long"/>
+      <codeElement xsi:type="code:ClassUnit" name="String&gt;"/>
     </codeElement>
   </model>
   <model xsi:type="code:CodeModel" name="PythonBuiltins"/>

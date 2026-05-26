@@ -30,6 +30,23 @@ class BodyActionMapper:
         self.callable_body_block_index = {}
 
     def map_body_actions(self, data: dict):
+        """
+        Maps body actions for both supported JSON shapes.
+
+        Python extractor shape:
+            files[] -> classes[]/functions[] -> methods[] -> body[]
+
+        Java extractor shape:
+            elements[] -> methods[] -> body[]
+        """
+
+        files_by_path = {
+            file_model.get("path"): file_model
+            for file_model in data.get("files", [])
+            if file_model.get("path")
+        }
+
+        # Python-style model.
         for file_model in data.get("files", []):
             for cls in file_model.get("classes", []):
                 for method in cls.get("methods", []):
@@ -37,6 +54,24 @@ class BodyActionMapper:
 
             for func in file_model.get("functions", []):
                 self._map_callable_body(func, file_model)
+
+        # Generic/Java-style model.
+        for element in data.get("elements", []):
+            file_path = element.get("filePath") or element.get("file_path")
+            file_model = files_by_path.get(file_path) or {
+                "path": file_path,
+                "packageName": element.get("packageName"),
+                "package_name": element.get("package_name"),
+            }
+
+            for method in element.get("methods", []):
+                # Preserve owner file information for Java methods because
+                # method entries do not always carry filePath directly.
+                if "filePath" not in method and "file_path" not in method and file_path:
+                    method = dict(method)
+                    method["filePath"] = file_path
+
+                self._map_callable_body(method, file_model)
 
     def _map_callable_body(self, callable_model: dict, file_model: dict):
         """
@@ -47,7 +82,7 @@ class BodyActionMapper:
         represents the callable body.
         """
 
-        callable_kdm = self.id_index.get(callable_model.get("id"))
+        callable_kdm = self._resolve_callable_kdm(callable_model)
 
         if callable_kdm is None:
             return
@@ -89,6 +124,132 @@ class BodyActionMapper:
         self._resolve_unresolved_constructor_creates(body_block)
 
     # ------------------------------------------------------------
+    # Generic JSON access helpers
+    # ------------------------------------------------------------
+
+    def _get_value(self, data: dict, *keys, default=None):
+        if not isinstance(data, dict):
+            return default
+
+        for key in keys:
+            if key in data and data.get(key) is not None:
+                return data.get(key)
+
+        return default
+
+    def _get_list(self, data: dict, *keys):
+        value = self._get_value(data, *keys, default=[])
+
+        if value is None:
+            return []
+
+        if isinstance(value, list):
+            return value
+
+        return [value]
+
+    def _line_start(self, item: dict):
+        return self._get_value(item, "line_start", "lineStart", "line", default=None)
+
+    def _line_end(self, item: dict):
+        return self._get_value(
+            item,
+            "line_end",
+            "lineEnd",
+            "endLine",
+            default=self._line_start(item),
+        )
+
+    def _statement_type(self, item: dict):
+        return self._get_value(item, "statement_type", "statementType", default=None)
+
+    def _control_type(self, item: dict):
+        return self._get_value(item, "control_type", "controlType", default=None)
+
+    def _callable_key(self, callable_model: dict):
+        return self._get_value(
+            callable_model,
+            "id",
+            "qualified_signature",
+            "qualifiedSignature",
+            "qualifiedName",
+            "signature",
+            default=None,
+        )
+
+    def _resolve_callable_kdm(self, callable_model: dict):
+        candidate_keys = [
+            callable_model.get("id"),
+            callable_model.get("qualified_signature"),
+            callable_model.get("qualifiedSignature"),
+            callable_model.get("qualifiedName"),
+            callable_model.get("signature"),
+        ]
+
+        for key in candidate_keys:
+            if key is None:
+                continue
+
+            target = self.id_index.get(key)
+
+            if target is not None:
+                return target
+
+        return None
+
+    def _add_source_metadata_to_action(self, action, statement=None, call=None):
+        """
+        Adds source metadata to an ActionElement and, when possible, a concrete
+        SourceRegion. This is required for repeated Java calls such as
+        builder.append(...), which are valid distinct actions but share the same
+        method name and kind.
+        """
+
+        if action is None:
+            return
+
+        statement = statement or {}
+        call = call or {}
+
+        line_start = (
+            self._line_start(statement)
+            or self._line_start(call)
+        )
+
+        line_end = (
+            self._line_end(statement)
+            or self._line_end(call)
+            or line_start
+        )
+
+        call_id = (
+            self._get_value(statement, "call_id", "callId", "value_call_id", "valueCallId")
+            or self._get_value(call, "id")
+        )
+
+        # Do not store line_start/line_end as Attribute elements.
+        # Source positions must be represented only through source::SourceRegion;
+        # the KDM validator treats line_start and line_end attributes as obsolete
+        # temporary metadata.
+
+        if call_id is not None:
+            self._add_attribute_once(action, "call_id", str(call_id))
+
+    def _has_concrete_source_region(self, element):
+        if element is None or not self.factory.has_feature(element, "source"):
+            return False
+
+        for source_ref in element.source:
+            for region in getattr(source_ref, "region", []):
+                start_line = getattr(region, "startLine", None)
+                end_line = getattr(region, "endLine", None)
+
+                if start_line is not None or end_line is not None:
+                    return True
+
+        return False
+
+    # ------------------------------------------------------------
     # Callable body BlockUnit
     # ------------------------------------------------------------
 
@@ -102,7 +263,7 @@ class BodyActionMapper:
         Creates or reuses the BlockUnit that represents a callable body.
         """
 
-        callable_id = callable_model.get("id")
+        callable_id = self._callable_key(callable_model)
 
         if callable_id in self.callable_body_block_index:
             return self.callable_body_block_index[callable_id]
@@ -153,15 +314,15 @@ class BodyActionMapper:
             return
 
         start_lines = [
-            item.get("line_start")
+            self._line_start(item)
             for item in body
-            if item.get("line_start") is not None
+            if self._line_start(item) is not None
         ]
 
         end_lines = [
-            item.get("line_end")
+            self._line_end(item)
             for item in body
-            if item.get("line_end") is not None
+            if self._line_end(item) is not None
         ]
 
         if not start_lines and not end_lines:
@@ -318,7 +479,7 @@ class BodyActionMapper:
         # Only try nodes should own a finalbody in the current JSON model.
         if not (
             item.get("type") == "control_structure"
-            and item.get("control_type") == "try"
+            and self._control_type(item) == "try"
         ):
             for child in finalbody:
                 self._map_body_item(
@@ -336,8 +497,8 @@ class BodyActionMapper:
             "type": "finally_block",
             "statement_type": None,
             "control_type": "finally",
-            "line_start": item.get("line_start"),
-            "line_end": item.get("line_end"),
+            "line_start": self._line_start(item),
+            "line_end": self._line_end(item),
         }
 
         self._add_or_update_action(
@@ -376,21 +537,21 @@ class BodyActionMapper:
         if owner_action is None:
             return
 
-        for call in item.get("condition_calls", []):
+        for call in self._get_list(item, "condition_calls", "conditionCalls"):
             self._attach_existing_call_action(
                 call=call,
                 parent_kdm=owner_action,
                 expression_role="condition_call",
             )
 
-        for call in item.get("value_calls", []):
+        for call in self._get_list(item, "value_calls", "valueCalls"):
             self._attach_existing_call_action(
                 call=call,
                 parent_kdm=owner_action,
                 expression_role="value_call",
             )
 
-        for call in item.get("exception_calls", []):
+        for call in self._get_list(item, "exception_calls", "exceptionCalls"):
             self._attach_existing_call_action(
                 call=call,
                 parent_kdm=owner_action,
@@ -427,6 +588,7 @@ class BodyActionMapper:
             expression_role,
         )
 
+        self._add_source_metadata_to_action(action, call=call)
         self._attach_action_to_parent(action, parent_kdm)
 
     def _attach_action_to_parent(self, action, parent_kdm):
@@ -690,54 +852,54 @@ class BodyActionMapper:
         """
         Reuses ActionElement nodes already created by ReferenceResolver.
 
-        This is essential for preserving nesting without duplicating call actions.
+        Supports both snake_case (Python) and camelCase (Java) body fields.
         """
 
-        statement_type = item.get("statement_type")
+        statement_type = self._statement_type(item)
 
         if statement_type == "call":
-            call_id = item.get("call_id")
+            call_id = self._get_value(item, "call_id", "callId")
 
             if call_id and call_id in self.action_index:
                 return self.action_index[call_id]
 
-            call = item.get("call") or {}
-            nested_call_id = call.get("id")
+            call = self._get_value(item, "call", default={}) or {}
+            nested_call_id = self._get_value(call, "id")
 
             if nested_call_id and nested_call_id in self.action_index:
                 return self.action_index[nested_call_id]
 
             return self._find_action_by_owner_line_and_name(
                 callable_model=callable_model,
-                line=item.get("line_start"),
-                name=call.get("name"),
+                line=self._line_start(item),
+                name=self._get_value(call, "name", "methodName", "method_name"),
             )
 
         if statement_type == "assignment":
-            value_call_id = item.get("value_call_id")
+            value_call_id = self._get_value(item, "value_call_id", "valueCallId")
 
             if value_call_id and value_call_id in self.action_index:
                 return self.action_index[value_call_id]
 
-            value_call = item.get("value_call") or {}
-            nested_value_call_id = value_call.get("id")
+            value_call = self._get_value(item, "value_call", "valueCall", default={}) or {}
+            nested_value_call_id = self._get_value(value_call, "id")
 
             if nested_value_call_id and nested_value_call_id in self.action_index:
                 return self.action_index[nested_value_call_id]
 
             return self._find_action_by_owner_line_and_name(
                 callable_model=callable_model,
-                line=item.get("line_start"),
-                name=item.get("value"),
+                line=self._line_start(item),
+                name=self._get_value(item, "value"),
             )
 
-        if statement_type in {"return", "raise"}:
-            for call in item.get("value_calls", []):
+        if statement_type in {"return", "raise", "throw"}:
+            for call in self._get_list(item, "value_calls", "valueCalls"):
                 call_id = call.get("id")
                 if call_id and call_id in self.action_index:
                     return None
 
-            for call in item.get("exception_calls", []):
+            for call in self._get_list(item, "exception_calls", "exceptionCalls"):
                 call_id = call.get("id")
                 if call_id and call_id in self.action_index:
                     return None
@@ -768,9 +930,9 @@ class BodyActionMapper:
         return None
 
     def _create_action_for_body_item(self, item: dict):
-        statement_type = item.get("statement_type")
+        statement_type = self._statement_type(item)
         node_type = item.get("type")
-        control_type = item.get("control_type")
+        control_type = self._control_type(item)
 
         if node_type == "control_structure" and control_type == "try":
             return self.factory.create_try_unit("try")
@@ -787,6 +949,21 @@ class BodyActionMapper:
             return self.factory.create_action_element(name=name, kind=kind)
 
         if statement_type:
+            call = self._get_value(item, "call", default={}) or {}
+
+            if statement_type == "call":
+                name = (
+                    self._get_value(call, "methodName", "method_name", "method")
+                    or self._get_value(call, "name")
+                    or "call"
+                )
+                if isinstance(name, str) and "." in name:
+                    name = name.rsplit(".", 1)[-1]
+                return self.factory.create_action_element(name=name, kind="call")
+
+            if statement_type in {"throw", "raise"}:
+                return self.factory.create_action_element(name=statement_type, kind=statement_type)
+
             name = statement_type
             kind = statement_type
             return self.factory.create_action_element(name=name, kind=kind)
@@ -801,6 +978,11 @@ class BodyActionMapper:
         parent_kdm,
     ):
         self._add_source_region(action, item, file_model)
+        self._add_source_metadata_to_action(
+            action,
+            statement=item,
+            call=self._get_value(item, "call", "value_call", "valueCall", default={}) or {},
+        )
         self._add_statement_metadata(action, item)
 
         self._attach_action_to_parent(action, parent_kdm)
@@ -815,7 +997,7 @@ class BodyActionMapper:
     # ------------------------------------------------------------
 
     def _add_source_region(self, action, statement: dict, file_model: dict):
-        if self.factory.has_feature(action, "source") and len(action.source) > 0:
+        if self._has_concrete_source_region(action):
             return
 
         source_file = self._get_source_file(file_model)
@@ -824,8 +1006,8 @@ class BodyActionMapper:
             action,
             path=file_model.get("path"),
             language=self.language,
-            start_line=statement.get("line_start"),
-            end_line=statement.get("line_end"),
+            start_line=self._line_start(statement),
+            end_line=self._line_end(statement),
             file_item=source_file,
         )
 
@@ -901,13 +1083,13 @@ class BodyActionMapper:
         if owner_action is None:
             return
 
-        statement_type = item.get("statement_type")
+        statement_type = self._statement_type(item)
 
         if statement_type not in {"call", "return", "raise", "assignment"}:
             return
 
         owner_id = callable_model.get("id")
-        owner_line = item.get("line_start")
+        owner_line = self._line_start(item)
 
         if owner_id is None or owner_line is None:
             return
@@ -950,13 +1132,13 @@ class BodyActionMapper:
         if owner_action is None:
             return
 
-        statement_type = item.get("statement_type")
+        statement_type = self._statement_type(item)
 
         if statement_type not in {"call", "assignment", "return", "raise"}:
             return
 
         owner_id = callable_model.get("id")
-        owner_line = item.get("line_start")
+        owner_line = self._line_start(item)
 
         if owner_id is None or owner_line is None:
             return
@@ -1010,7 +1192,7 @@ class BodyActionMapper:
         nested_name: str,
         item: dict,
     ) -> bool:
-        statement_type = item.get("statement_type")
+        statement_type = self._statement_type(item)
 
         if statement_type in {"return", "raise"}:
             return True
@@ -1022,7 +1204,7 @@ class BodyActionMapper:
                 return True
 
         if statement_type == "call":
-            call = item.get("call") or {}
+            call = self._get_value(item, "call", default={}) or {}
             call_name = call.get("name")
 
             if call_name and str(call_name) == owner_name:
