@@ -1,0 +1,35 @@
+{
+  "project_name": "demo-java-project",
+  "language": "java",
+
+  "input": {
+    "source_path": "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/"
+  },
+
+  "outputs": {
+    "intermediate_json": "outputs/demo-java-project/java_model.json",
+    "architecture_json": "outputs/demo-java-project/java_model.architecture.json",
+    "ai_architecture_json": "outputs/demo-java-project/java_model.ai_architecture.json",
+    "runtime_enriched_json": "outputs/demo-java-project/java_model.runtime_enriched.combined.json",
+    "kdm_xmi": "outputs/demo-java-project/model.kdm.xmi"
+  },
+
+  "java_extractor": {
+    "jar_path": "tools/java2kdm/java2kdm-1.0-SNAPSHOT.jar",
+    "schema_path": "schemas/python_model.schema.json"
+  },
+
+  "dynamic_analysis": {
+    "enabled": false
+  },
+
+  "architecture_recovery": {
+    "enabled": false
+  },
+
+  "kdm_generation": {
+    "enabled": true,
+    "validate": true,
+    "input": "intermediate_json"
+  }
+}

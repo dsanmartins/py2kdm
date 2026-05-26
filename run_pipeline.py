@@ -13,58 +13,45 @@ From the py2kdm root directory:
 
 or:
 
-    python run_pipeline.py --config configs/pymape_hierarchical.json
+    python run_pipeline.py --config configs/demo_java_project.json
 
 Expected config structure
 -------------------------
 {
-  "project_name": "pymape_hierarchical",
-  "language": "python",
+  "project_name": "demo-java-project",
+  "language": "java",
 
   "input": {
-    "source_path": "examples/pymape_hierarchical"
+    "source_path": "/path/to/java/project"
   },
 
   "outputs": {
-    "intermediate_json": "outputs/pymape_hierarchical/python_model.json",
-    "architecture_json": "outputs/pymape_hierarchical/python_model.architecture.json",
-    "ai_architecture_json": "outputs/pymape_hierarchical/python_model.ai_architecture.json",
-    "runtime_enriched_json": "outputs/pymape_hierarchical/python_model.runtime_enriched.combined.json",
-    "kdm_xmi": "outputs/pymape_hierarchical/model.kdm.xmi"
+    "intermediate_json": "outputs/demo-java-project/java_model.json",
+    "architecture_json": "outputs/demo-java-project/java_model.architecture.json",
+    "ai_architecture_json": "outputs/demo-java-project/java_model.ai_architecture.json",
+    "runtime_enriched_json": "outputs/demo-java-project/java_model.runtime_enriched.combined.json",
+    "kdm_xmi": "outputs/demo-java-project/model.kdm.xmi"
+  },
+
+  "java_extractor": {
+    "jar_path": "tools/java2kdm/java2kdm-1.0-SNAPSHOT.jar",
+    "schema_path": "schemas/python_model.schema.json"
   },
 
   "dynamic_analysis": {
-    "enabled": false,
-    "mode": "desktop",
-    "project_root": "examples/pymape_hierarchical",
-    "scenarios": [
-      {
-        "name": "cruise_control",
-        "script": "scenarios/cruise_control_scenario.py"
-      }
-    ]
+    "enabled": false
   },
 
   "architecture_recovery": {
-    "enabled": true,
-    "mode": "semi_automatic",
-    "target_architecture": "mapek"
+    "enabled": false
   },
 
   "kdm_generation": {
-    "enabled": true,
+    "enabled": false,
     "validate": true,
-    "input": "architecture_json"
+    "input": "intermediate_json"
   }
 }
-
-Notes
------
-- The Python extractor is still executed as an independent subproject.
-- The KDM generator is still executed as an independent subproject.
-- Architecture recovery is optional and works over the intermediate JSON.
-- MAPE-K recovery is guarded by the AutonomicApplicabilityGate.
-- Pre-review architecture agents can optionally enrich the architecture JSON.
 """
 
 from __future__ import annotations
@@ -100,7 +87,6 @@ class DynamicScenario:
         self.script_args = script_args or []
 
 
-
 def main() -> int:
     args = parse_args()
     config_path = resolve_path(args.config)
@@ -113,22 +99,32 @@ def main() -> int:
     validate_config(config)
 
     project_name = config.get("project_name", "unknown_project")
+    language = config.get("language", "python").lower().strip()
+
     print(f"Project: {project_name}")
+    print(f"Language: {language}")
 
     source_path = resolve_path(config["input"]["source_path"])
+
     intermediate_json = resolve_path(config["outputs"]["intermediate_json"])
+
     architecture_json = resolve_path(
         config["outputs"].get(
             "architecture_json",
             str(intermediate_json).replace(".json", ".architecture.json"),
         )
     )
+
     ai_architecture_json = resolve_path(
         config["outputs"].get(
             "ai_architecture_json",
-            str(architecture_json).replace(".architecture.json", ".ai_architecture.json"),
+            str(architecture_json).replace(
+                ".architecture.json",
+                ".ai_architecture.json",
+            ),
         )
     )
+
     kdm_xmi = resolve_path(config["outputs"]["kdm_xmi"])
 
     ensure_parent(intermediate_json)
@@ -137,10 +133,12 @@ def main() -> int:
     ensure_parent(kdm_xmi)
 
     run_extractor(
+        language=language,
         source_path=source_path,
         output_path=intermediate_json,
         python_executable=args.python,
         skip=args.skip_extractor,
+        config=config,
     )
 
     model_input_for_recovery = intermediate_json
@@ -164,9 +162,10 @@ def main() -> int:
             output_path=architecture_json,
             python_executable=args.python,
         )
+
         architecture_input_for_kdm = architecture_json
 
-        if args.with_agents in {"pre-review", "all"}:
+        if args.with_agents == "pre-review":
             run_architecture_agents(
                 mode="pre-review",
                 input_path=architecture_json,
@@ -198,15 +197,20 @@ def main() -> int:
 
     print_header("Pipeline completed")
     print(f"Intermediate JSON: {intermediate_json}")
+
     if dynamic_outputs.get("runtime_enriched_json"):
         print(f"Runtime-enriched JSON: {dynamic_outputs['runtime_enriched_json']}")
+
     for trace_path in dynamic_outputs.get("runtime_traces", []):
         if trace_path.exists():
             print(f"Runtime trace: {trace_path}")
+
     if architecture_json.exists():
         print(f"Architecture JSON: {architecture_json}")
+
     if ai_architecture_json.exists():
         print(f"AI Architecture JSON: {ai_architecture_json}")
+
     if kdm_xmi.exists():
         print(f"KDM XMI: {kdm_xmi}")
 
@@ -233,7 +237,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--skip-extractor",
         action="store_true",
-        help="Skip python_kdm_extractor and reuse the configured intermediate JSON.",
+        help="Skip static extraction and reuse the configured intermediate JSON.",
     )
 
     parser.add_argument(
@@ -254,8 +258,8 @@ def parse_args() -> argparse.Namespace:
         default="none",
         help=(
             "Run pre-review architecture agents before human GUI review. "
-            "After human review, the reviewed architecture is treated as authoritative. "
-            "and is used directly for KDM generation. "
+            "After human review, the reviewed architecture is treated as authoritative "
+            "and is used directly for KDM generation."
         ),
     )
 
@@ -322,24 +326,77 @@ def validate_config(config: Dict[str, Any]) -> None:
     if "project_name" not in config:
         print("Warning: config.project_name is missing; using unknown_project.")
 
+    language = config.get("language", "python").lower().strip()
+
+    if language not in {"python", "java"}:
+        raise ValueError(
+            f"Unsupported language '{language}'. Supported values: python, java."
+        )
+
 
 def run_extractor(
+    language: str,
     source_path: Path,
     output_path: Path,
     python_executable: str,
     skip: bool,
+    config: Dict[str, Any],
 ) -> None:
     if skip:
-        print_step("Python extractor skipped")
+        print_step("Static extractor skipped")
 
         if not output_path.exists():
             raise FileNotFoundError(
-                f"Extractor was skipped, but intermediate JSON does not exist: "
+                "Extractor was skipped, but intermediate JSON does not exist: "
                 f"{output_path}"
             )
 
         return
 
+    if not source_path.exists():
+        raise FileNotFoundError(f"Source path not found: {source_path}")
+
+    if language == "python":
+        run_python_extractor(
+            source_path=source_path,
+            output_path=output_path,
+            python_executable=python_executable,
+        )
+        return
+
+    if language == "java":
+        java_config = config.get("java_extractor", {})
+
+        jar_path = resolve_path(
+            java_config.get(
+                "jar_path",
+                "tools/java2kdm/java2kdm-1.0-SNAPSHOT.jar",
+            )
+        )
+
+        schema_path = resolve_path(
+            java_config.get(
+                "schema_path",
+                "schemas/python_model.schema.json",
+            )
+        )
+
+        run_java_extractor(
+            source_path=source_path,
+            output_path=output_path,
+            jar_path=jar_path,
+            schema_path=schema_path,
+        )
+        return
+
+    raise ValueError(f"Unsupported language for static extraction: {language}")
+
+
+def run_python_extractor(
+    source_path: Path,
+    output_path: Path,
+    python_executable: str,
+) -> None:
     print_step("Running python_kdm_extractor")
 
     extractor_main = ROOT / "python_kdm_extractor" / "main.py"
@@ -347,8 +404,7 @@ def run_extractor(
     if not extractor_main.exists():
         raise FileNotFoundError(f"Extractor main.py not found: {extractor_main}")
 
-    if not source_path.exists():
-        raise FileNotFoundError(f"Source path not found: {source_path}")
+    ensure_parent(output_path)
 
     command = [
         python_executable,
@@ -360,6 +416,36 @@ def run_extractor(
     ]
 
     run_command(command, cwd=ROOT / "python_kdm_extractor")
+
+
+def run_java_extractor(
+    source_path: Path,
+    output_path: Path,
+    jar_path: Path,
+    schema_path: Path | None = None,
+) -> None:
+    print_step("Running java2kdm extractor")
+
+    if not jar_path.exists():
+        raise FileNotFoundError(f"java2kdm jar not found: {jar_path}")
+
+    if schema_path is not None and not schema_path.exists():
+        raise FileNotFoundError(f"java2kdm schema not found: {schema_path}")
+
+    ensure_parent(output_path)
+
+    command = [
+        "java",
+        "-jar",
+        str(jar_path),
+        str(source_path),
+        str(output_path),
+    ]
+
+    if schema_path is not None:
+        command.append(str(schema_path))
+
+    run_command(command, cwd=ROOT)
 
 
 def run_architecture_recovery(
@@ -375,7 +461,11 @@ def run_architecture_recovery(
     recovery_main = ROOT / "kdm_architecture_recovery" / "main.py"
 
     if not recovery_main.exists():
-        raise FileNotFoundError(f"Architecture recovery main.py not found: {recovery_main}")
+        raise FileNotFoundError(
+            f"Architecture recovery main.py not found: {recovery_main}"
+        )
+
+    ensure_parent(output_path)
 
     command = [
         python_executable,
@@ -387,9 +477,6 @@ def run_architecture_recovery(
     ]
 
     run_command(command, cwd=ROOT)
-
-
-
 
 
 def run_dynamic_analysis_if_requested(
@@ -438,6 +525,7 @@ def run_dynamic_analysis_if_requested(
             str(intermediate_json).replace(".json", ".runtime_enriched.combined.json"),
         )
     )
+
     ensure_parent(runtime_enriched_json)
 
     print_step("Running dynamic analysis")
@@ -593,7 +681,9 @@ def run_architecture_agents(
 
         architecture recovery -> pre-review agents -> GUI review
 
-    Only pre-review agents are supported in the default pipeline. After the user exports a reviewed JSON from the GUI, that reviewed model should feed KDM generation directly.
+    Only pre-review agents are supported in the default pipeline. After the user
+    exports a reviewed JSON from the GUI, that reviewed model should feed KDM
+    generation directly.
     """
 
     print_step(f"Running architecture agents ({mode})")
@@ -605,6 +695,8 @@ def run_architecture_agents(
 
     if not input_path.exists():
         raise FileNotFoundError(f"Architecture agents input JSON not found: {input_path}")
+
+    ensure_parent(output_path)
 
     command = [
         python_executable,
@@ -655,6 +747,8 @@ def run_kdm_generator(
     if not input_path.exists():
         raise FileNotFoundError(f"KDM input JSON not found: {input_path}")
 
+    ensure_parent(output_path)
+
     command = [
         python_executable,
         str(generator_main),
@@ -684,6 +778,7 @@ def select_kdm_input(
 
     - "intermediate_json";
     - "architecture_json";
+    - "runtime_enriched_json";
     - an explicit path.
     """
 
@@ -704,6 +799,7 @@ def select_kdm_input(
                 "kdm_generation.input is runtime_enriched_json, but dynamic "
                 "analysis did not produce a runtime-enriched JSON."
             )
+
         return runtime_enriched_json
 
     return resolve_path(input_selector)
@@ -711,6 +807,7 @@ def select_kdm_input(
 
 def run_command(command: list[str], cwd: Path) -> None:
     print("$ " + " ".join(command))
+
     completed = subprocess.run(command, cwd=str(cwd))
 
     if completed.returncode != 0:
@@ -739,13 +836,6 @@ def resolve_path(path_value: str | Path) -> Path:
 
 def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-
-
-def add_extractor_to_path() -> None:
-    extractor_path = ROOT / "python_kdm_extractor"
-
-    if str(extractor_path) not in sys.path:
-        sys.path.insert(0, str(extractor_path))
 
 
 def is_enabled(section: Dict[str, Any]) -> bool:

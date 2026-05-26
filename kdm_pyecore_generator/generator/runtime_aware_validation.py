@@ -1,3 +1,5 @@
+from collections import Counter
+
 class RuntimeAwareValidationReport:
     """
     Lightweight validation report compatible with the generator main workflow.
@@ -11,6 +13,9 @@ class RuntimeAwareValidationReport:
         self.warnings = []
         self.infos = []
         self.runtime_resolved_calls = 0
+        self.unresolved_call_count = 0
+        self.unresolved_call_examples = []
+        self.unresolved_call_prefixes = Counter()
 
     def add_error(self, message: str):
         self.errors.append(message)
@@ -43,6 +48,20 @@ class RuntimeAwareValidationReport:
             print(f"\nInfos: {len(self.infos)}")
             for info in self.infos:
                 print(f"[INFO] {info}")
+
+        if self.unresolved_call_count:
+            print("\nUnresolved static calls summary:")
+            print(f"[INFO] Calls without target_id: {self.unresolved_call_count}")
+
+            if self.unresolved_call_prefixes:
+                print("[INFO] Most frequent unresolved call prefixes:")
+                for prefix, count in self.unresolved_call_prefixes.most_common(10):
+                    print(f"[INFO]   - {prefix}: {count}")
+
+            if self.unresolved_call_examples:
+                print("[INFO] Sample unresolved calls:")
+                for example in self.unresolved_call_examples[:15]:
+                    print(f"[INFO]   - {example}")
 
 
 class RuntimeResolutionIndex:
@@ -177,8 +196,15 @@ class RuntimeAwareBasicValidator:
 
         if report.runtime_resolved_calls:
             report.add_info(
-                "Some static calls without target_id were not reported as "
-                "warnings because matching runtime_calls evidence was found."
+                "Some static calls without target_id were not reported because "
+                "matching runtime_calls evidence was found."
+            )
+
+        if report.unresolved_call_count:
+            report.add_info(
+                "Static calls without target_id are reported as an informational "
+                "summary because they are common in Python due to dynamic dispatch, "
+                "external libraries, aliases and attribute-based calls."
             )
 
         return report
@@ -204,9 +230,50 @@ class RuntimeAwareBasicValidator:
                 report.runtime_resolved_calls += 1
                 continue
 
-            report.add_warning(
-                f"Call without target_id: {call_name} in {callable_name}"
+            self._record_unresolved_call(
+                report=report,
+                call_name=call_name,
+                callable_name=callable_name,
             )
+
+    def _record_unresolved_call(
+        self,
+        report: RuntimeAwareValidationReport,
+        call_name: str,
+        callable_name: str,
+    ):
+        report.unresolved_call_count += 1
+
+        prefix = self._call_prefix(call_name)
+        report.unresolved_call_prefixes[prefix] += 1
+
+        if len(report.unresolved_call_examples) < 15:
+            report.unresolved_call_examples.append(
+                f"{call_name} in {callable_name}"
+            )
+
+    def _call_prefix(self, call_name: str) -> str:
+        if not call_name:
+            return "<unknown>"
+
+        name = str(call_name)
+
+        if name.startswith("self."):
+            return "self.*"
+
+        if name.startswith("super."):
+            return "super.*"
+
+        if "." in name:
+            return name.split(".", 1)[0] + ".*"
+
+        if name.startswith("builtin:"):
+            return "builtin:*"
+
+        if name.startswith("external:"):
+            return "external:*"
+
+        return name
 
     def _call_display_name(self, call: dict):
         for key in ("name", "function", "method", "class_name"):

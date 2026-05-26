@@ -11,7 +11,7 @@ class ExceptionRelationResolver:
         -> ActionElement kind="raise"
         -> StorableUnit X_exception
         -> action::Throws -> X_exception
-        -> X_exception --code::HasType--> X
+        -> X_exception --code::HasType--> Datatype(X)
 
     - try / except
         -> TryUnit
@@ -23,9 +23,11 @@ class ExceptionRelationResolver:
         -> FinallyUnit
         -> TryUnit --action::ExitFlow--> FinallyUnit
 
-    The resolver intentionally avoids generic ActionRelationship elements with
-    temporary attributes such as kind="catches". Exception handling is modeled
-    with KDM-specific metaclasses whenever possible.
+    Important:
+    code::HasType.to must point to a Datatype. It must not point to ClassUnit,
+    StorableUnit, MethodUnit, ActionElement, etc. Therefore, whenever an
+    exception target is resolved to a non-Datatype KDM element, this resolver
+    creates or reuses a generic Datatype with the same name.
     """
 
     def __init__(
@@ -75,6 +77,9 @@ class ExceptionRelationResolver:
         self.builtin_index = builtin_index or {}
         self.external_index = external_index or {}
         self.finally_action_index = finally_action_index or {}
+
+        # Cache for Datatype objects used as targets of code::HasType.
+        self.exception_datatype_index = {}
 
     def resolve(self, data: dict):
         """
@@ -277,13 +282,18 @@ class ExceptionRelationResolver:
 
             CatchUnit
               └── ParameterUnit exception_RepositoryError
-                    └── code::HasType -> RepositoryError
+                    └── code::HasType -> Datatype(RepositoryError)
         """
 
         if catch_action is None or exception_type is None:
             return None
 
         if not self.factory.has_feature(catch_action, "codeElement"):
+            return None
+
+        datatype_target = self._as_datatype_target(exception_type)
+
+        if datatype_target is None:
             return None
 
         parameter_name = f"exception_{exception_name}"
@@ -293,6 +303,7 @@ class ExceptionRelationResolver:
                 continue
 
             if getattr(child, "name", None) == parameter_name:
+                self._ensure_has_type(child, datatype_target)
                 return child
 
         parameter = self.factory.create_parameter_unit(parameter_name)
@@ -311,13 +322,7 @@ class ExceptionRelationResolver:
 
         catch_action.codeElement.append(parameter)
 
-        has_type = self.factory.create_has_type_relation(exception_type)
-
-        if (
-            has_type is not None
-            and self.factory.has_feature(parameter, "codeRelation")
-        ):
-            parameter.codeRelation.append(has_type)
+        self._ensure_has_type(parameter, datatype_target)
 
         return parameter
 
@@ -453,6 +458,10 @@ class ExceptionRelationResolver:
         """
         Creates or reuses a builtin exception ClassUnit inside the
         PythonBuiltins CodeModel.
+
+        The ClassUnit is useful for structural navigation. When the exception
+        is used as a type target of HasType, it will be converted to a Datatype
+        by _as_datatype_target(...).
         """
 
         if not exception_name:
@@ -555,14 +564,13 @@ class ExceptionRelationResolver:
         Creates or reuses a StorableUnit representing a thrown exception object.
 
         KDM Throws.to must point to a DataElement. Therefore, the generator
-        creates a StorableUnit and links it to the exception class using
-        code::HasType.
+        creates a StorableUnit and links it to a Datatype using code::HasType.
 
         Expected structure:
 
             raise ActionElement
               ├── StorableUnit RepositoryError_exception
-              │     └── code::HasType -> RepositoryError
+              │     └── code::HasType -> Datatype(RepositoryError)
               └── action::Throws -> RepositoryError_exception
         """
 
@@ -572,6 +580,11 @@ class ExceptionRelationResolver:
         exception_type_name = getattr(exception_type, "name", None)
 
         if not exception_type_name:
+            exception_type_name = str(exception_type)
+
+        datatype_target = self._as_datatype_target(exception_type)
+
+        if datatype_target is None:
             return None
 
         if self.factory.has_feature(source, "codeElement"):
@@ -584,6 +597,7 @@ class ExceptionRelationResolver:
                     "exception_type_name",
                     exception_type_name,
                 ):
+                    self._ensure_has_type(child, datatype_target)
                     return child
 
         exception_data = self.factory.create_storable_unit(
@@ -607,15 +621,155 @@ class ExceptionRelationResolver:
         else:
             return None
 
-        has_type = self.factory.create_has_type_relation(exception_type)
-
-        if (
-            has_type is not None
-            and self.factory.has_feature(exception_data, "codeRelation")
-        ):
-            exception_data.codeRelation.append(has_type)
+        self._ensure_has_type(exception_data, datatype_target)
 
         return exception_data
+
+    # ------------------------------------------------------------
+    # Datatype normalization for HasType
+    # ------------------------------------------------------------
+
+    def _as_datatype_target(self, exception_type):
+        """
+        Ensures that the target used by code::HasType is a Datatype.
+
+        HasType.to must point to a Datatype. It must not point to StorableUnit,
+        ClassUnit, MethodUnit, ActionElement, etc.
+
+        If exception_type is already a Datatype or one of its concrete
+        subclasses, it is returned as-is. Otherwise, a generic Datatype is
+        created or reused using the element name.
+        """
+
+        if exception_type is None:
+            return None
+
+        if self._is_datatype(exception_type):
+            return exception_type
+
+        type_name = getattr(exception_type, "name", None)
+
+        if not type_name:
+            type_name = str(exception_type)
+
+        return self._get_or_create_exception_datatype(type_name)
+
+    def _is_datatype(self, element) -> bool:
+        """
+        Returns True when element is a Datatype-compatible KDM type.
+        """
+
+        try:
+            eclass_name = element.eClass.name
+        except AttributeError:
+            return False
+
+        datatype_names = {
+            "Datatype",
+            "BooleanType",
+            "IntegerType",
+            "StringType",
+            "FloatType",
+            "VoidType",
+            "CharType",
+            "OctetType",
+            "DecimalType",
+            "ScaledType",
+            "DateType",
+            "TimeType",
+            "OrdinalType",
+            "BitstringType",
+            "EnumeratedType",
+            "CompositeType",
+            "RecordType",
+            "ArrayType",
+            "PointerType",
+            "RangeType",
+            "BagType",
+            "SetType",
+            "SequenceType",
+            "Signature",
+        }
+
+        return eclass_name in datatype_names
+
+    def _get_or_create_exception_datatype(self, type_name: str):
+        """
+        Creates or reuses a generic Datatype for an exception type.
+        """
+
+        if not type_name:
+            return None
+
+        if type_name in self.exception_datatype_index:
+            return self.exception_datatype_index[type_name]
+
+        datatype_id = f"exception_datatype:{type_name}"
+
+        if datatype_id in self.id_index:
+            candidate = self.id_index[datatype_id]
+
+            if self._is_datatype(candidate):
+                self.exception_datatype_index[type_name] = candidate
+                return candidate
+
+        datatype = self.factory.create_generic_datatype(type_name)
+
+        self._add_attribute_once(
+            datatype,
+            "external",
+            "true",
+        )
+
+        self._add_attribute_once(
+            datatype,
+            "exception_type",
+            "true",
+        )
+
+        self._add_attribute_once(
+            datatype,
+            "exception_type_name",
+            type_name,
+        )
+
+        if (
+            self.builtin_model is not None
+            and self.factory.has_feature(self.builtin_model, "codeElement")
+        ):
+            self.builtin_model.codeElement.append(datatype)
+
+        self.exception_datatype_index[type_name] = datatype
+        self.id_index[datatype_id] = datatype
+
+        return datatype
+
+    def _ensure_has_type(self, element, datatype_target):
+        """
+        Adds code::HasType from element to datatype_target if possible and not
+        already present.
+        """
+
+        if element is None or datatype_target is None:
+            return
+
+        if not self._is_datatype(datatype_target):
+            return
+
+        if not self.factory.has_feature(element, "codeRelation"):
+            return
+
+        for relation in element.codeRelation:
+            if relation.eClass.name != "HasType":
+                continue
+
+            if getattr(relation, "to", None) is datatype_target:
+                return
+
+        has_type = self.factory.create_has_type_relation(datatype_target)
+
+        if has_type is not None:
+            element.codeRelation.append(has_type)
 
     # ------------------------------------------------------------
     # Generic helpers

@@ -1,0 +1,143 @@
+{
+  "projectName" : "demo-java-project",
+  "language" : "java",
+  "files" : [ {
+    "path" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "packageName" : "com.example.repository",
+    "imports" : [ ]
+  }, {
+    "path" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "packageName" : "com.example.service",
+    "imports" : [ "com.example.repository.UserRepository" ]
+  } ],
+  "elements" : [ {
+    "name" : "UserRepository",
+    "qualifiedName" : "com.example.repository.UserRepository",
+    "kind" : "class",
+    "packageName" : "com.example.repository",
+    "filePath" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "modifiers" : [ "public" ],
+    "annotations" : [ ],
+    "extendsTypes" : [ ],
+    "implementsTypes" : [ ],
+    "fields" : [ ],
+    "methods" : [ {
+      "name" : "findNameById",
+      "returnType" : "String",
+      "kind" : "method",
+      "signature" : "findNameById(Long)",
+      "qualifiedSignature" : "com.example.repository.UserRepository.findNameById(java.lang.Long)",
+      "resolvedReturnType" : "java.lang.String",
+      "modifiers" : [ "public" ],
+      "annotations" : [ ],
+      "parameters" : [ {
+        "name" : "id",
+        "type" : "Long",
+        "resolvedType" : "java.lang.Long"
+      } ],
+      "calls" : [ ]
+    } ]
+  }, {
+    "name" : "UserService",
+    "qualifiedName" : "com.example.service.UserService",
+    "kind" : "class",
+    "packageName" : "com.example.service",
+    "filePath" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "modifiers" : [ "public" ],
+    "annotations" : [ ],
+    "extendsTypes" : [ ],
+    "implementsTypes" : [ ],
+    "fields" : [ {
+      "name" : "repository",
+      "type" : "UserRepository",
+      "modifiers" : [ "private" ],
+      "annotations" : [ ],
+      "resolvedType" : "com.example.repository.UserRepository"
+    } ],
+    "methods" : [ {
+      "name" : "getUserName",
+      "returnType" : "String",
+      "kind" : "method",
+      "signature" : "getUserName(Long)",
+      "qualifiedSignature" : "com.example.service.UserService.getUserName(java.lang.Long)",
+      "resolvedReturnType" : "java.lang.String",
+      "modifiers" : [ "public" ],
+      "annotations" : [ ],
+      "parameters" : [ {
+        "name" : "id",
+        "type" : "Long",
+        "resolvedType" : "java.lang.Long"
+      } ],
+      "calls" : [ {
+        "methodName" : "findNameById",
+        "scope" : "repository",
+        "argumentCount" : 1,
+        "resolvedTarget" : "com.example.repository.UserRepository.findNameById(java.lang.Long)"
+      } ]
+    }, {
+      "name" : "UserService",
+      "returnType" : "void",
+      "kind" : "constructor",
+      "signature" : "UserService(UserRepository)",
+      "qualifiedSignature" : "com.example.service.UserService.<init>(com.example.repository.UserRepository)",
+      "resolvedReturnType" : "void",
+      "modifiers" : [ "public" ],
+      "annotations" : [ ],
+      "parameters" : [ {
+        "name" : "repository",
+        "type" : "UserRepository",
+        "resolvedType" : "com.example.repository.UserRepository"
+      } ],
+      "calls" : [ ]
+    } ]
+  } ],
+  "relationships" : [ {
+    "type" : "uses_type",
+    "source" : "com.example.repository.UserRepository.findNameById(java.lang.Long):return",
+    "target" : "java.lang.String",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 5
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.repository.UserRepository.findNameById(java.lang.Long):parameter:id",
+    "target" : "java.lang.Long",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/repository/UserRepository.java",
+    "line" : 5
+  }, {
+    "type" : "imports",
+    "source" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "target" : "com.example.repository.UserRepository",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 3
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.repository",
+    "target" : "com.example.repository.UserRepository",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 7
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.getUserName(java.lang.Long):return",
+    "target" : "java.lang.String",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 13
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.getUserName(java.lang.Long):parameter:id",
+    "target" : "java.lang.Long",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 13
+  }, {
+    "type" : "calls",
+    "source" : "com.example.service.UserService.getUserName(java.lang.Long)",
+    "target" : "com.example.repository.UserRepository.findNameById(java.lang.Long)",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 14
+  }, {
+    "type" : "uses_type",
+    "source" : "com.example.service.UserService.<init>(com.example.repository.UserRepository):parameter:repository",
+    "target" : "com.example.repository.UserRepository",
+    "sourceFile" : "/home/dsanmartins/Insync/daniel.sanmartin@ucn.cl/GDrive/GDrive/Developments/demo-java-project/src/main/java/com/example/service/UserService.java",
+    "line" : 9
+  } ]
+}

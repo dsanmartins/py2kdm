@@ -629,9 +629,14 @@ class KDMFactory:
 
         If only one of start_line or end_line is provided, the other one is
         inferred so that the region covers a single source line.
+
+        A SourceRegion without either a physical file reference or a path is
+        invalid for the validator. Therefore, if callers provide only line
+        numbers but no physical source location, the region is skipped instead
+        of generating invalid KDM.
         """
 
-        if start_line is None and end_line is None and path is None and file_item is None:
+        if path is None and file_item is None:
             return
 
         if start_line is not None and end_line is None:

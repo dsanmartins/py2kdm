@@ -13,7 +13,7 @@
   },
 
   "architecture_recovery": {
-    "enabled": true,
+    "enabled": false,
     "mode": "semi_automatic",
     "target_architecture": "mapek"
   },
@@ -21,6 +21,6 @@
   "kdm_generation": {
     "enabled": true,
     "validate": true,
-    "input": "architecture_json"
+    "input": "intermediate_json"
   }
 }

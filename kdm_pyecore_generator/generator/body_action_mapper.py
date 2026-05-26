@@ -6,12 +6,14 @@ class BodyActionMapper:
         action_index=None,
         inventory_builder=None,
         language="unknown",
+        external_builder=None,
     ):
         self.factory = factory
         self.id_index = id_index
         self.action_index = action_index or {}
         self.inventory_builder = inventory_builder
         self.language = language
+        self.external_builder = external_builder
 
         # Index for statement/control ActionElements.
         # It also stores TryUnit and CatchUnit instances created from body nodes.
@@ -71,6 +73,20 @@ class BodyActionMapper:
             callable_kdm=callable_kdm,
             body_block=body_block,
         )
+
+        # Final safety pass: some actions may have been created before body
+        # mapping or attached by different resolvers. Collapse duplicate
+        # ActionElement children inside the same BlockUnit so the generated
+        # KDM remains valid even when the extractor lacks precise line data.
+        self._deduplicate_child_actions(body_block)
+
+        # Static constructor fallback:
+        # Some Python calls such as Port(...), Subject(...), FastAPI(...),
+        # Config(...), etc. may be recognized as constructor-like calls but
+        # remain unresolved by the static call resolver. In those cases, create
+        # a conservative Creates relation to either an internal ClassUnit or an
+        # external ClassUnit.
+        self._resolve_unresolved_constructor_creates(body_block)
 
     # ------------------------------------------------------------
     # Callable body BlockUnit
@@ -417,8 +433,11 @@ class BodyActionMapper:
         """
         Attaches an executable KDM element to a parent container.
 
-        This method protects PyEcore containment from cycles. It also avoids
-        duplicate containment operations.
+        This method protects PyEcore containment from cycles, avoids duplicate
+        containment operations and collapses duplicate ActionElement children
+        that have the same effective validation signature. This is important
+        for Python models where the static extractor may report repeated calls
+        without precise source positions.
         """
 
         if action is None or parent_kdm is None:
@@ -439,7 +458,191 @@ class BodyActionMapper:
         if action in parent_kdm.codeElement:
             return
 
+        duplicate = self._find_equivalent_child_action(parent_kdm, action)
+
+        if duplicate is not None:
+            self._merge_action_relations(
+                source_action=action,
+                target_action=duplicate,
+            )
+            self._detach_from_current_container(action)
+            return
+
         parent_kdm.codeElement.append(action)
+
+    def _deduplicate_child_actions(self, parent_kdm):
+        """
+        Removes duplicate ActionElement children from a KDM container.
+
+        The validator considers two child actions duplicated when they have the
+        same effective signature: metaclass, name, kind, startLine and endLine.
+        In large Python projects, repeated calls sometimes have no precise
+        source region and therefore share the same signature. This pass keeps
+        the first action and merges relations/attributes from later duplicates.
+        """
+
+        if parent_kdm is None:
+            return
+
+        if not self.factory.has_feature(parent_kdm, "codeElement"):
+            return
+
+        # First normalize nested containers, if any.
+        for child in list(parent_kdm.codeElement):
+            if self.factory.has_feature(child, "codeElement"):
+                self._deduplicate_child_actions(child)
+
+        seen = {}
+
+        for child in list(parent_kdm.codeElement):
+            if getattr(child.eClass, "name", None) != "ActionElement":
+                continue
+
+            signature = self._action_validation_signature(child)
+            existing = seen.get(signature)
+
+            if existing is None:
+                seen[signature] = child
+                continue
+
+            self._merge_action_relations(
+                source_action=child,
+                target_action=existing,
+            )
+            self._merge_attributes(
+                source_element=child,
+                target_element=existing,
+            )
+
+            try:
+                parent_kdm.codeElement.remove(child)
+            except Exception:
+                pass
+
+    def _merge_attributes(self, source_element, target_element):
+        if source_element is None or target_element is None:
+            return
+
+        if not self.factory.has_feature(source_element, "attribute"):
+            return
+
+        if not self.factory.has_feature(target_element, "attribute"):
+            return
+
+        existing = {
+            (getattr(attribute, "tag", None), getattr(attribute, "value", None))
+            for attribute in target_element.attribute
+        }
+
+        for attribute in list(source_element.attribute):
+            key = (getattr(attribute, "tag", None), getattr(attribute, "value", None))
+
+            if key in existing:
+                continue
+
+            target_element.attribute.append(attribute)
+            existing.add(key)
+
+    def _find_equivalent_child_action(self, parent_kdm, action):
+        if action is None or parent_kdm is None:
+            return None
+
+        if getattr(action.eClass, "name", None) != "ActionElement":
+            return None
+
+        if not self.factory.has_feature(parent_kdm, "codeElement"):
+            return None
+
+        action_signature = self._action_validation_signature(action)
+
+        for child in parent_kdm.codeElement:
+            if child is action:
+                continue
+
+            if getattr(child.eClass, "name", None) != "ActionElement":
+                continue
+
+            if self._action_validation_signature(child) == action_signature:
+                return child
+
+        return None
+
+    def _action_validation_signature(self, action):
+        return (
+            getattr(action.eClass, "name", None),
+            getattr(action, "name", None),
+            getattr(action, "kind", None),
+            self._first_source_line(action, "startLine"),
+            self._first_source_line(action, "endLine"),
+        )
+
+    def _first_source_line(self, element, feature_name: str):
+        if element is None or not self.factory.has_feature(element, "source"):
+            return None
+
+        for source_ref in element.source:
+            for region in getattr(source_ref, "region", []):
+                if self.factory.has_feature(region, feature_name):
+                    value = getattr(region, feature_name, None)
+                    if value is not None:
+                        return value
+
+        return None
+
+    def _merge_action_relations(self, source_action, target_action):
+        if source_action is None or target_action is None:
+            return
+
+        if not self.factory.has_feature(source_action, "actionRelation"):
+            return
+
+        if not self.factory.has_feature(target_action, "actionRelation"):
+            return
+
+        for relation in list(source_action.actionRelation):
+            if self._has_equivalent_action_relation(target_action, relation):
+                continue
+            target_action.actionRelation.append(relation)
+
+    def _has_equivalent_action_relation(self, action, relation) -> bool:
+        if action is None or relation is None:
+            return False
+
+        if not self.factory.has_feature(action, "actionRelation"):
+            return False
+
+        relation_type = getattr(relation.eClass, "name", None)
+        relation_target = getattr(relation, "to", None)
+
+        for existing in action.actionRelation:
+            if getattr(existing.eClass, "name", None) != relation_type:
+                continue
+
+            if getattr(existing, "to", None) is relation_target:
+                return True
+
+        return False
+
+    def _detach_from_current_container(self, element):
+        if element is None:
+            return
+
+        try:
+            container = element.eContainer()
+        except Exception:
+            return
+
+        if container is None:
+            return
+
+        if not self.factory.has_feature(container, "codeElement"):
+            return
+
+        try:
+            if element in container.codeElement:
+                container.codeElement.remove(element)
+        except Exception:
+            return
 
     def _would_create_containment_cycle(self, child, parent) -> bool:
         """
@@ -829,3 +1032,231 @@ class BodyActionMapper:
             return True
 
         return True
+
+    # ------------------------------------------------------------
+    # Static constructor Creates fallback
+    # ------------------------------------------------------------
+
+    def _resolve_unresolved_constructor_creates(self, parent_kdm):
+        """
+        Resolves constructor-like ActionElement nodes that do not have a
+        Creates relation.
+
+        This is a static fallback. If the constructor target cannot be resolved
+        internally, an external ClassUnit is created through ExternalModelBuilder
+        and linked through action::Creates.
+        """
+
+        if parent_kdm is None:
+            return
+
+        if not self.factory.has_feature(parent_kdm, "codeElement"):
+            return
+
+        for child in list(parent_kdm.codeElement):
+            if self.factory.has_feature(child, "codeElement"):
+                self._resolve_unresolved_constructor_creates(child)
+
+            if getattr(child.eClass, "name", None) != "ActionElement":
+                continue
+
+            if not self._looks_like_constructor_action(child):
+                continue
+
+            if self._has_creates_relation(child):
+                continue
+
+            constructor_name = getattr(child, "name", None)
+            target = self._resolve_constructor_target_static(constructor_name)
+
+            if target is None:
+                self._add_attribute_once(child, "resolution_status", "unresolved")
+                self._add_attribute_once(child, "unresolved_constructor", constructor_name)
+                continue
+
+            creates_relation = self.factory.create_creates_relation(target)
+
+            if creates_relation is not None and self.factory.has_feature(child, "actionRelation"):
+                child.actionRelation.append(creates_relation)
+
+            self._add_attribute_once(child, "constructor_resolution", "static_fallback")
+
+            # The action is no longer unresolved once a Creates relation exists.
+            self._remove_attribute(child, "resolution_status", "unresolved")
+
+    def _looks_like_constructor_action(self, action):
+        """
+        Heuristic for constructor-like calls.
+
+        Examples:
+            Port(...)
+            Subject(...)
+            FastAPI(...)
+            Config(...)
+            ModuleType(...)
+        """
+
+        if action is None:
+            return False
+
+        if getattr(action, "kind", None) not in {"call", "constructor", "constructor_call"}:
+            return False
+
+        name = getattr(action, "name", None)
+
+        if not name:
+            return False
+
+        simple_name = self._simple_constructor_name(name)
+
+        if not simple_name:
+            return False
+
+        # Conservative heuristic: constructor names usually start with an
+        # uppercase letter in the examples that remain unresolved.
+        return simple_name[0].isupper()
+
+    def _has_creates_relation(self, action):
+        if action is None:
+            return False
+
+        if not self.factory.has_feature(action, "actionRelation"):
+            return False
+
+        for relation in action.actionRelation:
+            if getattr(relation.eClass, "name", None) == "Creates":
+                return True
+
+        return False
+
+    def _resolve_constructor_target_static(self, constructor_name: str):
+        """
+        Resolves a constructor target using static information only.
+
+        Resolution order:
+        1. Direct id_index lookup.
+        2. ClassUnit with the same simple name.
+        3. ClassUnit whose qualified_name ends with .Name.
+        4. Existing external target with the same simple name.
+        5. New external ClassUnit through ExternalModelBuilder.
+        """
+
+        if not constructor_name:
+            return None
+
+        simple_name = self._simple_constructor_name(constructor_name)
+
+        candidate_keys = [
+            constructor_name,
+            simple_name,
+            f"class:{simple_name}",
+            f"external:{simple_name}",
+            f"external_type:{simple_name}",
+        ]
+
+        for key in candidate_keys:
+            target = self.id_index.get(key)
+
+            if self._is_class_like(target):
+                return target
+
+        for element in self.id_index.values():
+            if not self._is_class_like(element):
+                continue
+
+            if getattr(element, "name", None) == simple_name:
+                return element
+
+            qualified_name = self._get_attribute_value(element, "qualified_name")
+
+            if qualified_name and qualified_name.endswith(f".{simple_name}"):
+                return element
+
+        if self.external_builder is not None:
+            for target in self.external_builder.external_targets.values():
+                if self._is_class_like(target) and getattr(target, "name", None) == simple_name:
+                    return target
+
+            target = self.external_builder.get_or_create_external_class(
+                library_name="unknown_external",
+                class_name=simple_name,
+            )
+
+            self._add_attribute_once(target, "constructor_target", "true")
+            self._add_attribute_once(target, "resolution", "static_fallback")
+            self.id_index.setdefault(f"external:{simple_name}", target)
+
+            return target
+
+        return None
+
+    def _simple_constructor_name(self, constructor_name: str):
+        """
+        Extracts the simple constructor name.
+
+        Examples:
+            Port              -> Port
+            mape.Port         -> Port
+            external:Port     -> Port
+            package.Port(...) -> Port
+        """
+
+        name = str(constructor_name)
+
+        if "(" in name:
+            name = name.split("(", 1)[0]
+
+        if ":" in name:
+            name = name.rsplit(":", 1)[-1]
+
+        if "." in name:
+            name = name.rsplit(".", 1)[-1]
+
+        return name
+
+    def _is_class_like(self, element):
+        if element is None:
+            return False
+
+        try:
+            return element.eClass.name in {
+                "ClassUnit",
+                "InterfaceUnit",
+                "EnumeratedType",
+                "Datatype",
+            }
+        except AttributeError:
+            return False
+
+    def _get_attribute_value(self, element, tag: str):
+        if element is None:
+            return None
+
+        if not self.factory.has_feature(element, "attribute"):
+            return None
+
+        for attribute in element.attribute:
+            if getattr(attribute, "tag", None) == tag:
+                return getattr(attribute, "value", None)
+
+        return None
+
+    def _remove_attribute(self, element, tag: str, value=None):
+        if element is None:
+            return
+
+        if not self.factory.has_feature(element, "attribute"):
+            return
+
+        for attribute in list(element.attribute):
+            if getattr(attribute, "tag", None) != tag:
+                continue
+
+            if value is not None and getattr(attribute, "value", None) != str(value):
+                continue
+
+            try:
+                element.attribute.remove(attribute)
+            except Exception:
+                pass
+

@@ -195,6 +195,7 @@ def generate_kdm(
         action_index=reference_resolver.action_index,
         inventory_builder=inventory_builder,
         language=language,
+        external_builder=external_builder,
     )
 
     body_action_mapper.map_body_actions(data)

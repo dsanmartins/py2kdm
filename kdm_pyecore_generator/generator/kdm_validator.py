@@ -11,6 +11,7 @@ class KDMValidationReport:
     def __init__(self):
         self.errors = []
         self.warnings = []
+        self.infos = []
         self.stats = {}
 
     def add_error(self, message: str):
@@ -20,6 +21,10 @@ class KDMValidationReport:
     def add_warning(self, message: str):
         """Adds a validation warning."""
         self.warnings.append(message)
+
+    def add_info(self, message: str):
+        """Adds an informational validation note."""
+        self.infos.append(message)
 
     def set_stat(self, key: str, value):
         """Stores a validation statistic."""
@@ -39,6 +44,11 @@ class KDMValidationReport:
         print(f"\nWarnings: {len(self.warnings)}")
         for warning in self.warnings:
             print(f"[WARNING] {warning}")
+
+        if self.infos:
+            print(f"\nInfos: {len(self.infos)}")
+            for info in self.infos:
+                print(f"[INFO] {info}")
 
         print("\nStats:")
         for key, value in self.stats.items():
@@ -687,9 +697,14 @@ class KDMValidator:
                 has_creates = self._has_action_relation(element, "Creates")
 
                 if not has_creates:
-                    self.report.add_warning(
-                        f"Constructor ActionElement '{self._get_name(element)}' has no Creates relation."
-                    )
+                    if self._has_attribute(element, "resolution_status", "unresolved"):
+                        self.report.add_info(
+                            f"Constructor ActionElement '{self._get_name(element)}' has no Creates relation because its target was unresolved."
+                        )
+                    else:
+                        self.report.add_warning(
+                            f"Constructor ActionElement '{self._get_name(element)}' has no Creates relation."
+                        )
 
     # ------------------------------------------------------------
     # Reads/Writes
