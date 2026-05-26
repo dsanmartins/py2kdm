@@ -35,6 +35,36 @@ class AccessRelationResolver:
         self.action_index = action_index
         self.statement_action_index = statement_action_index or {}
 
+    def _get_value(self, data: dict, *keys, default=None):
+        if not isinstance(data, dict):
+            return default
+
+        for key in keys:
+            if key in data and data.get(key) is not None:
+                return data.get(key)
+
+        return default
+
+    def _get_list(self, data: dict, *keys):
+        value = self._get_value(data, *keys, default=[])
+
+        if value is None:
+            return []
+
+        if isinstance(value, list):
+            return value
+
+        return [value]
+
+    def _statement_type(self, statement: dict):
+        return self._get_value(statement, "statement_type", "statementType")
+
+    def _control_type(self, statement: dict):
+        return self._get_value(statement, "control_type", "controlType")
+
+    def _body_id(self, statement: dict):
+        return self._get_value(statement, "id")
+
     def add_access_relations(self, data: dict):
         """
         Adds Reads and Writes relations for all functions and methods.
@@ -47,6 +77,10 @@ class AccessRelationResolver:
 
             for func in file_model.get("functions", []):
                 self._add_callable_accesses(func)
+
+        for element in data.get("elements", []):
+            for method in element.get("methods", []):
+                self._add_callable_accesses(method)
 
     def _add_callable_accesses(self, callable_model: dict):
         owner_id = callable_model.get("id")
@@ -62,9 +96,9 @@ class AccessRelationResolver:
         Walks body statements recursively.
         """
 
-        statement_type = statement.get("statement_type")
+        statement_type = self._statement_type(statement)
         node_type = statement.get("type")
-        control_type = statement.get("control_type")
+        control_type = self._control_type(statement)
 
         if statement_type in {"assignment", "annotated_assignment"}:
             self._handle_assignment(statement, owner_id)
@@ -88,20 +122,20 @@ class AccessRelationResolver:
             elif control_type in {"with", "async_with"}:
                 self._handle_with(statement, owner_id)
 
-        for child in statement.get("body", []):
+        for child in self._get_list(statement, "body"):
             self._walk_statement(child, owner_id)
 
-        for child in statement.get("orelse", []):
+        for child in self._get_list(statement, "orelse", "elseBody"):
             self._walk_statement(child, owner_id)
 
-        for child in statement.get("finalbody", []):
+        for child in self._get_list(statement, "finalbody", "finallyBody"):
             self._walk_statement(child, owner_id)
 
-        for handler in statement.get("handlers", []):
+        for handler in self._get_list(statement, "handlers", "catchClauses"):
             self._walk_statement(handler, owner_id)
 
         if node_type == "exception_handler":
-            for child in statement.get("body", []):
+            for child in self._get_list(statement, "body"):
                 self._walk_statement(child, owner_id)
 
     # ------------------------------------------------------------
@@ -122,7 +156,7 @@ class AccessRelationResolver:
 
         # Reads from the RHS only when it is a reference-like expression.
         value = statement.get("value")
-        value_kind = statement.get("value_kind")
+        value_kind = self._get_value(statement, "value_kind", "valueKind")
 
         if self._is_reference_like_value(value_kind, value):
             self._add_reads_for_expression(
@@ -131,16 +165,16 @@ class AccessRelationResolver:
                 expression=value,
             )
 
-        value_call = statement.get("value_call")
+        value_call = self._get_value(statement, "value_call", "valueCall")
         if value_call:
             self._add_accesses_from_call(action, owner_id, value_call)
 
-        for call in statement.get("value_calls", []):
+        for call in self._get_list(statement, "value_calls", "valueCalls"):
             call_action = self._resolve_action_from_call(owner_id, call) or action
             self._add_accesses_from_call(call_action, owner_id, call)
 
     def _handle_call_statement(self, statement: dict, owner_id: str):
-        call = statement.get("call")
+        call = self._get_value(statement, "call")
         if not call:
             return
 
@@ -161,13 +195,13 @@ class AccessRelationResolver:
             if value:
                 self._add_reads_for_expression(action, owner_id, value)
 
-        for call in statement.get("value_calls", []):
+        for call in self._get_list(statement, "value_calls", "valueCalls"):
             call_action = self._resolve_action_from_call(owner_id, call)
             if call_action is not None:
                 self._add_accesses_from_call(call_action, owner_id, call)
 
     def _handle_raise(self, statement: dict, owner_id: str):
-        for call in statement.get("exception_calls", []):
+        for call in self._get_list(statement, "exception_calls", "exceptionCalls"):
             action = self._resolve_action_from_call(owner_id, call)
             if action is not None:
                 self._add_accesses_from_call(action, owner_id, call)
@@ -178,11 +212,11 @@ class AccessRelationResolver:
         if action is None:
             return
 
-        condition = statement.get("condition")
+        condition = self._get_value(statement, "condition")
         if condition:
             self._add_reads_for_expression(action, owner_id, condition)
 
-        for call in statement.get("condition_calls", []):
+        for call in self._get_list(statement, "condition_calls", "conditionCalls"):
             call_action = self._resolve_action_from_call(owner_id, call)
             if call_action is not None:
                 self._add_accesses_from_call(call_action, owner_id, call)
@@ -193,17 +227,17 @@ class AccessRelationResolver:
         if action is None:
             return
 
-        target = statement.get("target")
+        target = self._get_value(statement, "target")
         if target:
             storable = self._resolve_storable(owner_id, target)
             if storable is not None:
                 self._add_writes_relation(action, storable)
 
-        iterable = statement.get("iter")
+        iterable = self._get_value(statement, "iter", "iterable")
         if iterable:
             self._add_reads_for_expression(action, owner_id, iterable)
 
-        for call in statement.get("iter_calls", []):
+        for call in self._get_list(statement, "iter_calls", "iterCalls"):
             call_action = self._resolve_action_from_call(owner_id, call)
             if call_action is not None:
                 self._add_accesses_from_call(call_action, owner_id, call)
@@ -214,7 +248,7 @@ class AccessRelationResolver:
         if action is None:
             return
 
-        for item in statement.get("items", []):
+        for item in self._get_list(statement, "items"):
             context_expr = item.get("context_expr")
             optional_vars = item.get("optional_vars")
 
@@ -244,7 +278,7 @@ class AccessRelationResolver:
         self._add_argument_reads(action, owner_id, call)
 
     def _add_receiver_read(self, action, owner_id: str, call: dict):
-        receiver = call.get("receiver")
+        receiver = self._get_value(call, "receiver", "scope")
 
         if not receiver:
             return
@@ -255,10 +289,10 @@ class AccessRelationResolver:
             self._add_reads_relation(action, storable)
 
     def _add_argument_reads(self, action, owner_id: str, call: dict):
-        for argument in call.get("arguments", []):
+        for argument in self._get_list(call, "arguments"):
             self._add_argument_read(action, owner_id, argument)
 
-        for keyword_argument in call.get("keyword_arguments", []):
+        for keyword_argument in self._get_list(call, "keyword_arguments", "keywordArguments"):
             self._add_argument_read(action, owner_id, keyword_argument)
 
     def _add_argument_read(self, action, owner_id: str, argument: dict):
@@ -274,6 +308,25 @@ class AccessRelationResolver:
     # Reads/Writes creation
     # ------------------------------------------------------------
 
+    def _is_valid_access_target(self, target) -> bool:
+        """
+        KDM action::Reads and action::Writes must point to code::StorableUnit.
+
+        The global index may also contain ParameterUnit objects because
+        parameters are typable and addressable in the JSON model. However,
+        ParameterUnit is not a valid target for Reads/Writes in this KDM
+        validator. Therefore, parameter accesses are skipped instead of
+        producing invalid KDM relations.
+        """
+
+        if target is None:
+            return False
+
+        try:
+            return target.eClass.name == "StorableUnit"
+        except AttributeError:
+            return False
+
     def _add_reads_for_expression(self, action, owner_id: str, expression):
         """
         Adds Reads for all resolvable references contained in an expression.
@@ -286,7 +339,7 @@ class AccessRelationResolver:
                 self._add_reads_relation(action, storable)
 
     def _add_reads_relation(self, action, storable):
-        if action is None or storable is None:
+        if action is None or not self._is_valid_access_target(storable):
             return
 
         if self._has_relation(action, "Reads", storable):
@@ -296,7 +349,7 @@ class AccessRelationResolver:
         action.actionRelation.append(relation)
 
     def _add_writes_relation(self, action, storable):
-        if action is None or storable is None:
+        if action is None or not self._is_valid_access_target(storable):
             return
 
         if self._has_relation(action, "Writes", storable):
@@ -323,7 +376,7 @@ class AccessRelationResolver:
     # ------------------------------------------------------------
 
     def _resolve_action_from_statement(self, statement: dict, owner_id: str):
-        statement_id = statement.get("id")
+        statement_id = self._body_id(statement)
 
         if statement_id and statement_id in self.statement_action_index:
             return self.statement_action_index[statement_id]
@@ -332,7 +385,7 @@ class AccessRelationResolver:
         if value_call_id and value_call_id in self.action_index:
             return self.action_index[value_call_id]
 
-        value_call = statement.get("value_call")
+        value_call = self._get_value(statement, "value_call", "valueCall")
         if value_call:
             return self._resolve_action_from_call(owner_id, value_call)
 
@@ -373,7 +426,7 @@ class AccessRelationResolver:
         return None
 
     def _resolve_action_from_return(self, statement: dict, owner_id: str):
-        statement_id = statement.get("id")
+        statement_id = self._body_id(statement)
 
         if statement_id and statement_id in self.statement_action_index:
             return self.statement_action_index[statement_id]
@@ -432,7 +485,7 @@ class AccessRelationResolver:
                 if target is not None
             ]
 
-        target = statement.get("target")
+        target = self._get_value(statement, "target")
         if target is not None:
             return [target]
 

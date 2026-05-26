@@ -81,6 +81,33 @@ class ExceptionRelationResolver:
         # Cache for Datatype objects used as targets of code::HasType.
         self.exception_datatype_index = {}
 
+    def _get_value(self, data: dict, *keys, default=None):
+        if not isinstance(data, dict):
+            return default
+
+        for key in keys:
+            if key in data and data.get(key) is not None:
+                return data.get(key)
+
+        return default
+
+    def _get_list(self, data: dict, *keys):
+        value = self._get_value(data, *keys, default=[])
+
+        if value is None:
+            return []
+
+        if isinstance(value, list):
+            return value
+
+        return [value]
+
+    def _statement_type(self, item: dict):
+        return self._get_value(item, "statement_type", "statementType")
+
+    def _control_type(self, item: dict):
+        return self._get_value(item, "control_type", "controlType")
+
     def resolve(self, data: dict):
         """
         Resolves exception semantics for all functions and methods contained
@@ -95,12 +122,16 @@ class ExceptionRelationResolver:
             for func in file_model.get("functions", []):
                 self._resolve_callable(func)
 
+        for element in data.get("elements", []):
+            for method in element.get("methods", []):
+                self._resolve_callable(method)
+
     def _resolve_callable(self, callable_model: dict):
         """
         Resolves exception-related statements inside a single callable body.
         """
 
-        for item in callable_model.get("body", []):
+        for item in self._get_list(callable_model, "body"):
             self._resolve_body_item(item)
 
     def _resolve_body_item(self, item: dict):
@@ -110,28 +141,28 @@ class ExceptionRelationResolver:
         """
 
         item_type = item.get("type")
-        statement_type = item.get("statement_type")
-        control_type = item.get("control_type")
+        statement_type = self._statement_type(item)
+        control_type = self._control_type(item)
 
         if item_type == "control_structure" and control_type == "try":
             self._resolve_try_flows(item)
 
-        if statement_type == "raise":
+        if statement_type in {"raise", "throw"}:
             self._resolve_raise(item)
 
         if item_type == "exception_handler":
             self._resolve_exception_handler(item)
 
-        for child in item.get("body", []):
+        for child in self._get_list(item, "body"):
             self._resolve_body_item(child)
 
-        for child in item.get("orelse", []):
+        for child in self._get_list(item, "orelse", "elseBody"):
             self._resolve_body_item(child)
 
-        for child in item.get("finalbody", []):
+        for child in self._get_list(item, "finalbody", "finallyBody"):
             self._resolve_body_item(child)
 
-        for handler in item.get("handlers", []):
+        for handler in self._get_list(item, "handlers", "catchClauses"):
             self._resolve_body_item(handler)
 
     # ------------------------------------------------------------
@@ -148,7 +179,7 @@ class ExceptionRelationResolver:
         if try_action is None:
             return
 
-        for handler in item.get("handlers", []):
+        for handler in self._get_list(item, "handlers", "catchClauses"):
             catch_action = self.statement_action_index.get(handler.get("id"))
 
             if catch_action is None:
@@ -230,7 +261,7 @@ class ExceptionRelationResolver:
         exception type is known.
         """
 
-        exception_name = handler.get("exception")
+        exception_name = self._get_value(handler, "exception", "exceptionType")
 
         if not exception_name:
             self._add_attribute_once(
@@ -346,7 +377,7 @@ class ExceptionRelationResolver:
         exception_target = self._find_exception_target_from_raise(item)
 
         if exception_target is None:
-            if not item.get("exception") and not item.get("exception_calls"):
+            if not self._get_value(item, "exception") and not self._get_list(item, "exception_calls", "exceptionCalls"):
                 self._add_attribute_once(
                     raise_action,
                     "exception_flow",
@@ -369,8 +400,8 @@ class ExceptionRelationResolver:
         2. item["exception"]
         """
 
-        for call in item.get("exception_calls", []):
-            target_id = call.get("target_id")
+        for call in self._get_list(item, "exception_calls", "exceptionCalls"):
+            target_id = self._get_value(call, "target_id", "targetId", "resolvedTarget")
 
             if target_id:
                 target = self._find_target_by_id(target_id)
@@ -378,7 +409,7 @@ class ExceptionRelationResolver:
                 if target is not None:
                     return target
 
-        exception_name = item.get("exception")
+        exception_name = self._get_value(item, "exception", "exceptionType")
 
         if exception_name:
             return self._find_exception_by_name(exception_name)

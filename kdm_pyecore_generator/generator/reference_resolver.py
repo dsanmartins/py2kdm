@@ -18,6 +18,38 @@ class ReferenceResolver:
         self.inventory_builder = inventory_builder
         self.action_index = {}
 
+    def _get_value(self, data: dict, *keys, default=None):
+        if not isinstance(data, dict):
+            return default
+
+        for key in keys:
+            if key in data and data.get(key) is not None:
+                return data.get(key)
+
+        return default
+
+    def _get_list(self, data: dict, *keys):
+        value = self._get_value(data, *keys, default=[])
+
+        if value is None:
+            return []
+
+        if isinstance(value, list):
+            return value
+
+        return [value]
+
+    def _resolve_callable_source(self, callable_model: dict):
+        for key in (
+            callable_model.get("id"),
+            callable_model.get("qualified_signature"),
+            callable_model.get("qualifiedSignature"),
+            callable_model.get("signature"),
+        ):
+            if key and key in self.id_index:
+                return self.id_index[key]
+        return None
+
     # ------------------------------------------------------------
     # Calls
     # ------------------------------------------------------------
@@ -31,16 +63,32 @@ class ReferenceResolver:
             for func in file_model.get("functions", []):
                 self._add_callable_calls(func, file_model)
 
+        files_by_path = {
+            file_model.get("path"): file_model
+            for file_model in data.get("files", [])
+            if file_model.get("path")
+        }
+
+        for element in data.get("elements", []):
+            file_path = element.get("filePath") or element.get("file_path")
+            file_model = files_by_path.get(file_path) or {
+                "path": file_path,
+                "packageName": element.get("packageName"),
+            }
+
+            for method in element.get("methods", []):
+                self._add_callable_calls(method, file_model)
+
     def _add_callable_calls(self, callable_model: dict, file_model: dict):
-        source = self.id_index.get(callable_model.get("id"))
+        source = self._resolve_callable_source(callable_model)
 
         if source is None:
             return
 
         for call in callable_model.get("calls", []):
             action = self.factory.create_action_element(
-                name=call.get("name", "call"),
-                kind=call.get("kind", "call"),
+                name=self._call_action_name(call),
+                kind=self._get_value(call, "kind", default="call"),
             )
 
             self._register_action(callable_model, call, action)
@@ -51,8 +99,8 @@ class ReferenceResolver:
                 action,
                 path=file_model.get("path"),
                 language=self.language,
-                start_line=call.get("line"),
-                end_line=call.get("line"),
+                start_line=self._get_value(call, "line", "lineStart"),
+                end_line=self._get_value(call, "lineEnd", "line", "lineStart"),
                 file_item=source_file,
             )
 
@@ -72,10 +120,22 @@ class ReferenceResolver:
             else:
                 self._add_unresolved_call_metadata(action, call)
 
+    def _call_action_name(self, call: dict):
+        name = (
+            self._get_value(call, "methodName", "method_name", "method")
+            or self._get_value(call, "name")
+            or "call"
+        )
+
+        if isinstance(name, str) and "." in name:
+            return name.rsplit(".", 1)[-1]
+
+        return name
+
     def _is_constructor_call(self, call: dict):
         return (
-            call.get("classification") == "constructor"
-            or call.get("kind") == "constructor_call"
+            self._get_value(call, "classification") == "constructor"
+            or self._get_value(call, "kind") == "constructor_call"
         )
 
     def _add_call_traceability_metadata(self, action, call: dict):
@@ -90,6 +150,7 @@ class ReferenceResolver:
             "original_id": call.get("id"),
             "classification": call.get("classification"),
             "occurrence_index": call.get("occurrence_index"),
+            "called_signature": self._get_value(call, "target_id", "targetId", "resolvedTarget", "resolved_target"),
         }
 
         self.factory.add_attributes_from_dict(action, metadata)
@@ -109,11 +170,11 @@ class ReferenceResolver:
         self.factory.add_attribute(
             action,
             "unresolved_target_name",
-            call.get("name"),
+            self._get_value(call, "name", "methodName"),
         )
 
     def _resolve_call_target(self, call: dict):
-        target_id = call.get("target_id")
+        target_id = self._get_value(call, "target_id", "targetId", "resolvedTarget", "resolved_target")
 
         if target_id in self.id_index:
             return self.id_index[target_id]
@@ -128,7 +189,7 @@ class ReferenceResolver:
 
     def _is_external_or_builtin(self, call: dict):
         classification = call.get("classification")
-        target_id = call.get("target_id")
+        target_id = self._get_value(call, "target_id", "targetId", "resolvedTarget", "resolved_target")
 
         if classification in {
             "external",
@@ -292,8 +353,12 @@ class ReferenceResolver:
         )
 
     def _register_action(self, callable_model: dict, call: dict, action):
-        owner_id = callable_model.get("id")
-        line = call.get("line")
+        owner_id = (
+            callable_model.get("id")
+            or callable_model.get("qualifiedSignature")
+            or callable_model.get("qualified_signature")
+        )
+        line = self._get_value(call, "line", "lineStart")
         call_id = call.get("id")
 
         if call_id:
@@ -303,10 +368,10 @@ class ReferenceResolver:
             return
 
         candidate_names = {
-            call.get("name"),
-            call.get("function"),
-            call.get("method"),
-            call.get("class_name"),
+            self._get_value(call, "name", "methodName"),
+            self._get_value(call, "function"),
+            self._get_value(call, "method", "methodName"),
+            self._get_value(call, "class_name", "className"),
         }
 
         for name in candidate_names:

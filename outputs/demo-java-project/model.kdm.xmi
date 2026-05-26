@@ -100,6 +100,13 @@
               <attribute tag="source_line" value="32"/>
               <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.1"/>
             </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="findNameById" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.findNameById(java.lang.Long)"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.1"/>
+            </codeElement>
           </codeElement>
           <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
         </codeElement>
@@ -190,6 +197,29 @@
               <attribute tag="resolution_status" value="unresolved"/>
               <attribute tag="unresolved_target_name" value="java.lang.StringBuilder.toString()"/>
             </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="findNameById" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.findNameById(java.lang.Long)"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.1"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="append" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="java.lang.StringBuilder.append(java.lang.String)"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="append"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="toString" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="java.lang.StringBuilder.toString()"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="toString"/>
+            </codeElement>
           </codeElement>
           <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
         </codeElement>
@@ -271,6 +301,36 @@
               <attribute tag="source_line" value="85"/>
               <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.3"/>
             </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="isBlank" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="java.lang.String.isBlank()"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="isBlank"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="trim" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="java.lang.String.trim()"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="trim"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="existsById" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.existsById(java.lang.Long)"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.2"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="saveName" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.saveName(java.lang.Long,java.lang.String)"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.3"/>
+            </codeElement>
           </codeElement>
           <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.10/@codeElement.1"/>
         </codeElement>
@@ -307,6 +367,21 @@
               <attribute tag="source_line" value="102"/>
               <attribute tag="resolution_status" value="unresolved"/>
               <attribute tag="unresolved_target_name" value="java.util.List.add(E)"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="findAllNames" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.findAllNames()"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.4"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="add" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="java.util.List.add(E)"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="add"/>
             </codeElement>
           </codeElement>
           <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.2"/>
@@ -369,6 +444,37 @@
               <attribute tag="resolution_status" value="unresolved"/>
               <attribute tag="unresolved_target_name" value="java.lang.String.isBlank()"/>
             </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="findAllNames" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.findAllNames()"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.4"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="size" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="java.util.List.size()"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="size"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="get" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="java.util.List.get(int)"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="get"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="isBlank" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="java.lang.String.isBlank()"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="isBlank"/>
+            </codeElement>
           </codeElement>
           <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.10/@codeElement.0"/>
         </codeElement>
@@ -411,6 +517,21 @@
               <attribute tag="resolution_status" value="unresolved"/>
               <attribute tag="unresolved_target_name" value="java.lang.String.length()"/>
             </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="findNameById" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.findNameById(java.lang.Long)"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.1"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="length" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="java.lang.String.length()"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="length"/>
+            </codeElement>
           </codeElement>
           <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
         </codeElement>
@@ -441,6 +562,13 @@
               <attribute tag="source_line" value="152"/>
               <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.1"/>
             </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="findNameById" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.findNameById(java.lang.Long)"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.1"/>
+            </codeElement>
           </codeElement>
           <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
         </codeElement>
@@ -456,6 +584,17 @@
           <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
             <attribute tag="role" value="callable_body"/>
             <attribute tag="callable_body_id" value="com.example.service.UserService.getLastUserName()"/>
+            <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+              <attribute tag="synthetic_body_action" value="true"/>
+              <attribute tag="synthetic_reason" value="empty_callable_body"/>
+              <attribute tag="callable_body_id" value="com.example.service.UserService.getLastUserName()"/>
+              <attribute tag="body_id" value="synthetic-body:com.example.service.UserService.getLastUserName()"/>
+              <attribute tag="unresolved_return_value" value="true"/>
+              <attribute tag="return_resolution" value="unresolved_or_trivial_java_return"/>
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+            </codeElement>
           </codeElement>
         </codeElement>
         <codeElement xsi:type="code:MethodUnit" name="getRequestCount">
@@ -470,6 +609,17 @@
           <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
             <attribute tag="role" value="callable_body"/>
             <attribute tag="callable_body_id" value="com.example.service.UserService.getRequestCount()"/>
+            <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+              <attribute tag="synthetic_body_action" value="true"/>
+              <attribute tag="synthetic_reason" value="empty_callable_body"/>
+              <attribute tag="callable_body_id" value="com.example.service.UserService.getRequestCount()"/>
+              <attribute tag="body_id" value="synthetic-body:com.example.service.UserService.getRequestCount()"/>
+              <attribute tag="unresolved_return_value" value="true"/>
+              <attribute tag="return_resolution" value="unresolved_or_trivial_java_return"/>
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+            </codeElement>
           </codeElement>
         </codeElement>
         <codeElement xsi:type="code:MethodUnit" name="UserService">
@@ -489,6 +639,15 @@
           <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
             <attribute tag="role" value="callable_body"/>
             <attribute tag="callable_body_id" value="com.example.service.UserService.&lt;init&gt;(com.example.repository.UserRepository)"/>
+            <codeElement xsi:type="action:ActionElement" name="constructor_body" kind="constructor_body">
+              <attribute tag="synthetic_body_action" value="true"/>
+              <attribute tag="synthetic_reason" value="empty_callable_body"/>
+              <attribute tag="callable_body_id" value="com.example.service.UserService.&lt;init&gt;(com.example.repository.UserRepository)"/>
+              <attribute tag="body_id" value="synthetic-body:com.example.service.UserService.&lt;init&gt;(com.example.repository.UserRepository)"/>
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="java"/>
+              </source>
+            </codeElement>
           </codeElement>
         </codeElement>
       </codeElement>
@@ -568,6 +727,14 @@
               <attribute tag="resolution_status" value="unresolved"/>
               <attribute tag="unresolved_target_name" value="java.util.Map.get(java.lang.Object)"/>
             </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="get" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="java.util.Map.get(java.lang.Object)"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="get"/>
+            </codeElement>
           </codeElement>
           <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
         </codeElement>
@@ -598,6 +765,14 @@
               <attribute tag="source_line" value="39"/>
               <attribute tag="resolution_status" value="unresolved"/>
               <attribute tag="unresolved_target_name" value="java.util.Map.containsKey(java.lang.Object)"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="containsKey" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="java.util.Map.containsKey(java.lang.Object)"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="containsKey"/>
             </codeElement>
           </codeElement>
           <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.10/@codeElement.1"/>
@@ -646,6 +821,21 @@
               <attribute tag="resolution_status" value="unresolved"/>
               <attribute tag="unresolved_target_name" value="java.util.Map.put(K,V)"/>
             </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="normalizeName" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.normalizeName(java.lang.String)"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.6"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="put" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="java.util.Map.put(K,V)"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="put"/>
+            </codeElement>
           </codeElement>
         </codeElement>
         <codeElement xsi:type="code:MethodUnit" name="findAllNames">
@@ -682,6 +872,22 @@
               <attribute tag="source_line" value="61"/>
               <attribute tag="resolution_status" value="unresolved"/>
               <attribute tag="unresolved_target_name" value="java.util.List.add(E)"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="values" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="java.util.Map.values()"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="values"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="add" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="java.util.List.add(E)"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="add"/>
             </codeElement>
           </codeElement>
           <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.2"/>
@@ -720,6 +926,22 @@
               <attribute tag="source_line" value="72"/>
               <attribute tag="resolution_status" value="unresolved"/>
               <attribute tag="unresolved_target_name" value="java.lang.String.isBlank()"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="values" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="java.util.Map.values()"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="values"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="isBlank" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="java.lang.String.isBlank()"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="isBlank"/>
             </codeElement>
           </codeElement>
           <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.10/@codeElement.0"/>
@@ -764,6 +986,22 @@
               <attribute tag="resolution_status" value="unresolved"/>
               <attribute tag="unresolved_target_name" value="java.lang.String.length()"/>
             </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="trim" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="java.lang.String.trim()"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="trim"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="length" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="java.lang.String.length()"/>
+              <attribute tag="resolution_status" value="unresolved"/>
+              <attribute tag="unresolved_target_name" value="length"/>
+            </codeElement>
           </codeElement>
           <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
         </codeElement>
@@ -799,6 +1037,13 @@
               <attribute tag="source_line" value="99"/>
               <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.1"/>
             </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="findNameById" kind="call">
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java"/>
+              </source>
+              <attribute tag="called_signature" value="com.example.repository.UserRepository.findNameById(java.lang.Long)"/>
+              <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9/@codeElement.0/@codeElement.1"/>
+            </codeElement>
           </codeElement>
           <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.0"/>
         </codeElement>
@@ -813,6 +1058,15 @@
           <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
             <attribute tag="role" value="callable_body"/>
             <attribute tag="callable_body_id" value="com.example.repository.UserRepository.&lt;init&gt;()"/>
+            <codeElement xsi:type="action:ActionElement" name="constructor_body" kind="constructor_body">
+              <attribute tag="synthetic_body_action" value="true"/>
+              <attribute tag="synthetic_reason" value="empty_callable_body"/>
+              <attribute tag="callable_body_id" value="com.example.repository.UserRepository.&lt;init&gt;()"/>
+              <attribute tag="body_id" value="synthetic-body:com.example.repository.UserRepository.&lt;init&gt;()"/>
+              <source language="java">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.9" language="java"/>
+              </source>
+            </codeElement>
           </codeElement>
         </codeElement>
       </codeElement>

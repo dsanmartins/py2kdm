@@ -106,7 +106,7 @@ class JsonToKDMMapper:
             self.qualified_name_index[qualified_name] = kdm_element
             self.id_index.setdefault(qualified_name, kdm_element)
 
-        if element_type in {"class", "interface", "enum"} and name:
+        if element_type in {"class", "interface", "enum", "annotation", "annotation_type"} and name:
             self.class_name_index.setdefault(name, []).append(kdm_element)
 
     def _add_common_metadata(self, kdm_element, model_element: dict):
@@ -375,7 +375,7 @@ class JsonToKDMMapper:
         """
         kind = element.get("kind") or element.get("type")
 
-        if kind in {"class", "interface", "enum"}:
+        if kind in {"class", "interface", "enum", "annotation", "annotation_type"}:
             parent = self._find_parent_compilation_unit(code_model, element)
             self._map_generic_class_like(parent, element)
             return
@@ -580,6 +580,12 @@ class JsonToKDMMapper:
         for param in method.get("parameters", []):
             self._map_generic_parameter(method_unit, param, method)
 
+        for local_var in (
+            method.get("localVariables", [])
+            or method.get("local_variables", [])
+        ):
+            self._map_generic_local_variable(method_unit, local_var, method, owner_element)
+
         if resolved_return_type and resolved_return_type != "void":
             normalized_return = {
                 "name": f"{method.get('name', 'method')}:return",
@@ -605,6 +611,7 @@ class JsonToKDMMapper:
                 "parameter_kind": param.get("kind"),
                 "parameter_index": param.get("index"),
                 "default_value": param.get("default_value"),
+                "annotations": self._safe_join(param.get("annotations", [])),
             },
         )
 
@@ -625,6 +632,75 @@ class JsonToKDMMapper:
         if callable_qs and param.get("name"):
             param_key = f"{callable_qs}:parameter:{param.get('name')}"
             self.id_index.setdefault(param_key, parameter_unit)
+            self.storable_index.setdefault(param_key, parameter_unit)
+            self.storable_index.setdefault((callable_qs, param.get("name")), parameter_unit)
+
+    def _map_generic_local_variable(
+        self,
+        parent,
+        local_var: dict,
+        owner_callable: dict,
+        owner_element: dict = None,
+    ):
+        """Maps Java/generic localVariables entries to StorableUnit."""
+
+        storable_unit = self.factory.create_storable_unit(
+            local_var.get("name", "local_variable")
+        )
+        self._append_code_element(parent, storable_unit)
+
+        resolved_type = (
+            local_var.get("resolvedType")
+            or local_var.get("resolved_type")
+            or local_var.get("assignedType")
+            or local_var.get("assigned_type")
+        )
+
+        normalized_var = dict(local_var)
+        normalized_var["resolved_type_id"] = self._infer_type_id(resolved_type)
+        normalized_var["resolved_type_qualified_name"] = resolved_type
+
+        self._register_typable(storable_unit, normalized_var)
+        self._register_value_element(storable_unit, normalized_var, owner_callable)
+        self._register_storable(storable_unit, normalized_var, owner_callable)
+
+        callable_qs = (
+            owner_callable.get("qualifiedSignature")
+            or owner_callable.get("qualified_signature")
+            or owner_callable.get("id")
+        )
+
+        if callable_qs and local_var.get("name"):
+            self.storable_index.setdefault(
+                (callable_qs, local_var.get("name")),
+                storable_unit,
+            )
+            self.id_index.setdefault(
+                f"{callable_qs}:local:{local_var.get('name')}",
+                storable_unit,
+            )
+
+        file_model = self._generic_file_model(owner_element or owner_callable)
+        source_file = self._get_source_file(file_model)
+        line = local_var.get("line") or local_var.get("lineStart") or local_var.get("line_start")
+
+        self.factory.add_source_region(
+            storable_unit,
+            path=file_model.get("path"),
+            language=self.language,
+            start_line=line,
+            end_line=line,
+            file_item=source_file,
+        )
+
+        self.factory.add_attributes_from_dict(
+            storable_unit,
+            {
+                "declared_type": local_var.get("type"),
+                "resolved_type": resolved_type,
+                "assigned_value_kind": local_var.get("valueKind") or local_var.get("value_kind"),
+            },
+        )
 
     # ------------------------------------------------------------------
     # Generic relationships
@@ -649,6 +725,14 @@ class JsonToKDMMapper:
                 self._map_generic_implements_relationship(relationship)
             elif relation_type == "uses_type":
                 self._map_generic_uses_type_relationship(relationship)
+            elif relation_type == "reads":
+                self._map_generic_access_relationship(relationship, access_kind="reads")
+            elif relation_type == "writes":
+                self._map_generic_access_relationship(relationship, access_kind="writes")
+            elif relation_type == "creates":
+                self._map_generic_creates_relationship(relationship)
+            elif relation_type == "throws":
+                self._map_generic_throws_relationship(relationship)
 
     def _map_generic_calls_relationship(self, relationship: dict):
         source_key = relationship.get("source")
@@ -772,9 +856,237 @@ class JsonToKDMMapper:
         """
         return
 
+    def _map_generic_access_relationship(self, relationship: dict, access_kind: str):
+        source = self._resolve_indexed_element(relationship.get("source"))
+
+        if source is None:
+            return
+
+        action = self._get_or_create_relationship_action(
+            source=source,
+            relationship=relationship,
+            default_name=access_kind,
+            default_kind=access_kind,
+        )
+
+        target = self._resolve_access_target(
+            relationship.get("target"),
+            relationship.get("source"),
+        )
+
+        if target is None:
+            self.factory.add_attributes_from_dict(
+                action,
+                {
+                    f"unresolved_{access_kind}_target": relationship.get("target"),
+                },
+            )
+            return
+
+        # KDM access relations are intentionally restricted by the validator
+        # to StorableUnit targets. The generic JSON index may also resolve a
+        # reference to ParameterUnit, especially in Python projects where
+        # parameters are indexed as addressable elements. Creating Reads/Writes
+        # to ParameterUnit makes the KDM invalid, so we skip those generic
+        # access relations here. Parameter types are still represented through
+        # ParameterUnit + HasType.
+        if not self._is_valid_access_target(target):
+            self.factory.add_attributes_from_dict(
+                action,
+                {
+                    f"skipped_{access_kind}_target": relationship.get("target"),
+                    "skip_reason": "access_target_is_not_storable_unit",
+                },
+            )
+            return
+
+        if access_kind == "reads":
+            relation = self.factory.create_reads_relation(target)
+        else:
+            relation = self.factory.create_writes_relation(target)
+
+        self._append_action_relation(action, relation)
+
+
+    def _is_valid_access_target(self, target) -> bool:
+        """Return True only for KDM targets valid for Reads/Writes."""
+
+        if target is None:
+            return False
+
+        try:
+            return target.eClass.name == "StorableUnit"
+        except AttributeError:
+            return False
+
+    def _map_generic_creates_relationship(self, relationship: dict):
+        source = self._resolve_indexed_element(relationship.get("source"))
+
+        if source is None:
+            return
+
+        action = self._get_or_create_relationship_action(
+            source=source,
+            relationship=relationship,
+            default_name=self._call_action_name(relationship.get("target")),
+            default_kind="constructor",
+        )
+
+        target = self._resolve_indexed_element(relationship.get("target"))
+
+        if target is None:
+            self.factory.add_attributes_from_dict(
+                action,
+                {
+                    "resolution_status": "unresolved",
+                    "unresolved_create_target": relationship.get("target"),
+                },
+            )
+            return
+
+        creates_relation = self.factory.create_creates_relation(target)
+        self._append_action_relation(action, creates_relation)
+
+    def _map_generic_throws_relationship(self, relationship: dict):
+        source = self._resolve_indexed_element(relationship.get("source"))
+
+        if source is None:
+            return
+
+        action = self._get_or_create_relationship_action(
+            source=source,
+            relationship=relationship,
+            default_name="throw",
+            default_kind="throw",
+        )
+
+        target = self._resolve_indexed_element(relationship.get("target"))
+
+        if target is None:
+            self.factory.add_attributes_from_dict(
+                action,
+                {
+                    "unresolved_throw_target": relationship.get("target"),
+                },
+            )
+            return
+
+        throws_relation = self.factory.create_throws_relation(target)
+        self._append_action_relation(action, throws_relation)
+
     # ------------------------------------------------------------------
     # Callable bodies and calls
     # ------------------------------------------------------------------
+
+    def _get_or_create_relationship_action(
+        self,
+        source,
+        relationship: dict,
+        default_name: str,
+        default_kind: str,
+    ):
+        body_block = self._get_or_create_callable_body(source)
+        line = (
+            relationship.get("line")
+            or relationship.get("lineStart")
+            or relationship.get("line_start")
+        )
+
+        action = self._find_body_action_by_line(body_block, line)
+
+        if action is not None:
+            return action
+
+        action = self.factory.create_action_element(
+            name=default_name or default_kind or "action",
+            kind=default_kind or "action",
+        )
+
+        file_model = self._generic_file_model(relationship)
+        source_file = self._get_source_file(file_model)
+
+        self.factory.add_source_region(
+            action,
+            path=file_model.get("path"),
+            language=self.language,
+            start_line=line,
+            end_line=line,
+            file_item=source_file,
+        )
+
+        self.factory.add_attributes_from_dict(
+            action,
+            {
+                "original_id": self._generic_relationship_action_id(relationship),
+                "relationship_type": relationship.get("type"),
+                "source_line": line,
+            },
+        )
+
+        self._append_code_element(body_block, action)
+        return action
+
+    def _find_body_action_by_line(self, body_block, line):
+        if body_block is None or line is None:
+            return None
+
+        if not self.factory.has_feature(body_block, "codeElement"):
+            return None
+
+        for child in body_block.codeElement:
+            if getattr(child.eClass, "name", None) != "ActionElement":
+                continue
+
+            for source_ref in getattr(child, "source", []):
+                for region in getattr(source_ref, "region", []):
+                    if getattr(region, "startLine", None) == line:
+                        return child
+
+        return None
+
+    def _resolve_access_target(self, target_name, source_key=None):
+        if not target_name:
+            return None
+
+        target = self._resolve_indexed_element(target_name)
+        if target is not None:
+            return target
+
+        if source_key:
+            for key in (
+                (source_key, target_name),
+                f"{source_key}:parameter:{target_name}",
+                f"{source_key}:local:{target_name}",
+            ):
+                target = self.storable_index.get(key) or self.id_index.get(key)
+                if target is not None:
+                    return target
+
+        simple_target = str(target_name)
+
+        if simple_target.startswith("this."):
+            field_name = simple_target.split(".", 1)[1]
+            owner_qn = self._owner_qualified_name_from_callable(source_key)
+            if owner_qn:
+                target = self.storable_index.get(f"{owner_qn}.{field_name}")
+                if target is not None:
+                    return target
+            simple_target = field_name
+
+        return self.storable_index.get(simple_target) or self.id_index.get(simple_target)
+
+    def _owner_qualified_name_from_callable(self, source_key):
+        if not source_key or not isinstance(source_key, str):
+            return None
+
+        if ".<init>" in source_key:
+            return source_key.split(".<init>", 1)[0]
+
+        before_args = source_key.split("(", 1)[0]
+        if "." not in before_args:
+            return None
+
+        return before_args.rsplit(".", 1)[0]
 
     def _generic_relationship_action_id(self, relationship: dict):
         """

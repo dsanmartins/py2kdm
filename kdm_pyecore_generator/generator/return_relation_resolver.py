@@ -242,10 +242,13 @@ class ReturnRelationResolver:
         for key in candidate_keys:
             target = self.storable_index.get(key)
 
-            if target is not None:
+            if self._is_storable_unit(target):
                 return target
 
         for target in self.storable_index.values():
+            if not self._is_storable_unit(target):
+                continue
+
             if getattr(target, "name", None) == value_name:
                 return target
 
@@ -481,6 +484,23 @@ class ReturnRelationResolver:
         if source is None or target is None:
             return
 
+        # In this generator, action::Reads is restricted to StorableUnit
+        # targets. Parameters are represented as ParameterUnit and must not be
+        # used as Reads targets. This preserves the validator convention used
+        # by both the Python and Java pipelines.
+        if not self._is_storable_unit(target):
+            self._add_attribute_once(
+                source,
+                "skipped_return_read_target",
+                getattr(target, "name", None),
+            )
+            self._add_attribute_once(
+                source,
+                "skip_reason",
+                "return_read_target_is_not_storable_unit",
+            )
+            return
+
         if self._has_return_read_relation(source, target):
             return
 
@@ -524,6 +544,15 @@ class ReturnRelationResolver:
                 return True
 
         return False
+
+    def _is_storable_unit(self, element) -> bool:
+        if element is None:
+            return False
+
+        try:
+            return getattr(element.eClass, "name", None) == "StorableUnit"
+        except Exception:
+            return False
 
     # ------------------------------------------------------------
     # Generic helpers
