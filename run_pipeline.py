@@ -60,6 +60,8 @@ import argparse
 import json
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
+from collections import Counter
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -191,6 +193,11 @@ def main() -> int:
             output_path=kdm_xmi,
             validate=bool(config.get("kdm_generation", {}).get("validate", True)),
             python_executable=args.python,
+            language=language,
+            regression_config=config.get("kdm_generation", {}).get(
+                "regression_check",
+                {},
+            ),
         )
     else:
         print_step("KDM generation skipped")
@@ -725,6 +732,8 @@ def run_kdm_generator(
     output_path: Path,
     validate: bool,
     python_executable: str,
+    language: str = "unknown",
+    regression_config: Dict[str, Any] | bool | None = None,
 ) -> None:
     print_step("Running kdm_pyecore_generator")
 
@@ -762,6 +771,221 @@ def run_kdm_generator(
         command.append("--no-validation")
 
     run_command(command, cwd=ROOT / "kdm_pyecore_generator")
+
+    run_kdm_regression_check_if_requested(
+        xmi_path=output_path,
+        language=language,
+        regression_config=regression_config,
+        validate=validate,
+    )
+
+
+def run_kdm_regression_check_if_requested(
+    xmi_path: Path,
+    language: str,
+    regression_config: Dict[str, Any] | bool | None,
+    validate: bool,
+) -> None:
+    if regression_config is False:
+        return
+
+    if isinstance(regression_config, dict):
+        enabled = bool(regression_config.get("enabled", validate))
+    else:
+        enabled = bool(validate)
+
+    if not enabled:
+        return
+
+    run_kdm_regression_check(
+        xmi_path=xmi_path,
+        language=language,
+        regression_config=regression_config if isinstance(regression_config, dict) else {},
+    )
+
+
+def run_kdm_regression_check(
+    xmi_path: Path,
+    language: str,
+    regression_config: Dict[str, Any],
+) -> None:
+    print_step("Running KDM regression checks")
+
+    if not xmi_path.exists():
+        raise FileNotFoundError(f"KDM XMI not found: {xmi_path}")
+
+    xml_text = xmi_path.read_text(encoding="utf-8")
+
+    errors: list[str] = []
+    warnings: list[str] = []
+
+    forbidden_tags = regression_config.get(
+        "forbidden_attribute_tags",
+        [
+            "body_id",
+            "callable_body_id",
+            "source_call_name",
+            "constructor_resolution",
+            "constructor_target",
+            "resolution",
+            "unresolved_return_value",
+            "unresolved_exception_type_target",
+            "decorators",
+            "decorator_0",
+            "declared_type",
+            "resolved_type",
+            "parameter_kind",
+            "parameter_index",
+            "method_kind",
+            "signature",
+            "return_type",
+            "resolved_return_type",
+            "modifiers",
+            "annotations",
+            "json_type",
+            "qualified_signature",
+            "source_line",
+            "relationship_type",
+            "called_signature",
+            "resolution_status",
+            "unresolved_target_name",
+            "line_start",
+            "line_end",
+            "assigned_value_kind",
+        ],
+    )
+
+    for tag in forbidden_tags:
+        if f'tag="{tag}"' in xml_text:
+            errors.append(f"Forbidden debug/redundant attribute tag found: {tag}")
+
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError as exc:
+        raise RuntimeError(f"Unable to parse KDM XMI for regression checks: {exc}") from exc
+
+    counts = count_kdm_elements(root)
+
+    for source_region in iter_kdm_type(root, "SourceRegion"):
+        if not source_region.attrib.get("file") and not source_region.attrib.get("path"):
+            errors.append("SourceRegion without file or path detected.")
+
+    for callable_element in list(iter_kdm_type(root, "MethodUnit")) + list(
+        iter_kdm_type(root, "CallableUnit")
+    ):
+        callable_name = callable_element.attrib.get("name", "<unnamed>")
+
+        for child in list(callable_element):
+            if kdm_type_name(child) == "ActionElement":
+                action_name = child.attrib.get("name", "<unnamed>")
+                errors.append(
+                    "Direct executable ActionElement under callable detected: "
+                    f"{callable_name}.{action_name}"
+                )
+
+    for action in iter_kdm_type(root, "ActionElement"):
+        if action.attrib.get("kind") != "return":
+            continue
+
+        has_reads = any(kdm_type_name(child) == "Reads" for child in list(action))
+        has_return_flow_void = any(
+            kdm_type_name(child) == "Attribute"
+            and child.attrib.get("tag") == "return_flow"
+            and child.attrib.get("value") == "void"
+            for child in list(action)
+        )
+
+        if not has_reads and not has_return_flow_void:
+            action_name = action.attrib.get("name", "return")
+            errors.append(
+                "Return ActionElement without Reads or return_flow='void': "
+                f"{action_name}"
+            )
+
+    minimum_counts = regression_config.get("minimum_counts", {})
+
+    for element_name, minimum in minimum_counts.items():
+        actual = counts.get(element_name, 0)
+
+        if actual < int(minimum):
+            errors.append(
+                f"Expected at least {minimum} {element_name}, found {actual}."
+            )
+
+    print("KDM regression summary:")
+    print(f"- Language: {language}")
+    print(f"- ActionElement: {counts.get('ActionElement', 0)}")
+    print(f"- BlockUnit: {counts.get('BlockUnit', 0)}")
+    print(f"- Calls: {counts.get('Calls', 0)}")
+    print(f"- Creates: {counts.get('Creates', 0)}")
+    print(f"- Reads: {counts.get('Reads', 0)}")
+    print(f"- Writes: {counts.get('Writes', 0)}")
+    print(f"- Throws: {counts.get('Throws', 0)}")
+    print(f"- TryUnit: {counts.get('TryUnit', 0)}")
+    print(f"- CatchUnit: {counts.get('CatchUnit', 0)}")
+    print(f"- ExceptionFlow: {counts.get('ExceptionFlow', 0)}")
+
+    if warnings:
+        print()
+        print("KDM regression warnings:")
+
+        for warning in warnings:
+            print(f"[WARNING] {warning}")
+
+    if errors:
+        print()
+        print("KDM regression errors:")
+
+        for error in errors:
+            print(f"[ERROR] {error}")
+
+        raise RuntimeError("KDM regression checks failed.")
+
+    print("KDM regression checks passed.")
+
+
+def count_kdm_elements(root) -> Counter:
+    counts = Counter()
+
+    for element in root.iter():
+        type_name = kdm_type_name(element)
+
+        if type_name:
+            counts[type_name] += 1
+
+    return counts
+
+
+def iter_kdm_type(root, type_name: str):
+    for element in root.iter():
+        if kdm_type_name(element) == type_name:
+            yield element
+
+
+def kdm_type_name(element) -> str:
+    xsi_type = element.attrib.get("{http://www.w3.org/2001/XMLSchema-instance}type")
+
+    if xsi_type:
+        return xsi_type.split(":")[-1]
+
+    tag = element.tag.split("}")[-1]
+
+    if tag == "actionRelation":
+        return "ActionRelation"
+
+    if tag == "codeRelation":
+        return "CodeRelation"
+
+    if tag == "attribute":
+        return "Attribute"
+
+    if tag == "annotation":
+        return "Annotation"
+
+    if tag == "sourceRegion":
+        return "SourceRegion"
+
+    return tag
 
 
 def select_kdm_input(
