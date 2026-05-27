@@ -1488,13 +1488,8 @@ class JsonToKDMMapper:
         target = self._resolve_indexed_element(relationship.get("target"))
 
         if target is None:
-            self.factory.add_attributes_from_dict(
-                action,
-                {
-                    "resolution_status": "unresolved",
-                    "unresolved_create_target": relationship.get("target"),
-                },
-            )
+            # No reliable create target could be resolved. Do not emit
+            # temporary resolution attributes.
             return
 
         creates_relation = self.factory.create_creates_relation(target)

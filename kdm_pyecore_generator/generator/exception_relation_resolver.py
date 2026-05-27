@@ -11,7 +11,7 @@ class ExceptionRelationResolver:
         -> ActionElement kind="raise"
         -> StorableUnit X_exception
         -> action::Throws -> X_exception
-        -> X_exception --code::HasType--> Datatype(X)
+        -> X_exception --code::HasType--> X
 
     - try / except
         -> TryUnit
@@ -23,11 +23,9 @@ class ExceptionRelationResolver:
         -> FinallyUnit
         -> TryUnit --action::ExitFlow--> FinallyUnit
 
-    Important:
-    code::HasType.to must point to a Datatype. It must not point to ClassUnit,
-    StorableUnit, MethodUnit, ActionElement, etc. Therefore, whenever an
-    exception target is resolved to a non-Datatype KDM element, this resolver
-    creates or reuses a generic Datatype with the same name.
+    The resolver intentionally avoids generic ActionRelationship elements with
+    temporary attributes such as kind="catches". Exception handling is modeled
+    with KDM-specific metaclasses whenever possible.
     """
 
     def __init__(
@@ -78,35 +76,38 @@ class ExceptionRelationResolver:
         self.external_index = external_index or {}
         self.finally_action_index = finally_action_index or {}
 
-        # Cache for Datatype objects used as targets of code::HasType.
-        self.exception_datatype_index = {}
+    # ------------------------------------------------------------
+    # JSON compatibility helpers
+    # ------------------------------------------------------------
 
-    def _get_value(self, data: dict, *keys, default=None):
-        if not isinstance(data, dict):
+    def _json_get(self, item: dict, snake_name: str, camel_name: str = None, default=None):
+        if item is None:
             return default
 
-        for key in keys:
-            if key in data and data.get(key) is not None:
-                return data.get(key)
+        if snake_name in item:
+            return item.get(snake_name)
+
+        if camel_name and camel_name in item:
+            return item.get(camel_name)
 
         return default
 
-    def _get_list(self, data: dict, *keys):
-        value = self._get_value(data, *keys, default=[])
+    def _json_list(self, item: dict, snake_name: str, camel_name: str = None):
+        value = self._json_get(item, snake_name, camel_name, [])
 
         if value is None:
             return []
 
-        if isinstance(value, list):
-            return value
+        return value
 
-        return [value]
+    def _element_type_name(self, element):
+        if element is None:
+            return None
 
-    def _statement_type(self, item: dict):
-        return self._get_value(item, "statement_type", "statementType")
-
-    def _control_type(self, item: dict):
-        return self._get_value(item, "control_type", "controlType")
+        try:
+            return getattr(element.eClass, "name", None)
+        except Exception:
+            return None
 
     def resolve(self, data: dict):
         """
@@ -131,7 +132,7 @@ class ExceptionRelationResolver:
         Resolves exception-related statements inside a single callable body.
         """
 
-        for item in self._get_list(callable_model, "body"):
+        for item in callable_model.get("body", []):
             self._resolve_body_item(item)
 
     def _resolve_body_item(self, item: dict):
@@ -141,8 +142,8 @@ class ExceptionRelationResolver:
         """
 
         item_type = item.get("type")
-        statement_type = self._statement_type(item)
-        control_type = self._control_type(item)
+        statement_type = self._json_get(item, "statement_type", "statementType")
+        control_type = self._json_get(item, "control_type", "controlType")
 
         if item_type == "control_structure" and control_type == "try":
             self._resolve_try_flows(item)
@@ -153,16 +154,16 @@ class ExceptionRelationResolver:
         if item_type == "exception_handler":
             self._resolve_exception_handler(item)
 
-        for child in self._get_list(item, "body"):
+        for child in self._json_list(item, "body"):
             self._resolve_body_item(child)
 
-        for child in self._get_list(item, "orelse", "elseBody"):
+        for child in self._json_list(item, "orelse", "elseBody"):
             self._resolve_body_item(child)
 
-        for child in self._get_list(item, "finalbody", "finallyBody"):
+        for child in self._json_list(item, "finalbody", "finallyBody"):
             self._resolve_body_item(child)
 
-        for handler in self._get_list(item, "handlers", "catchClauses"):
+        for handler in self._json_list(item, "handlers", "catchClauses"):
             self._resolve_body_item(handler)
 
     # ------------------------------------------------------------
@@ -177,10 +178,16 @@ class ExceptionRelationResolver:
         try_action = self.statement_action_index.get(item.get("id"))
 
         if try_action is None:
+            try_action = self._find_try_unit_by_source(item)
+
+        if try_action is None:
             return
 
-        for handler in self._get_list(item, "handlers", "catchClauses"):
+        for handler in self._json_list(item, "handlers", "catchClauses"):
             catch_action = self.statement_action_index.get(handler.get("id"))
+
+            if catch_action is None:
+                catch_action = self._find_catch_unit_by_source(try_action, handler)
 
             if catch_action is None:
                 continue
@@ -202,6 +209,68 @@ class ExceptionRelationResolver:
                 source=try_action,
                 target=finally_action,
             )
+
+    def _find_try_unit_by_source(self, item: dict):
+        return self._find_action_by_type_and_source(
+            element_type="TryUnit",
+            line_start=self._json_get(item, "line_start", "lineStart"),
+            line_end=self._json_get(item, "line_end", "lineEnd"),
+        )
+
+    def _find_catch_unit_by_source(self, try_action, handler: dict):
+        if try_action is None or not self.factory.has_feature(try_action, "codeElement"):
+            return None
+
+        line_start = self._json_get(handler, "line_start", "lineStart")
+        line_end = self._json_get(handler, "line_end", "lineEnd")
+
+        for child in try_action.codeElement:
+            if self._element_type_name(child) != "CatchUnit":
+                continue
+
+            if self._source_lines_match(child, line_start, line_end):
+                return child
+
+        for child in try_action.codeElement:
+            if self._element_type_name(child) == "CatchUnit":
+                return child
+
+        return None
+
+    def _find_action_by_type_and_source(self, element_type: str, line_start, line_end):
+        for action in self.statement_action_index.values():
+            if self._element_type_name(action) != element_type:
+                continue
+
+            if self._source_lines_match(action, line_start, line_end):
+                return action
+
+        return None
+
+    def _source_lines_match(self, element, line_start, line_end) -> bool:
+        if element is None:
+            return False
+
+        if line_start is None and line_end is None:
+            return False
+
+        if not self.factory.has_feature(element, "source"):
+            return False
+
+        for source_ref in element.source:
+            for region in getattr(source_ref, "region", []):
+                start = getattr(region, "startLine", None)
+                end = getattr(region, "endLine", None)
+
+                if line_start is not None and start != line_start:
+                    continue
+
+                if line_end is not None and end != line_end:
+                    continue
+
+                return True
+
+        return False
 
     def _create_exception_flow_relation(self, source, target):
         if source is None or target is None:
@@ -246,7 +315,7 @@ class ExceptionRelationResolver:
             return False
 
         for relation in source.actionRelation:
-            if relation.eClass.name != relation_type:
+            if self._element_type_name(relation) != relation_type:
                 continue
 
             if getattr(relation, "to", None) is target:
@@ -261,7 +330,10 @@ class ExceptionRelationResolver:
         exception type is known.
         """
 
-        exception_name = self._get_value(handler, "exception", "exceptionType")
+        exception_name = (
+            self._json_get(handler, "exception", "exceptionType")
+            or handler.get("type")
+        )
 
         if not exception_name:
             self._add_attribute_once(
@@ -313,18 +385,13 @@ class ExceptionRelationResolver:
 
             CatchUnit
               └── ParameterUnit exception_RepositoryError
-                    └── code::HasType -> Datatype(RepositoryError)
+                    └── code::HasType -> RepositoryError
         """
 
         if catch_action is None or exception_type is None:
             return None
 
         if not self.factory.has_feature(catch_action, "codeElement"):
-            return None
-
-        datatype_target = self._as_datatype_target(exception_type)
-
-        if datatype_target is None:
             return None
 
         parameter_name = f"exception_{exception_name}"
@@ -334,7 +401,6 @@ class ExceptionRelationResolver:
                 continue
 
             if getattr(child, "name", None) == parameter_name:
-                self._ensure_has_type(child, datatype_target)
                 return child
 
         parameter = self.factory.create_parameter_unit(parameter_name)
@@ -353,7 +419,13 @@ class ExceptionRelationResolver:
 
         catch_action.codeElement.append(parameter)
 
-        self._ensure_has_type(parameter, datatype_target)
+        has_type = self.factory.create_has_type_relation(exception_type)
+
+        if (
+            has_type is not None
+            and self.factory.has_feature(parameter, "codeRelation")
+        ):
+            parameter.codeRelation.append(has_type)
 
         return parameter
 
@@ -377,7 +449,7 @@ class ExceptionRelationResolver:
         exception_target = self._find_exception_target_from_raise(item)
 
         if exception_target is None:
-            if not self._get_value(item, "exception") and not self._get_list(item, "exception_calls", "exceptionCalls"):
+            if not item.get("exception") and not item.get("exception_calls"):
                 self._add_attribute_once(
                     raise_action,
                     "exception_flow",
@@ -400,8 +472,8 @@ class ExceptionRelationResolver:
         2. item["exception"]
         """
 
-        for call in self._get_list(item, "exception_calls", "exceptionCalls"):
-            target_id = self._get_value(call, "target_id", "targetId", "resolvedTarget")
+        for call in item.get("exception_calls", []):
+            target_id = call.get("target_id")
 
             if target_id:
                 target = self._find_target_by_id(target_id)
@@ -409,7 +481,7 @@ class ExceptionRelationResolver:
                 if target is not None:
                     return target
 
-        exception_name = self._get_value(item, "exception", "exceptionType")
+        exception_name = item.get("exception")
 
         if exception_name:
             return self._find_exception_by_name(exception_name)
@@ -489,10 +561,6 @@ class ExceptionRelationResolver:
         """
         Creates or reuses a builtin exception ClassUnit inside the
         PythonBuiltins CodeModel.
-
-        The ClassUnit is useful for structural navigation. When the exception
-        is used as a type target of HasType, it will be converted to a Datatype
-        by _as_datatype_target(...).
         """
 
         if not exception_name:
@@ -590,19 +658,18 @@ class ExceptionRelationResolver:
 
         return False
 
+
     def _get_or_create_thrown_exception_data(self, source, exception_type):
         """
         Creates or reuses a StorableUnit representing a thrown exception object.
 
         KDM Throws.to must point to a DataElement. Therefore, the generator
-        creates a StorableUnit and links it to a Datatype using code::HasType.
+        creates a StorableUnit and, only when a valid KDM Datatype is available,
+        links it with code::HasType.
 
-        Expected structure:
-
-            raise ActionElement
-              ├── StorableUnit RepositoryError_exception
-              │     └── code::HasType -> Datatype(RepositoryError)
-              └── action::Throws -> RepositoryError_exception
+        This method is intentionally defensive because Python exception targets
+        can sometimes resolve to StorableUnit instances. HasType.to cannot point
+        to StorableUnit; it must point to a Datatype-compatible element.
         """
 
         if source is None or exception_type is None:
@@ -611,11 +678,6 @@ class ExceptionRelationResolver:
         exception_type_name = getattr(exception_type, "name", None)
 
         if not exception_type_name:
-            exception_type_name = str(exception_type)
-
-        datatype_target = self._as_datatype_target(exception_type)
-
-        if datatype_target is None:
             return None
 
         if self.factory.has_feature(source, "codeElement"):
@@ -628,7 +690,6 @@ class ExceptionRelationResolver:
                     "exception_type_name",
                     exception_type_name,
                 ):
-                    self._ensure_has_type(child, datatype_target)
                     return child
 
         exception_data = self.factory.create_storable_unit(
@@ -652,155 +713,50 @@ class ExceptionRelationResolver:
         else:
             return None
 
-        self._ensure_has_type(exception_data, datatype_target)
+        datatype_target = self._extract_hastype_target(exception_type)
+
+        if datatype_target is not None:
+            try:
+                has_type = self.factory.create_has_type_relation(datatype_target)
+            except Exception:
+                has_type = None
+
+            if (
+                has_type is not None
+                and self.factory.has_feature(exception_data, "codeRelation")
+            ):
+                exception_data.codeRelation.append(has_type)
 
         return exception_data
 
-    # ------------------------------------------------------------
-    # Datatype normalization for HasType
-    # ------------------------------------------------------------
-
-    def _as_datatype_target(self, exception_type):
+    def _extract_hastype_target(self, element):
         """
-        Ensures that the target used by code::HasType is a Datatype.
+        Returns an element that is safe to use as HasType.to, or None.
 
-        HasType.to must point to a Datatype. It must not point to StorableUnit,
-        ClassUnit, MethodUnit, ActionElement, etc.
-
-        If exception_type is already a Datatype or one of its concrete
-        subclasses, it is returned as-is. Otherwise, a generic Datatype is
-        created or reused using the element name.
+        If the resolved exception target is already a Datatype-compatible KDM
+        element, it is returned. If it is a StorableUnit, the method tries to
+        reuse an existing HasType target from that StorableUnit.
         """
 
-        if exception_type is None:
+        if element is None:
             return None
 
-        if self._is_datatype(exception_type):
-            return exception_type
+        element_type = self._element_type_name(element)
 
-        type_name = getattr(exception_type, "name", None)
+        if element_type == "StorableUnit":
+            if self.factory.has_feature(element, "codeRelation"):
+                for relation in element.codeRelation:
+                    if self._element_type_name(relation) != "HasType":
+                        continue
 
-        if not type_name:
-            type_name = str(exception_type)
+                    target = getattr(relation, "to", None)
 
-        return self._get_or_create_exception_datatype(type_name)
+                    if target is not None and self._element_type_name(target) != "StorableUnit":
+                        return target
 
-    def _is_datatype(self, element) -> bool:
-        """
-        Returns True when element is a Datatype-compatible KDM type.
-        """
-
-        try:
-            eclass_name = element.eClass.name
-        except AttributeError:
-            return False
-
-        datatype_names = {
-            "Datatype",
-            "BooleanType",
-            "IntegerType",
-            "StringType",
-            "FloatType",
-            "VoidType",
-            "CharType",
-            "OctetType",
-            "DecimalType",
-            "ScaledType",
-            "DateType",
-            "TimeType",
-            "OrdinalType",
-            "BitstringType",
-            "EnumeratedType",
-            "CompositeType",
-            "RecordType",
-            "ArrayType",
-            "PointerType",
-            "RangeType",
-            "BagType",
-            "SetType",
-            "SequenceType",
-            "Signature",
-        }
-
-        return eclass_name in datatype_names
-
-    def _get_or_create_exception_datatype(self, type_name: str):
-        """
-        Creates or reuses a generic Datatype for an exception type.
-        """
-
-        if not type_name:
             return None
 
-        if type_name in self.exception_datatype_index:
-            return self.exception_datatype_index[type_name]
-
-        datatype_id = f"exception_datatype:{type_name}"
-
-        if datatype_id in self.id_index:
-            candidate = self.id_index[datatype_id]
-
-            if self._is_datatype(candidate):
-                self.exception_datatype_index[type_name] = candidate
-                return candidate
-
-        datatype = self.factory.create_generic_datatype(type_name)
-
-        self._add_attribute_once(
-            datatype,
-            "external",
-            "true",
-        )
-
-        self._add_attribute_once(
-            datatype,
-            "exception_type",
-            "true",
-        )
-
-        self._add_attribute_once(
-            datatype,
-            "exception_type_name",
-            type_name,
-        )
-
-        if (
-            self.builtin_model is not None
-            and self.factory.has_feature(self.builtin_model, "codeElement")
-        ):
-            self.builtin_model.codeElement.append(datatype)
-
-        self.exception_datatype_index[type_name] = datatype
-        self.id_index[datatype_id] = datatype
-
-        return datatype
-
-    def _ensure_has_type(self, element, datatype_target):
-        """
-        Adds code::HasType from element to datatype_target if possible and not
-        already present.
-        """
-
-        if element is None or datatype_target is None:
-            return
-
-        if not self._is_datatype(datatype_target):
-            return
-
-        if not self.factory.has_feature(element, "codeRelation"):
-            return
-
-        for relation in element.codeRelation:
-            if relation.eClass.name != "HasType":
-                continue
-
-            if getattr(relation, "to", None) is datatype_target:
-                return
-
-        has_type = self.factory.create_has_type_relation(datatype_target)
-
-        if has_type is not None:
-            element.codeRelation.append(has_type)
+        return element
 
     # ------------------------------------------------------------
     # Generic helpers

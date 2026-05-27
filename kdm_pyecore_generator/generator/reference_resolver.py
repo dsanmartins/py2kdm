@@ -39,6 +39,10 @@ class ReferenceResolver:
 
         return [value]
 
+    def _has_rich_body(self, callable_model: dict):
+        body = callable_model.get("body") or callable_model.get("statements") or []
+        return isinstance(body, list) and len(body) > 0
+
     def _resolve_callable_source(self, callable_model: dict):
         for key in (
             callable_model.get("id"),
@@ -80,6 +84,14 @@ class ReferenceResolver:
                 self._add_callable_calls(method, file_model)
 
     def _add_callable_calls(self, callable_model: dict, file_model: dict):
+        # When the extractor already provides a structured body, calls are
+        # mapped by BodyActionMapper inside the callable BlockUnit. Creating
+        # call ActionElements here would attach executable actions directly to
+        # MethodUnit/CallableUnit before the body mapper runs and may violate
+        # KDM containment constraints.
+        if self._has_rich_body(callable_model):
+            return
+
         source = self._resolve_callable_source(callable_model)
 
         if source is None:

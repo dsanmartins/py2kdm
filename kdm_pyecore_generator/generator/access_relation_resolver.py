@@ -65,6 +65,16 @@ class AccessRelationResolver:
     def _body_id(self, statement: dict):
         return self._get_value(statement, "id")
 
+    def _callable_key(self, callable_model: dict):
+        return (
+            callable_model.get("id")
+            or callable_model.get("qualifiedSignature")
+            or callable_model.get("qualified_signature")
+            or callable_model.get("qualifiedName")
+            or callable_model.get("qualified_name")
+            or callable_model.get("name")
+        )
+
     def add_access_relations(self, data: dict):
         """
         Adds Reads and Writes relations for all functions and methods.
@@ -83,7 +93,7 @@ class AccessRelationResolver:
                 self._add_callable_accesses(method)
 
     def _add_callable_accesses(self, callable_model: dict):
-        owner_id = callable_model.get("id")
+        owner_id = self._callable_key(callable_model)
 
         if owner_id is None:
             return
@@ -174,11 +184,13 @@ class AccessRelationResolver:
             self._add_accesses_from_call(call_action, owner_id, call)
 
     def _handle_call_statement(self, statement: dict, owner_id: str):
-        call = self._get_value(statement, "call")
+        call = self._get_value(statement, "call", "valueCall")
+        if not call:
+            call = self._get_value(statement, "value_call", "valueCall")
         if not call:
             return
 
-        action = self._resolve_action_from_call(owner_id, call)
+        action = self._resolve_action_from_call(owner_id, call) or self._resolve_action_from_statement(statement, owner_id)
 
         if action is None:
             return
@@ -228,12 +240,20 @@ class AccessRelationResolver:
             return
 
         target = self._get_value(statement, "target")
+        iterable = self._get_value(statement, "iter", "iterable")
+
+        if self._control_type(statement) == "foreach" and (not target or not iterable):
+            parsed_target, parsed_iterable = self._parse_foreach_condition(
+                self._get_value(statement, "condition")
+            )
+            target = target or parsed_target
+            iterable = iterable or parsed_iterable
+
         if target:
             storable = self._resolve_storable(owner_id, target)
             if storable is not None:
                 self._add_writes_relation(action, storable)
 
-        iterable = self._get_value(statement, "iter", "iterable")
         if iterable:
             self._add_reads_for_expression(action, owner_id, iterable)
 
@@ -295,9 +315,13 @@ class AccessRelationResolver:
         for keyword_argument in self._get_list(call, "keyword_arguments", "keywordArguments"):
             self._add_argument_read(action, owner_id, keyword_argument)
 
-    def _add_argument_read(self, action, owner_id: str, argument: dict):
-        value = argument.get("value")
-        argument_kind = argument.get("argument_kind")
+    def _add_argument_read(self, action, owner_id: str, argument):
+        if isinstance(argument, dict):
+            value = argument.get("value")
+            argument_kind = argument.get("argument_kind")
+        else:
+            value = argument
+            argument_kind = None
 
         if not self._is_reference_like_value(argument_kind, value):
             return
@@ -389,7 +413,12 @@ class AccessRelationResolver:
         if value_call:
             return self._resolve_action_from_call(owner_id, value_call)
 
-        line = statement.get("line_start")
+        line = self._get_value(statement, "line_start", "lineStart")
+        statement_type = self._statement_type(statement) or self._control_type(statement) or statement.get("type")
+        for key in ((owner_id, line, statement_type), (owner_id, line)):
+            action = self.statement_action_index.get(key)
+            if action is not None:
+                return action
         actions = self.action_index.get((owner_id, line), [])
 
         if len(actions) == 1:
@@ -403,13 +432,14 @@ class AccessRelationResolver:
         if call_id and call_id in self.action_index:
             return self.action_index[call_id]
 
-        line = call.get("line")
+        line = self._get_value(call, "line", "lineStart", "line_start")
 
         candidate_names = [
             call.get("name"),
             call.get("function"),
             call.get("method"),
             call.get("class_name"),
+            call.get("methodName"),
         ]
 
         for name in candidate_names:
@@ -431,7 +461,11 @@ class AccessRelationResolver:
         if statement_id and statement_id in self.statement_action_index:
             return self.statement_action_index[statement_id]
 
-        line = statement.get("line_start")
+        line = self._get_value(statement, "line_start", "lineStart")
+        for key in ((owner_id, line, "return"), (owner_id, line)):
+            action = self.statement_action_index.get(key)
+            if action is not None:
+                return action
         actions = self.action_index.get((owner_id, line), [])
 
         if len(actions) == 1:
@@ -472,6 +506,14 @@ class AccessRelationResolver:
                 return self.storable_index[key]
 
         return None
+
+    def _parse_foreach_condition(self, condition):
+        if not condition or ":" not in str(condition):
+            return None, None
+        left, right = str(condition).split(":", 1)
+        target = left.strip().split()[-1] if left.strip() else None
+        iterable = right.strip() or None
+        return target, iterable
 
     # ------------------------------------------------------------
     # Expression helpers
@@ -571,7 +613,7 @@ class AccessRelationResolver:
         return candidates
 
     def _looks_like_literal(self, text: str) -> bool:
-        if text in {"None", "True", "False"}:
+        if text in {"None", "True", "False", "null", "true", "false"}:
             return True
 
         if re.fullmatch(r"-?\d+(\.\d+)?", text):

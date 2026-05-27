@@ -1,6 +1,12 @@
-import re
-
 class BodyActionMapper:
+    def _has_rich_body(self, callable_model):
+        """Returns True when the extractor already supplied structured body statements."""
+        if not isinstance(callable_model, dict):
+            return False
+        body = callable_model.get("body") or callable_model.get("statements") or []
+        return isinstance(body, list) and len(body) > 0
+
+
     def __init__(
         self,
         factory,
@@ -34,23 +40,6 @@ class BodyActionMapper:
         self.callable_body_block_index = {}
 
     def map_body_actions(self, data: dict):
-        """
-        Maps body actions for both supported JSON shapes.
-
-        Python extractor shape:
-            files[] -> classes[]/functions[] -> methods[] -> body[]
-
-        Java extractor shape:
-            elements[] -> methods[] -> body[]
-        """
-
-        files_by_path = {
-            file_model.get("path"): file_model
-            for file_model in data.get("files", [])
-            if file_model.get("path")
-        }
-
-        # Python-style model.
         for file_model in data.get("files", []):
             for cls in file_model.get("classes", []):
                 for method in cls.get("methods", []):
@@ -59,23 +48,37 @@ class BodyActionMapper:
             for func in file_model.get("functions", []):
                 self._map_callable_body(func, file_model)
 
-        # Generic/Java-style model.
+        # Generic/Java extractor shape:
+        # data["elements"][*]["methods"] with filePath on the owning element.
         for element in data.get("elements", []):
-            file_path = element.get("filePath") or element.get("file_path")
-            file_model = files_by_path.get(file_path) or {
-                "path": file_path,
-                "packageName": element.get("packageName"),
-                "package_name": element.get("package_name"),
+            file_model = {
+                "path": element.get("filePath") or element.get("file_path"),
+                "packageName": element.get("packageName") or element.get("package_name"),
             }
-
             for method in element.get("methods", []):
-                # Preserve owner file information for Java methods because
-                # method entries do not always carry filePath directly.
-                if "filePath" not in method and "file_path" not in method and file_path:
-                    method = dict(method)
-                    method["filePath"] = file_path
-
                 self._map_callable_body(method, file_model)
+
+    def _resolve_callable_kdm(self, callable_model: dict):
+        for key in (
+            callable_model.get("id"),
+            callable_model.get("qualifiedSignature"),
+            callable_model.get("qualified_signature"),
+            callable_model.get("qualifiedName"),
+            callable_model.get("qualified_name"),
+        ):
+            if key and key in self.id_index:
+                return self.id_index[key]
+        return None
+
+    def _callable_key(self, callable_model: dict):
+        return (
+            callable_model.get("id")
+            or callable_model.get("qualifiedSignature")
+            or callable_model.get("qualified_signature")
+            or callable_model.get("qualifiedName")
+            or callable_model.get("qualified_name")
+            or callable_model.get("name")
+        )
 
     def _map_callable_body(self, callable_model: dict, file_model: dict):
         """
@@ -100,7 +103,9 @@ class BodyActionMapper:
         if body_block is None:
             return
 
+        callable_key = self._callable_key(callable_model)
         for statement in callable_model.get("body", []):
+            self._annotate_callable_key(statement, callable_key)
             self._map_body_item(
                 item=statement,
                 callable_model=callable_model,
@@ -110,17 +115,6 @@ class BodyActionMapper:
 
         self._move_direct_executable_actions_to_body_block(
             callable_kdm=callable_kdm,
-            body_block=body_block,
-        )
-
-        # Option A for Java/simple bodies:
-        # If a callable body was created but no executable child was attached,
-        # materialize simple body statements such as return/assignment/throw as
-        # ActionElement nodes. This removes empty-body warnings for getters and
-        # simple constructors without weakening the validator.
-        self._ensure_trivial_body_actions(
-            callable_model=callable_model,
-            file_model=file_model,
             body_block=body_block,
         )
 
@@ -139,123 +133,6 @@ class BodyActionMapper:
         self._resolve_unresolved_constructor_creates(body_block)
 
     # ------------------------------------------------------------
-    # Generic JSON access helpers
-    # ------------------------------------------------------------
-
-    def _get_value(self, data: dict, *keys, default=None):
-        if not isinstance(data, dict):
-            return default
-
-        for key in keys:
-            if key in data and data.get(key) is not None:
-                return data.get(key)
-
-        return default
-
-    def _get_list(self, data: dict, *keys):
-        value = self._get_value(data, *keys, default=[])
-
-        if value is None:
-            return []
-
-        if isinstance(value, list):
-            return value
-
-        return [value]
-
-    def _line_start(self, item: dict):
-        return self._get_value(item, "line_start", "lineStart", "line", default=None)
-
-    def _line_end(self, item: dict):
-        return self._get_value(
-            item,
-            "line_end",
-            "lineEnd",
-            "endLine",
-            default=self._line_start(item),
-        )
-
-    def _statement_type(self, item: dict):
-        return self._get_value(item, "statement_type", "statementType", default=None)
-
-    def _control_type(self, item: dict):
-        return self._get_value(item, "control_type", "controlType", default=None)
-
-    def _callable_key(self, callable_model: dict):
-        return self._get_value(
-            callable_model,
-            "id",
-            "qualified_signature",
-            "qualifiedSignature",
-            "qualifiedName",
-            "signature",
-            default=None,
-        )
-
-    def _resolve_callable_kdm(self, callable_model: dict):
-        candidate_keys = [
-            callable_model.get("id"),
-            callable_model.get("qualified_signature"),
-            callable_model.get("qualifiedSignature"),
-            callable_model.get("qualifiedName"),
-            callable_model.get("signature"),
-        ]
-
-        for key in candidate_keys:
-            if key is None:
-                continue
-
-            target = self.id_index.get(key)
-
-            if target is not None:
-                return target
-
-        return None
-
-    def _add_source_metadata_to_action(self, action, statement=None, call=None):
-        """
-        Adds source metadata to an ActionElement and, when possible, a concrete
-        SourceRegion. This is required for repeated Java calls such as
-        builder.append(...), which are valid distinct actions but share the same
-        method name and kind.
-        """
-
-        if action is None:
-            return
-
-        statement = statement or {}
-        call = call or {}
-
-        line_start = (
-            self._line_start(statement)
-            or self._line_start(call)
-        )
-
-        line_end = (
-            self._line_end(statement)
-            or self._line_end(call)
-            or line_start
-        )
-
-        # Do not store call_id or line_start/line_end as Attribute elements.
-        # Source positions are represented by source::SourceRegion, and
-        # call semantics are represented by action::Calls/action::Creates.
-
-    def _has_concrete_source_region(self, element):
-        if element is None or not self.factory.has_feature(element, "source"):
-            return False
-
-        for source_ref in element.source:
-            for region in getattr(source_ref, "region", []):
-                start_line = getattr(region, "startLine", None)
-                end_line = getattr(region, "endLine", None)
-
-                if start_line is not None or end_line is not None:
-                    return True
-
-        return False
-
-    # ------------------------------------------------------------
     # Callable body BlockUnit
     # ------------------------------------------------------------
 
@@ -269,7 +146,7 @@ class BodyActionMapper:
         Creates or reuses the BlockUnit that represents a callable body.
         """
 
-        callable_id = self._callable_key(callable_model)
+        callable_id = callable_model.get("id")
 
         if callable_id in self.callable_body_block_index:
             return self.callable_body_block_index[callable_id]
@@ -281,10 +158,6 @@ class BodyActionMapper:
             if getattr(child.eClass, "name", None) != "BlockUnit":
                 continue
 
-            if self._has_attribute(child, "callable_body_id", callable_id):
-                self.callable_body_block_index[callable_id] = child
-                return child
-
             if getattr(child, "name", None) == "body" or getattr(child, "kind", None) == "body":
                 self.callable_body_block_index[callable_id] = child
                 return child
@@ -295,7 +168,6 @@ class BodyActionMapper:
         )
 
         self._add_attribute_once(body_block, "role", "callable_body")
-        self._add_attribute_once(body_block, "callable_body_id", callable_id)
 
         self._add_callable_body_source_region(
             body_block=body_block,
@@ -320,15 +192,15 @@ class BodyActionMapper:
             return
 
         start_lines = [
-            self._line_start(item)
+            self._json_get(item, "line_start", "lineStart")
             for item in body
-            if self._line_start(item) is not None
+            if self._json_get(item, "line_start", "lineStart") is not None
         ]
 
         end_lines = [
-            self._line_end(item)
+            self._json_get(item, "line_end", "lineEnd")
             for item in body
-            if self._line_end(item) is not None
+            if self._json_get(item, "line_end", "lineEnd") is not None
         ]
 
         if not start_lines and not end_lines:
@@ -392,6 +264,151 @@ class BodyActionMapper:
         for element in movable:
             self._attach_action_to_parent(element, body_block)
 
+    # ------------------------------------------------------------
+    # JSON compatibility helpers
+    # ------------------------------------------------------------
+
+    def _json_get(self, item: dict, snake_name: str, camel_name: str = None, default=None):
+        """
+        Reads either the Python extractor snake_case keys or the Java extractor
+        camelCase keys without forcing either extractor to change its schema.
+        """
+
+        if item is None:
+            return default
+
+        if snake_name in item:
+            return item.get(snake_name)
+
+        if camel_name and camel_name in item:
+            return item.get(camel_name)
+
+        return default
+
+    def _json_list(self, item: dict, snake_name: str, camel_name: str = None):
+        value = self._json_get(item, snake_name, camel_name, [])
+
+        if value is None:
+            return []
+
+        return value
+
+    def _element_type_name(self, element):
+        if element is None:
+            return None
+
+        try:
+            return getattr(element.eClass, "name", None)
+        except Exception:
+            return None
+
+    def _is_try_unit(self, element) -> bool:
+        return self._element_type_name(element) == "TryUnit"
+
+    def _is_catch_unit(self, element) -> bool:
+        return self._element_type_name(element) == "CatchUnit"
+
+    def _is_finally_unit(self, element) -> bool:
+        return self._element_type_name(element) == "FinallyUnit"
+
+    def _add_exception_flow_if_needed(self, try_action, catch_action):
+        """
+        KDM requires every CatchUnit contained in a TryUnit to be the target of
+        an action::ExceptionFlow relation. Java body nodes currently do not
+        always have stable statement ids, so this relation is created directly
+        during containment mapping instead of relying only on a later id-based
+        resolver.
+        """
+
+        if try_action is None or catch_action is None:
+            return
+
+        if not self._is_try_unit(try_action) or not self._is_catch_unit(catch_action):
+            return
+
+        if self._has_action_relation(
+            source=try_action,
+            target=catch_action,
+            relation_type="ExceptionFlow",
+        ):
+            return
+
+        if not hasattr(self.factory, "create_exception_flow_relation"):
+            return
+
+        relation = self.factory.create_exception_flow_relation(catch_action)
+
+        if relation is None:
+            return
+
+        if self.factory.has_feature(try_action, "actionRelation"):
+            try_action.actionRelation.append(relation)
+
+    def _add_exit_flow_if_needed(self, try_action, finally_action):
+        if try_action is None or finally_action is None:
+            return
+
+        if not self._is_try_unit(try_action) or not self._is_finally_unit(finally_action):
+            return
+
+        if self._has_action_relation(
+            source=try_action,
+            target=finally_action,
+            relation_type="ExitFlow",
+        ):
+            return
+
+        if not hasattr(self.factory, "create_exit_flow_relation"):
+            return
+
+        relation = self.factory.create_exit_flow_relation(finally_action)
+
+        if relation is None:
+            return
+
+        if self.factory.has_feature(try_action, "actionRelation"):
+            try_action.actionRelation.append(relation)
+
+
+
+
+    def _has_action_relation(self, *args, **kwargs) -> bool:
+        source = kwargs.get("source")
+        target = kwargs.get("target")
+        relation_type = kwargs.get("relation_type")
+
+        if len(args) >= 1 and source is None:
+            source = args[0]
+
+        if len(args) >= 2 and target is None:
+            target = args[1]
+
+        if len(args) >= 3 and relation_type is None:
+            relation_type = args[2]
+
+        if source is None or target is None or relation_type is None:
+            return False
+
+        if not self.factory.has_feature(source, "actionRelation"):
+            return False
+
+        for relation in source.actionRelation:
+            if self._element_type_name(relation) != relation_type:
+                continue
+
+            if getattr(relation, "to", None) is target:
+                return True
+
+        return False
+
+    def _annotate_callable_key(self, item: dict, callable_key):
+        if not isinstance(item, dict):
+            return
+        item["__callable_key"] = callable_key
+        for key in ("body", "orelse", "elseBody", "finalbody", "finallyBody", "handlers", "catchClauses"):
+            for child in item.get(key, []) or []:
+                self._annotate_callable_key(child, callable_key)
+
     def _map_body_item(
         self,
         item: dict,
@@ -412,12 +429,8 @@ class BodyActionMapper:
                 parent_kdm=parent_kdm,
             )
 
-            self._add_java_behavior_relations(
-                action=action,
-                item=item,
-                callable_model=callable_model,
-                file_model=file_model,
-            )
+            self._add_exception_flow_if_needed(parent_kdm, action)
+            self._add_exit_flow_if_needed(parent_kdm, action)
 
             next_parent = action
         else:
@@ -442,7 +455,7 @@ class BodyActionMapper:
             owner_action=next_parent,
         )
 
-        for child in self._get_list(item, "body"):
+        for child in self._json_list(item, "body"):
             self._map_body_item(
                 item=child,
                 callable_model=callable_model,
@@ -450,7 +463,7 @@ class BodyActionMapper:
                 parent_kdm=next_parent,
             )
 
-        for child in self._get_list(item, "orelse", "elseBody"):
+        for child in self._json_list(item, "orelse", "elseBody"):
             self._map_body_item(
                 item=child,
                 callable_model=callable_model,
@@ -458,7 +471,7 @@ class BodyActionMapper:
                 parent_kdm=next_parent,
             )
 
-        for handler in self._get_list(item, "handlers", "catchClauses"):
+        for handler in self._json_list(item, "handlers", "catchClauses"):
             self._map_body_item(
                 item=handler,
                 callable_model=callable_model,
@@ -473,711 +486,6 @@ class BodyActionMapper:
             parent_kdm=next_parent,
         )
 
-
-
-    # ------------------------------------------------------------
-    # Java rich body semantics
-    # ------------------------------------------------------------
-
-    def _add_java_behavior_relations(
-        self,
-        action,
-        item: dict,
-        callable_model: dict,
-        file_model: dict,
-    ):
-        """
-        Adds Java behavior relations derived from the rich generic JSON body.
-
-        This method is intentionally restricted to Java. Python already has
-        mature dedicated resolvers for Reads/Writes/Creates/Throws/Try/Catch.
-        The method uses native KDM relations whenever possible and avoids
-        serializing debug attributes.
-        """
-
-        if self.language != "java":
-            return
-
-        if action is None or not isinstance(item, dict):
-            return
-
-        statement_type = self._statement_type(item)
-        node_type = self._get_value(item, "type")
-        control_type = self._control_type(item)
-
-        # Reads from conditions such as if (name == null), while (...), switch (...)
-        if node_type == "control_structure":
-            self._add_java_reads_from_expression(
-                action=action,
-                callable_model=callable_model,
-                expression=self._get_value(item, "condition", "selector", "expression"),
-            )
-
-            for call in self._get_list(item, "condition_calls", "conditionCalls"):
-                self._add_java_reads_from_call_arguments(action, callable_model, call)
-
-        if statement_type == "assignment":
-            for target_name in self._get_list(item, "targets"):
-                self._add_java_write(
-                    action=action,
-                    callable_model=callable_model,
-                    reference_name=target_name,
-                )
-
-            self._add_java_reads_from_expression(
-                action=action,
-                callable_model=callable_model,
-                expression=self._get_value(item, "value"),
-            )
-
-            value_call = self._get_value(item, "value_call", "valueCall", default=None)
-            if isinstance(value_call, dict):
-                self._add_java_reads_from_call_arguments(action, callable_model, value_call)
-                self._add_java_creates_if_constructor(action, value_call)
-
-            if self._is_java_object_creation_item(item):
-                self._add_java_creates_from_item(action, item)
-
-        elif statement_type == "return":
-            before_reads = self._count_action_relations(action, "Reads")
-
-            self._add_java_reads_from_expression(
-                action=action,
-                callable_model=callable_model,
-                expression=self._get_value(item, "value"),
-            )
-
-            value_call = self._get_value(item, "value_call", "valueCall", default=None)
-            if isinstance(value_call, dict):
-                self._add_java_reads_from_call_arguments(action, callable_model, value_call)
-                self._add_java_creates_if_constructor(action, value_call)
-
-            # Keep the validator satisfied for returns whose value is a literal,
-            # an external expression, or a parameter that is intentionally not a
-            # valid Reads target under the current KDM convention.
-            after_reads = self._count_action_relations(action, "Reads")
-            if before_reads == after_reads and not self._has_attribute_tag(action, "return_flow"):
-                self._add_attribute_once(action, "unresolved_return_value", "true")
-
-        elif statement_type == "call":
-            call = self._get_value(item, "call", default=None)
-            if isinstance(call, dict):
-                self._add_java_reads_from_call_arguments(action, callable_model, call)
-                self._add_java_creates_if_constructor(action, call)
-
-        elif statement_type in {"throw", "raise"}:
-            self._add_java_throw_relation(action, item)
-
-            for call in self._get_list(item, "exception_calls", "exceptionCalls"):
-                self._add_java_reads_from_call_arguments(action, callable_model, call)
-                self._add_java_creates_if_constructor(action, call)
-
-        # Generic expression calls nested in any statement.
-        for call in self._get_list(item, "value_calls", "valueCalls"):
-            self._add_java_reads_from_call_arguments(action, callable_model, call)
-            self._add_java_creates_if_constructor(action, call)
-
-        for call in self._get_list(item, "condition_calls", "conditionCalls"):
-            self._add_java_reads_from_call_arguments(action, callable_model, call)
-
-        # Object creation can be encoded directly in local variable declarations
-        # or assignment/return values.
-        if self._is_java_object_creation_item(item):
-            self._add_java_creates_from_item(action, item)
-
-    def _add_java_write(self, action, callable_model: dict, reference_name):
-        target = self._resolve_java_storable(callable_model, reference_name)
-
-        if target is None:
-            return
-
-        self._append_action_relation_once(
-            action=action,
-            relation_type="Writes",
-            target=target,
-        )
-
-    def _add_java_read(self, action, callable_model: dict, reference_name):
-        target = self._resolve_java_storable(callable_model, reference_name)
-
-        if target is None:
-            return
-
-        self._append_action_relation_once(
-            action=action,
-            relation_type="Reads",
-            target=target,
-        )
-
-    def _add_java_reads_from_expression(self, action, callable_model: dict, expression):
-        for reference_name in self._java_reference_candidates(expression):
-            self._add_java_read(action, callable_model, reference_name)
-
-    def _add_java_reads_from_call_arguments(self, action, callable_model: dict, call: dict):
-        if not isinstance(call, dict):
-            return
-
-        scope = self._get_value(call, "scope", "receiver")
-        if scope:
-            self._add_java_read(action, callable_model, scope)
-
-        for argument in self._get_list(call, "arguments"):
-            if isinstance(argument, dict):
-                value = self._get_value(argument, "value", "name")
-            else:
-                value = argument
-
-            self._add_java_reads_from_expression(action, callable_model, value)
-
-    def _append_action_relation_once(self, action, relation_type: str, target):
-        if action is None or target is None:
-            return
-
-        if not self.factory.has_feature(action, "actionRelation"):
-            return
-
-        for relation in action.actionRelation:
-            if getattr(relation.eClass, "name", None) != relation_type:
-                continue
-
-            if getattr(relation, "to", None) is target:
-                return
-
-        if relation_type == "Reads":
-            relation = self.factory.create_reads_relation(target)
-        elif relation_type == "Writes":
-            relation = self.factory.create_writes_relation(target)
-        elif relation_type == "Creates":
-            relation = self.factory.create_creates_relation(target)
-        elif relation_type == "Throws":
-            relation = self.factory.create_throws_relation(target)
-        else:
-            return
-
-        action.actionRelation.append(relation)
-
-    def _resolve_java_storable(self, callable_model: dict, reference_name):
-        if not reference_name:
-            return None
-
-        reference_text = str(reference_name).strip()
-
-        if not reference_text:
-            return None
-
-        # Strip common Java syntax around field references.
-        reference_text = reference_text.replace("this.", "")
-        reference_text = reference_text.split("[", 1)[0]
-
-        if "." in reference_text:
-            # repository.findName(...) should read repository; this.field
-            # was handled above.
-            reference_text = reference_text.split(".", 1)[0]
-
-        if not reference_text or not self._is_identifier_like(reference_text):
-            return None
-
-        callable_key = self._callable_key(callable_model)
-
-        candidates = []
-
-        if callable_key:
-            candidates.extend(
-                [
-                    (callable_key, reference_text),
-                    (callable_key, "local", reference_text),
-                    f"{callable_key}:local:{reference_text}",
-                    f"{callable_key}:parameter:{reference_text}",
-                ]
-            )
-
-        owner_qn = self._owner_qualified_name_from_callable(callable_model)
-
-        if owner_qn:
-            candidates.append(f"{owner_qn}.{reference_text}")
-
-        candidates.append(reference_text)
-
-        for key in candidates:
-            target = self.storable_index.get(key) or self.id_index.get(key)
-
-            if self._is_storable_unit(target):
-                return target
-
-        return None
-
-    def _owner_qualified_name_from_callable(self, callable_model: dict):
-        signature = self._get_value(
-            callable_model,
-            "qualifiedSignature",
-            "qualified_signature",
-            "id",
-            default=None,
-        )
-
-        if not signature or not isinstance(signature, str):
-            return None
-
-        if ".<init>" in signature:
-            return signature.split(".<init>", 1)[0]
-
-        if "(" in signature:
-            before_params = signature.split("(", 1)[0]
-            if "." in before_params:
-                return before_params.rsplit(".", 1)[0]
-
-        return None
-
-    def _java_reference_candidates(self, expression):
-        if expression is None:
-            return []
-
-        if isinstance(expression, dict):
-            values = []
-            for key in ("name", "value", "target", "scope", "receiver"):
-                if expression.get(key):
-                    values.extend(self._java_reference_candidates(expression.get(key)))
-            return values
-
-        expression_text = str(expression)
-
-        if not expression_text:
-            return []
-
-        # Remove quoted strings and character literals.
-        expression_text = re.sub(r'"(?:\\.|[^"\\])*"', " ", expression_text)
-        expression_text = re.sub(r"'(?:\\.|[^'\\])*'", " ", expression_text)
-
-        candidates = []
-
-        for token in re.findall(r"\b[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)?\b", expression_text):
-            first = token.split(".", 1)[0]
-
-            if first in self._java_keywords():
-                continue
-
-            if first in {"String", "Long", "Integer", "Boolean", "List", "Map", "ArrayList", "HashMap", "StringBuilder"}:
-                continue
-
-            candidates.append(first)
-
-        return candidates
-
-    def _java_keywords(self):
-        return {
-            "abstract", "assert", "boolean", "break", "byte", "case", "catch",
-            "char", "class", "const", "continue", "default", "do", "double",
-            "else", "enum", "extends", "false", "final", "finally", "float",
-            "for", "if", "implements", "import", "instanceof", "int",
-            "interface", "long", "new", "null", "package", "private",
-            "protected", "public", "return", "short", "static", "strictfp",
-            "super", "switch", "synchronized", "this", "throw", "throws",
-            "transient", "true", "try", "void", "volatile", "while",
-        }
-
-    def _is_identifier_like(self, text: str):
-        return re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", str(text or "")) is not None
-
-    def _is_storable_unit(self, element):
-        return element is not None and getattr(element.eClass, "name", None) == "StorableUnit"
-
-    def _is_java_object_creation_item(self, item: dict):
-        value_kind = self._get_value(item, "valueKind", "value_kind")
-        statement_type = self._statement_type(item)
-
-        return (
-            value_kind == "object_creation"
-            or statement_type == "object_creation"
-            or self._get_value(item, "objectCreation", "object_creation") is not None
-        )
-
-    def _add_java_creates_if_constructor(self, action, call: dict):
-        constructor_name = self._constructor_name_from_call(call)
-
-        if not constructor_name:
-            return
-
-        self._add_java_creates(action, constructor_name)
-
-    def _add_java_creates_from_item(self, action, item: dict):
-        constructor_name = (
-            self._get_value(item, "className", "class_name", "assignedType", "assigned_type")
-            or self._constructor_name_from_value(self._get_value(item, "value"))
-        )
-
-        value_call = self._get_value(item, "value_call", "valueCall", default=None)
-        if not constructor_name and isinstance(value_call, dict):
-            constructor_name = self._constructor_name_from_call(value_call)
-
-        if not constructor_name:
-            return
-
-        self._add_java_creates(action, constructor_name)
-
-    def _constructor_name_from_call(self, call: dict):
-        if not isinstance(call, dict):
-            return None
-
-        classification = self._get_value(call, "classification")
-        kind = self._get_value(call, "kind")
-
-        target_id = self._get_value(call, "target_id", "targetId", "resolvedTarget", "resolved_target")
-        class_name = self._get_value(call, "className", "class_name")
-
-        if class_name:
-            return str(class_name).split(".")[-1]
-
-        if target_id and ".<init>" in str(target_id):
-            return str(target_id).split(".<init>", 1)[0].split(".")[-1]
-
-        if target_id and str(target_id).endswith(")"):
-            # Constructor signatures sometimes arrive as pkg.Type(...)
-            before_params = str(target_id).split("(", 1)[0]
-            last = before_params.split(".")[-1]
-            if last and last[:1].isupper():
-                return last
-
-        if classification == "constructor" or kind == "constructor_call":
-            name = self._get_value(call, "methodName", "method_name", "name", "function")
-            if name:
-                return str(name).split(".")[-1]
-
-        return None
-
-    def _constructor_name_from_value(self, value):
-        if value is None:
-            return None
-
-        value_text = str(value).strip()
-
-        match = re.search(r"\bnew\s+([A-Za-z_][A-Za-z0-9_.$]*)", value_text)
-        if match:
-            return match.group(1).split(".")[-1]
-
-        if value_text and value_text[0].isupper():
-            return value_text.split("(", 1)[0].split(".")[-1]
-
-        return None
-
-    def _add_java_creates(self, action, constructor_name: str):
-        if not constructor_name:
-            return
-
-        target = self._resolve_class_unit_by_name(constructor_name)
-
-        if target is None and self.external_builder is not None:
-            target = self.external_builder.get_or_create_external_class(
-                library_name=self._infer_java_library_name(constructor_name),
-                class_name=constructor_name,
-            )
-
-        if target is None:
-            return
-
-        self._append_action_relation_once(
-            action=action,
-            relation_type="Creates",
-            target=target,
-        )
-
-    def _resolve_class_unit_by_name(self, class_name: str):
-        if not class_name:
-            return None
-
-        for element in self.id_index.values():
-            if getattr(element.eClass, "name", None) != "ClassUnit":
-                continue
-
-            if getattr(element, "name", None) == class_name:
-                return element
-
-        return None
-
-    def _infer_java_library_name(self, class_name: str):
-        if class_name in {"StringBuilder", "String", "Long", "Integer", "Boolean", "RuntimeException", "IllegalArgumentException", "IllegalStateException"}:
-            return "java.lang"
-
-        if class_name in {"ArrayList", "HashMap", "List", "Map"}:
-            return "java.util"
-
-        return "java.external"
-
-    def _add_java_throw_relation(self, action, item: dict):
-        exception_name = self._java_exception_name_from_item(item)
-
-        if not exception_name:
-            return
-
-        exception_data = self._get_or_create_java_thrown_exception_data(
-            action=action,
-            exception_name=exception_name,
-        )
-
-        if exception_data is None:
-            return
-
-        self._append_action_relation_once(
-            action=action,
-            relation_type="Throws",
-            target=exception_data,
-        )
-
-    def _java_exception_name_from_item(self, item: dict):
-        exception_name = self._get_value(item, "exception", "exceptionType")
-
-        if exception_name:
-            return str(exception_name).split(".")[-1]
-
-        for call in self._get_list(item, "exception_calls", "exceptionCalls"):
-            constructor_name = self._constructor_name_from_call(call)
-            if constructor_name:
-                return constructor_name
-
-        value = self._get_value(item, "value")
-        constructor_name = self._constructor_name_from_value(value)
-        if constructor_name:
-            return constructor_name
-
-        return None
-
-    def _get_or_create_java_thrown_exception_data(self, action, exception_name: str):
-        if action is None or not exception_name:
-            return None
-
-        if not self.factory.has_feature(action, "codeElement"):
-            return None
-
-        storable_name = f"{exception_name}_exception"
-
-        for child in action.codeElement:
-            if getattr(child.eClass, "name", None) == "StorableUnit" and getattr(child, "name", None) == storable_name:
-                return child
-
-        exception_data = self.factory.create_storable_unit(storable_name)
-
-        self._add_attribute_once(exception_data, "role", "thrown_exception")
-
-        action.codeElement.append(exception_data)
-
-        return exception_data
-
-    def _count_action_relations(self, action, relation_type: str):
-        if action is None or not self.factory.has_feature(action, "actionRelation"):
-            return 0
-
-        return sum(
-            1
-            for relation in action.actionRelation
-            if getattr(relation.eClass, "name", None) == relation_type
-        )
-
-
-    # ------------------------------------------------------------
-    # Option A: materialize trivial body statements
-    # ------------------------------------------------------------
-
-    def _ensure_trivial_body_actions(
-        self,
-        callable_model: dict,
-        file_model: dict,
-        body_block,
-    ):
-        """
-        Ensures that simple callable bodies are represented by executable
-        KDM actions.
-
-        This is intentionally conservative: it only runs when the callable
-        already has body items in the JSON model but the BlockUnit does not
-        contain any executable children. In practice, this covers Java getters,
-        setters and simple constructors such as:
-
-            return field;
-            this.field = parameter;
-
-        Python bodies are normally already rich enough, so this method is a
-        no-op for them unless a body block would otherwise be empty.
-        """
-
-        if body_block is None:
-            return
-
-        if self._has_executable_children(body_block):
-            return
-
-        body_items = self._get_list(callable_model, "body")
-
-        if not body_items:
-            self._create_synthetic_empty_body_action(
-                callable_model=callable_model,
-                file_model=file_model,
-                body_block=body_block,
-            )
-            return
-
-        for item in body_items:
-            self._materialize_trivial_body_item(
-                item=item,
-                file_model=file_model,
-                parent_kdm=body_block,
-            )
-
-        # Defensive fallback: if the JSON body exists but none of its items
-        # could be converted into executable KDM nodes, create a conservative
-        # synthetic action. This keeps Java getters and constructors from
-        # producing empty callable_body BlockUnits without weakening validation.
-        if not self._has_executable_children(body_block):
-            self._create_synthetic_empty_body_action(
-                callable_model=callable_model,
-                file_model=file_model,
-                body_block=body_block,
-            )
-
-    def _materialize_trivial_body_item(
-        self,
-        item: dict,
-        file_model: dict,
-        parent_kdm,
-    ):
-        if not isinstance(item, dict):
-            return
-
-        action = self._create_action_for_body_item(item)
-
-        if action is not None:
-            self._add_or_update_action(
-                action=action,
-                item=item,
-                file_model=file_model,
-                parent_kdm=parent_kdm,
-            )
-            next_parent = action
-        else:
-            next_parent = parent_kdm
-
-        for child in self._get_list(item, "body"):
-            self._materialize_trivial_body_item(
-                item=child,
-                file_model=file_model,
-                parent_kdm=next_parent,
-            )
-
-        for child in self._get_list(item, "orelse", "elseBody"):
-            self._materialize_trivial_body_item(
-                item=child,
-                file_model=file_model,
-                parent_kdm=next_parent,
-            )
-
-        for handler in self._get_list(item, "handlers", "catchClauses"):
-            self._materialize_trivial_body_item(
-                item=handler,
-                file_model=file_model,
-                parent_kdm=next_parent,
-            )
-
-        for child in self._get_list(item, "finalbody", "finallyBody"):
-            self._materialize_trivial_body_item(
-                item=child,
-                file_model=file_model,
-                parent_kdm=next_parent,
-            )
-
-    def _create_synthetic_empty_body_action(
-        self,
-        callable_model: dict,
-        file_model: dict,
-        body_block,
-    ):
-        """
-        Creates one conservative executable ActionElement for Java callables
-        whose body block would otherwise remain empty.
-
-        This is used only as a fallback. It is intentionally not applied to
-        Python, whose extractor already provides rich body actions and where
-        empty blocks should remain visible during validation.
-        """
-
-        if body_block is None:
-            return
-
-        if self.language != "java":
-            return
-
-        if self._has_executable_children(body_block):
-            return
-
-        method_kind = self._get_value(
-            callable_model,
-            "kind",
-            "methodKind",
-            "method_kind",
-            default="method",
-        )
-
-        return_type = self._get_value(
-            callable_model,
-            "returnType",
-            "return_type",
-            default=None,
-        )
-
-        if method_kind == "constructor":
-            action_name = "constructor_body"
-            action_kind = "constructor_body"
-        elif return_type and str(return_type) != "void":
-            action_name = "return"
-            action_kind = "return"
-        else:
-            action_name = "statement"
-            action_kind = "statement"
-
-        action = self.factory.create_action_element(
-            name=action_name,
-            kind=action_kind,
-        )
-
-        self._add_attribute_once(action, "synthetic_body_action", "true")
-        self._add_attribute_once(action, "synthetic_reason", "empty_callable_body")
-
-        callable_key = self._callable_key(callable_model)
-        if callable_key is not None:
-            self._add_attribute_once(action, "callable_body_id", callable_key)
-
-        synthetic_item = {
-            "id": f"synthetic-body:{callable_key or getattr(body_block, 'name', 'body')}",
-            "type": "statement",
-            "statement_type": action_kind,
-            "line_start": self._get_value(callable_model, "lineStart", "line_start"),
-            "line_end": self._get_value(callable_model, "lineEnd", "line_end"),
-        }
-
-        self._add_or_update_action(
-            action=action,
-            item=synthetic_item,
-            file_model=file_model,
-            parent_kdm=body_block,
-        )
-
-    def _has_executable_children(self, parent_kdm):
-        if parent_kdm is None:
-            return False
-
-        if not self.factory.has_feature(parent_kdm, "codeElement"):
-            return False
-
-        executable_types = {
-            "ActionElement",
-            "TryUnit",
-            "CatchUnit",
-            "FinallyUnit",
-        }
-
-        for child in parent_kdm.codeElement:
-            if getattr(child.eClass, "name", None) in executable_types:
-                return True
-
-        return False
-
     # ------------------------------------------------------------
     # Final body mapping
     # ------------------------------------------------------------
@@ -1189,7 +497,7 @@ class BodyActionMapper:
         file_model: dict,
         parent_kdm,
     ):
-        finalbody = item.get("finalbody", [])
+        finalbody = self._json_list(item, "finalbody", "finallyBody")
 
         if not finalbody:
             return
@@ -1197,7 +505,7 @@ class BodyActionMapper:
         # Only try nodes should own a finalbody in the current JSON model.
         if not (
             item.get("type") == "control_structure"
-            and self._control_type(item) == "try"
+            and self._json_get(item, "control_type", "controlType") == "try"
         ):
             for child in finalbody:
                 self._map_body_item(
@@ -1215,8 +523,8 @@ class BodyActionMapper:
             "type": "finally_block",
             "statement_type": None,
             "control_type": "finally",
-            "line_start": self._line_start(item),
-            "line_end": self._line_end(item),
+            "line_start": self._json_get(item, "line_start", "lineStart"),
+            "line_end": self._json_get(item, "line_end", "lineEnd"),
         }
 
         self._add_or_update_action(
@@ -1225,6 +533,8 @@ class BodyActionMapper:
             file_model=file_model,
             parent_kdm=parent_kdm,
         )
+
+        self._add_exit_flow_if_needed(parent_kdm, finally_action)
 
         if item.get("id"):
             self.finally_action_index[item.get("id")] = finally_action
@@ -1255,21 +565,21 @@ class BodyActionMapper:
         if owner_action is None:
             return
 
-        for call in self._get_list(item, "condition_calls", "conditionCalls"):
+        for call in self._json_list(item, "condition_calls", "conditionCalls"):
             self._attach_existing_call_action(
                 call=call,
                 parent_kdm=owner_action,
                 expression_role="condition_call",
             )
 
-        for call in self._get_list(item, "value_calls", "valueCalls"):
+        for call in self._json_list(item, "value_calls", "valueCalls"):
             self._attach_existing_call_action(
                 call=call,
                 parent_kdm=owner_action,
                 expression_role="value_call",
             )
 
-        for call in self._get_list(item, "exception_calls", "exceptionCalls"):
+        for call in self._json_list(item, "exception_calls", "exceptionCalls"):
             self._attach_existing_call_action(
                 call=call,
                 parent_kdm=owner_action,
@@ -1306,7 +616,6 @@ class BodyActionMapper:
             expression_role,
         )
 
-        self._add_source_metadata_to_action(action, call=call)
         self._attach_action_to_parent(action, parent_kdm)
 
     def _attach_action_to_parent(self, action, parent_kdm):
@@ -1570,54 +879,54 @@ class BodyActionMapper:
         """
         Reuses ActionElement nodes already created by ReferenceResolver.
 
-        Supports both snake_case (Python) and camelCase (Java) body fields.
+        This is essential for preserving nesting without duplicating call actions.
         """
 
-        statement_type = self._statement_type(item)
+        statement_type = self._json_get(item, "statement_type", "statementType")
 
         if statement_type == "call":
-            call_id = self._get_value(item, "call_id", "callId")
+            call_id = item.get("call_id")
 
             if call_id and call_id in self.action_index:
                 return self.action_index[call_id]
 
-            call = self._get_value(item, "call", default={}) or {}
-            nested_call_id = self._get_value(call, "id")
+            call = item.get("call") or {}
+            nested_call_id = call.get("id")
 
             if nested_call_id and nested_call_id in self.action_index:
                 return self.action_index[nested_call_id]
 
             return self._find_action_by_owner_line_and_name(
                 callable_model=callable_model,
-                line=self._line_start(item),
-                name=self._get_value(call, "name", "methodName", "method_name"),
+                line=self._json_get(item, "line_start", "lineStart"),
+                name=call.get("name"),
             )
 
         if statement_type == "assignment":
-            value_call_id = self._get_value(item, "value_call_id", "valueCallId")
+            value_call_id = item.get("value_call_id")
 
             if value_call_id and value_call_id in self.action_index:
                 return self.action_index[value_call_id]
 
-            value_call = self._get_value(item, "value_call", "valueCall", default={}) or {}
-            nested_value_call_id = self._get_value(value_call, "id")
+            value_call = item.get("value_call") or {}
+            nested_value_call_id = value_call.get("id")
 
             if nested_value_call_id and nested_value_call_id in self.action_index:
                 return self.action_index[nested_value_call_id]
 
             return self._find_action_by_owner_line_and_name(
                 callable_model=callable_model,
-                line=self._line_start(item),
-                name=self._get_value(item, "value"),
+                line=self._json_get(item, "line_start", "lineStart"),
+                name=item.get("value"),
             )
 
-        if statement_type in {"return", "raise", "throw"}:
-            for call in self._get_list(item, "value_calls", "valueCalls"):
+        if statement_type in {"return", "raise"}:
+            for call in self._json_list(item, "value_calls", "valueCalls"):
                 call_id = call.get("id")
                 if call_id and call_id in self.action_index:
                     return None
 
-            for call in self._get_list(item, "exception_calls", "exceptionCalls"):
+            for call in self._json_list(item, "exception_calls", "exceptionCalls"):
                 call_id = call.get("id")
                 if call_id and call_id in self.action_index:
                     return None
@@ -1648,9 +957,9 @@ class BodyActionMapper:
         return None
 
     def _create_action_for_body_item(self, item: dict):
-        statement_type = self._statement_type(item)
+        statement_type = self._json_get(item, "statement_type", "statementType")
         node_type = item.get("type")
-        control_type = self._control_type(item)
+        control_type = self._json_get(item, "control_type", "controlType")
 
         if node_type == "control_structure" and control_type == "try":
             return self.factory.create_try_unit("try")
@@ -1667,21 +976,6 @@ class BodyActionMapper:
             return self.factory.create_action_element(name=name, kind=kind)
 
         if statement_type:
-            call = self._get_value(item, "call", default={}) or {}
-
-            if statement_type == "call":
-                name = (
-                    self._get_value(call, "methodName", "method_name", "method")
-                    or self._get_value(call, "name")
-                    or "call"
-                )
-                if isinstance(name, str) and "." in name:
-                    name = name.rsplit(".", 1)[-1]
-                return self.factory.create_action_element(name=name, kind="call")
-
-            if statement_type in {"throw", "raise"}:
-                return self.factory.create_action_element(name=statement_type, kind=statement_type)
-
             name = statement_type
             kind = statement_type
             return self.factory.create_action_element(name=name, kind=kind)
@@ -1696,27 +990,153 @@ class BodyActionMapper:
         parent_kdm,
     ):
         self._add_source_region(action, item, file_model)
-        self._add_source_metadata_to_action(
-            action,
-            statement=item,
-            call=self._get_value(item, "call", "value_call", "valueCall", default={}) or {},
-        )
         self._add_statement_metadata(action, item)
-        self._mark_java_return_without_read_as_unresolved(action, item)
 
         self._attach_action_to_parent(action, parent_kdm)
 
-        item_id = item.get("id")
+        self._register_statement_action(action, item)
+        self._add_java_body_semantic_relations(action, item)
 
+    def _register_statement_action(self, action, item: dict):
+        item_id = item.get("id")
         if item_id:
             self.statement_action_index[item_id] = action
 
-    # ------------------------------------------------------------
-    # Source and metadata
-    # ------------------------------------------------------------
+        owner_key = self._current_callable_key(item)
+        line_start = self._json_get(item, "line_start", "lineStart")
+        line_end = self._json_get(item, "line_end", "lineEnd")
+        statement_type = self._json_get(item, "statement_type", "statementType")
+        control_type = self._json_get(item, "control_type", "controlType")
+        kind = statement_type or control_type or item.get("type")
+
+        for key in (
+            (owner_key, line_start),
+            (owner_key, line_start, kind),
+            (owner_key, line_start, line_end, kind),
+        ):
+            if owner_key is not None and line_start is not None:
+                self.statement_action_index.setdefault(key, action)
+
+    def _current_callable_key(self, item: dict):
+        # The key is injected while traversing a callable body.
+        return item.get("__callable_key")
+
+    def _add_java_body_semantic_relations(self, action, item: dict):
+        if action is None:
+            return
+
+        statement_type = self._json_get(item, "statement_type", "statementType")
+        value_kind = self._json_get(item, "value_kind", "valueKind")
+
+        if value_kind == "object_creation":
+            self._add_creates_for_body_item(action, item)
+
+        if statement_type in {"throw", "raise"}:
+            self._add_throws_for_body_item(action, item)
+
+    def _add_creates_for_body_item(self, action, item: dict):
+        call = self._json_get(item, "value_call", "valueCall") or {}
+        target_name = (
+            call.get("targetId")
+            or call.get("resolvedTarget")
+            or item.get("className")
+            or item.get("class_name")
+            or call.get("name")
+        )
+        target = self._resolve_or_create_class_target(target_name)
+        if target is None or not self.factory.has_feature(action, "actionRelation"):
+            return
+        if self._has_action_relation(action, "Creates", target):
+            return
+        action.actionRelation.append(self.factory.create_creates_relation(target))
+
+    def _add_throws_for_body_item(self, action, item: dict):
+        exception_name = (
+            item.get("exceptionType")
+            or item.get("exception_type")
+            or item.get("className")
+            or item.get("class_name")
+        )
+        if not exception_name:
+            call = None
+            calls = self._json_get(item, "exception_calls", "exceptionCalls") or []
+            if calls:
+                call = calls[0]
+            else:
+                call = self._json_get(item, "value_call", "valueCall") or {}
+            exception_name = call.get("name") or call.get("targetId") or call.get("resolvedTarget")
+
+        if not exception_name or not self.factory.has_feature(action, "actionRelation"):
+            return
+
+        storable = self._get_or_create_exception_storable(action, str(exception_name))
+        if storable is None:
+            return
+        if self._has_action_relation(action, "Throws", storable):
+            return
+        action.actionRelation.append(self.factory.create_throws_relation(storable))
+
+    def _get_or_create_exception_storable(self, action, exception_name: str):
+        safe_name = self._safe_name(exception_name.split(".")[-1])
+        storable_name = f"thrown_{safe_name}"
+        if not self.factory.has_feature(action, "codeElement"):
+            return None
+        for child in action.codeElement:
+            if getattr(child.eClass, "name", None) == "StorableUnit" and getattr(child, "name", None) == storable_name:
+                return child
+        storable = self.factory.create_storable_unit(storable_name)
+        self._add_attribute_once(storable, "role", "thrown_exception")
+        action.codeElement.append(storable)
+        return storable
+
+    def _resolve_or_create_class_target(self, target_name):
+        if not target_name:
+            return None
+        text = str(target_name).replace(".<init>", "")
+        text = text.split("(")[0]
+        text = text.replace("<>", "")
+        for key in (target_name, text, text.split(".")[-1]):
+            target = self.id_index.get(key)
+            if target is not None:
+                return target
+        class_name = text.split(".")[-1]
+        library = ".".join(text.split(".")[:-1]) or "java.lang"
+        if self.external_builder is not None:
+            return self.external_builder.get_or_create_external_class(library, class_name)
+        return None
+
+
+    def _has_action_relation(self, *args, **kwargs) -> bool:
+        source = kwargs.get("source")
+        target = kwargs.get("target")
+        relation_type = kwargs.get("relation_type")
+
+        if len(args) >= 1 and source is None:
+            source = args[0]
+
+        if len(args) >= 2 and target is None:
+            target = args[1]
+
+        if len(args) >= 3 and relation_type is None:
+            relation_type = args[2]
+
+        if source is None or target is None or relation_type is None:
+            return False
+
+        if not self.factory.has_feature(source, "actionRelation"):
+            return False
+
+        for relation in source.actionRelation:
+            if self._element_type_name(relation) != relation_type:
+                continue
+
+            if getattr(relation, "to", None) is target:
+                return True
+
+        return False
 
     def _add_source_region(self, action, statement: dict, file_model: dict):
-        if self._has_concrete_source_region(action):
+        if self.factory.has_feature(action, "source") and len(action.source) > 0:
             return
 
         source_file = self._get_source_file(file_model)
@@ -1725,8 +1145,8 @@ class BodyActionMapper:
             action,
             path=file_model.get("path"),
             language=self.language,
-            start_line=self._line_start(statement),
-            end_line=self._line_end(statement),
+            start_line=self._json_get(statement, "line_start", "lineStart"),
+            end_line=self._json_get(statement, "line_end", "lineEnd"),
             file_item=source_file,
         )
 
@@ -1739,9 +1159,7 @@ class BodyActionMapper:
         and relations, not temporary attributes.
         """
 
-        metadata = {
-            "body_id": item.get("id"),
-        }
+        metadata = {}
 
         # Keep body_type only when it is not already obvious from the KDM metaclass.
         item_type = item.get("type")
@@ -1755,82 +1173,6 @@ class BodyActionMapper:
             metadata["body_type"] = item_type
 
         self.factory.add_attributes_from_dict(action, metadata)
-
-    def _mark_java_return_without_read_as_unresolved(self, action, item: dict):
-        """
-        Marks Java return actions as unresolved when no Reads relation is
-        available.
-
-        The KDM validator expects a return ActionElement to either have a
-        Reads relation, have return_flow='void', or be explicitly marked with
-        unresolved_return_value. For trivial Java getters, the body fallback may
-        create a return ActionElement before a StorableUnit target can be linked.
-        This marker keeps the model valid without inventing an incorrect Reads
-        relation.
-        """
-
-        if action is None:
-            return
-
-        if self.language != "java":
-            return
-
-        if getattr(action.eClass, "name", None) != "ActionElement":
-            return
-
-        action_name = getattr(action, "name", None)
-        action_kind = getattr(action, "kind", None)
-        statement_type = self._get_value(
-            item,
-            "statement_type",
-            "statementType",
-            default=None,
-        )
-
-        if action_name != "return" and action_kind != "return" and statement_type != "return":
-            return
-
-        if self._has_action_relation_type(action, "Reads"):
-            return
-
-        if self._has_attribute_tag(action, "return_flow"):
-            return
-
-        if self._has_attribute_tag(action, "unresolved_return_value"):
-            return
-
-        self._add_attribute_once(action, "unresolved_return_value", "true")
-        self._add_attribute_once(
-            action,
-            "return_resolution",
-            "unresolved_or_trivial_java_return",
-        )
-
-    def _has_action_relation_type(self, action, relation_type: str) -> bool:
-        if action is None:
-            return False
-
-        if not self.factory.has_feature(action, "actionRelation"):
-            return False
-
-        for relation in action.actionRelation:
-            if getattr(relation.eClass, "name", None) == relation_type:
-                return True
-
-        return False
-
-    def _has_attribute_tag(self, element, tag: str) -> bool:
-        if element is None:
-            return False
-
-        if not self.factory.has_feature(element, "attribute"):
-            return False
-
-        for attribute in element.attribute:
-            if getattr(attribute, "tag", None) == tag:
-                return True
-
-        return False
 
     def _get_source_file(self, file_model: dict):
         if self.inventory_builder is None:
@@ -1878,13 +1220,13 @@ class BodyActionMapper:
         if owner_action is None:
             return
 
-        statement_type = self._statement_type(item)
+        statement_type = self._json_get(item, "statement_type", "statementType")
 
         if statement_type not in {"call", "return", "raise", "assignment"}:
             return
 
         owner_id = callable_model.get("id")
-        owner_line = self._line_start(item)
+        owner_line = self._json_get(item, "line_start", "lineStart")
 
         if owner_id is None or owner_line is None:
             return
@@ -1927,13 +1269,13 @@ class BodyActionMapper:
         if owner_action is None:
             return
 
-        statement_type = self._statement_type(item)
+        statement_type = self._json_get(item, "statement_type", "statementType")
 
         if statement_type not in {"call", "assignment", "return", "raise"}:
             return
 
         owner_id = callable_model.get("id")
-        owner_line = self._line_start(item)
+        owner_line = self._json_get(item, "line_start", "lineStart")
 
         if owner_id is None or owner_line is None:
             return
@@ -1987,7 +1329,7 @@ class BodyActionMapper:
         nested_name: str,
         item: dict,
     ) -> bool:
-        statement_type = self._statement_type(item)
+        statement_type = item.get("statement_type")
 
         if statement_type in {"return", "raise"}:
             return True
@@ -1999,7 +1341,7 @@ class BodyActionMapper:
                 return True
 
         if statement_type == "call":
-            call = self._get_value(item, "call", default={}) or {}
+            call = item.get("call") or {}
             call_name = call.get("name")
 
             if call_name and str(call_name) == owner_name:
@@ -2054,10 +1396,7 @@ class BodyActionMapper:
             if creates_relation is not None and self.factory.has_feature(child, "actionRelation"):
                 child.actionRelation.append(creates_relation)
 
-            self._add_attribute_once(child, "constructor_resolution", "static_fallback")
 
-            # The action is no longer unresolved once a Creates relation exists.
-            self._remove_attribute(child, "resolution_status", "unresolved")
 
     def _looks_like_constructor_action(self, action):
         """
@@ -2157,8 +1496,6 @@ class BodyActionMapper:
                 class_name=simple_name,
             )
 
-            self._add_attribute_once(target, "constructor_target", "true")
-            self._add_attribute_once(target, "resolution", "static_fallback")
             self.id_index.setdefault(f"external:{simple_name}", target)
 
             return target
@@ -2234,4 +1571,16 @@ class BodyActionMapper:
                 element.attribute.remove(attribute)
             except Exception:
                 pass
+
+
+    def _safe_name(self, value):
+        text = str(value or "value")
+        safe = []
+        for char in text:
+            if char.isalnum() or char == "_":
+                safe.append(char)
+            else:
+                safe.append("_")
+        result = "".join(safe).strip("_")
+        return result or "value"
 

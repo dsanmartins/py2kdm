@@ -69,8 +69,7 @@ class KDMValidator:
       Throws, Imports and Extends;
     - exception-flow semantics using TryUnit, CatchUnit, FinallyUnit,
       ExceptionFlow and ExitFlow;
-    - return semantics using Reads, return_flow="void" or
-      unresolved_return_value;
+    - return semantics using Reads or return_flow="void";
     - callable body structure using BlockUnit;
     - absence of obsolete temporary attributes;
     - absence of duplicate attributes, duplicate source regions and duplicate
@@ -103,6 +102,14 @@ class KDMValidator:
         "assigned_value",
         "assigned_type",
         "resolved_type_qualified_name",
+        "body_id",
+        "callable_body_id",
+        "source_call_name",
+        "constructor_resolution",
+        "constructor_target",
+        "resolution",
+        "unresolved_return_value",
+        "unresolved_exception_type_target",
         "annotation",
         "function",
         "method",
@@ -738,14 +745,9 @@ class KDMValidator:
                 has_creates = self._has_action_relation(element, "Creates")
 
                 if not has_creates:
-                    if self._has_attribute(element, "resolution_status", "unresolved"):
-                        self.report.add_info(
-                            f"Constructor ActionElement '{self._get_name(element)}' has no Creates relation because its target was unresolved."
-                        )
-                    else:
-                        self.report.add_warning(
-                            f"Constructor ActionElement '{self._get_name(element)}' has no Creates relation."
-                        )
+                    self.report.add_warning(
+                        f"Constructor ActionElement '{self._get_name(element)}' has no Creates relation."
+                    )
 
     # ------------------------------------------------------------
     # Reads/Writes
@@ -830,8 +832,7 @@ class KDMValidator:
 
         A return action must have one of the following:
         - a Reads relation to the returned value;
-        - return_flow="void" for bare returns;
-        - unresolved_return_value for expressions not yet resolved.
+        - return_flow="void" for bare returns.
         """
 
         for element in all_elements:
@@ -849,15 +850,10 @@ class KDMValidator:
 
             has_reads = self._has_action_relation(element, "Reads")
             has_void = self._has_attribute(element, "return_flow", "void")
-            has_unresolved = self._has_attribute_tag(
-                element,
-                "unresolved_return_value",
-            )
-
-            if not has_reads and not has_void and not has_unresolved:
+            if not has_reads and not has_void:
                 self.report.add_error(
-                    "Return ActionElement must have Reads, "
-                    "return_flow='void', or unresolved_return_value."
+                    "Return ActionElement must have Reads "
+                    "or return_flow='void'."
                 )
 
     # ------------------------------------------------------------

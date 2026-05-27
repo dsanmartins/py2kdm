@@ -68,6 +68,31 @@ class ReturnRelationResolver:
         self.storable_index = storable_index or {}
         self.id_index = id_index or {}
 
+    def _json_get(self, item: dict, snake_name: str, camel_name: str = None, default=None):
+        if item is None:
+            return default
+        if snake_name in item:
+            return item.get(snake_name)
+        if camel_name and camel_name in item:
+            return item.get(camel_name)
+        return default
+
+    def _json_list(self, item: dict, snake_name: str, camel_name: str = None):
+        value = self._json_get(item, snake_name, camel_name, [])
+        if value is None:
+            return []
+        return value if isinstance(value, list) else [value]
+
+    def _callable_key(self, callable_model: dict):
+        return (
+            callable_model.get("id")
+            or callable_model.get("qualifiedSignature")
+            or callable_model.get("qualified_signature")
+            or callable_model.get("qualifiedName")
+            or callable_model.get("qualified_name")
+            or callable_model.get("name")
+        )
+
     def resolve(self, data: dict):
         """
         Resolves return semantics for all functions and methods contained in
@@ -82,6 +107,10 @@ class ReturnRelationResolver:
             for func in file_model.get("functions", []):
                 self._resolve_callable(func)
 
+        for element in data.get("elements", []):
+            for method in element.get("methods", []):
+                self._resolve_callable(method)
+
     def _resolve_callable(self, callable_model: dict):
         """
         Resolves return statements inside a single callable body.
@@ -95,31 +124,51 @@ class ReturnRelationResolver:
         Recursively resolves return statements inside a body item.
         """
 
-        if item.get("statement_type") == "return":
+        if self._json_get(item, "statement_type", "statementType") == "return":
             self._resolve_return(item, callable_model)
 
-        for child in item.get("body", []):
+        for child in self._json_list(item, "body"):
             self._resolve_body_item(child, callable_model)
 
-        for child in item.get("orelse", []):
+        for child in self._json_list(item, "orelse", "elseBody"):
             self._resolve_body_item(child, callable_model)
 
-        for child in item.get("finalbody", []):
+        for child in self._json_list(item, "finalbody", "finallyBody"):
             self._resolve_body_item(child, callable_model)
 
-        for handler in item.get("handlers", []):
+        for handler in self._json_list(item, "handlers", "catchClauses"):
             self._resolve_body_item(handler, callable_model)
 
     # ------------------------------------------------------------
     # Return resolution
     # ------------------------------------------------------------
 
+    def _resolve_return_action(self, item: dict, callable_model: dict):
+        item_id = item.get("id")
+        if item_id and item_id in self.statement_action_index:
+            return self.statement_action_index[item_id]
+
+        owner_key = self._callable_key(callable_model)
+        line_start = self._json_get(item, "line_start", "lineStart")
+        line_end = self._json_get(item, "line_end", "lineEnd")
+        kind = self._json_get(item, "statement_type", "statementType")
+
+        for key in (
+            (owner_key, line_start, kind),
+            (owner_key, line_start, line_end, kind),
+            (owner_key, line_start),
+        ):
+            if key in self.statement_action_index:
+                return self.statement_action_index[key]
+
+        return None
+
     def _resolve_return(self, item: dict, callable_model: dict):
         """
         Resolves a single return statement.
         """
 
-        return_action = self.statement_action_index.get(item.get("id"))
+        return_action = self._resolve_return_action(item, callable_model)
 
         if return_action is None:
             return
@@ -138,10 +187,13 @@ class ReturnRelationResolver:
                     "void",
                 )
             else:
-                self._add_attribute_once(
-                    return_action,
-                    "unresolved_return_value",
-                    item.get("value"),
+                target = self._get_or_create_return_expression_value(
+                    return_action=return_action,
+                    value=item.get("value"),
+                )
+                self._create_return_relation(
+                    source=return_action,
+                    target=target,
                 )
             return
 
@@ -229,7 +281,7 @@ class ReturnRelationResolver:
             return None
 
         value_name = str(value)
-        callable_id = callable_model.get("id")
+        callable_id = self._callable_key(callable_model)
 
         candidate_keys = [
             value_name,
@@ -269,7 +321,7 @@ class ReturnRelationResolver:
 
         value_text = str(value).strip()
 
-        if value_text in {"None", "True", "False"}:
+        if value_text in {"None", "True", "False", "null", "true", "false"}:
             return True
 
         if re.fullmatch(r"-?\d+", value_text):
@@ -439,11 +491,7 @@ class ReturnRelationResolver:
                     child,
                     "role",
                     "returned_call_result",
-                ) and self._has_attribute(
-                    child,
-                    "source_call_name",
-                    call_name,
-                ):
+                ) and getattr(child, "name", None) == f"return_value_of_{self._safe_name(call_name)}":
                     return child
 
         safe_call_name = self._safe_name(call_name)
@@ -458,18 +506,44 @@ class ReturnRelationResolver:
             "returned_call_result",
         )
 
-        self._add_attribute_once(
-            return_value,
-            "source_call_name",
-            call_name,
-        )
-
         if self.factory.has_feature(return_action, "codeElement"):
             return_action.codeElement.append(return_value)
         else:
             return None
 
         return return_value
+
+    def _get_or_create_return_expression_value(self, return_action, value):
+        if return_action is None or value is None:
+            return None
+        value_text = str(value).strip()
+        safe_value_name = self._safe_name(value_text)
+        storable_name = f"return_expression_{safe_value_name}"
+        value_name = f"value_{safe_value_name}"
+        if not self.factory.has_feature(return_action, "codeElement"):
+            return None
+        expression_storable = None
+        for child in return_action.codeElement:
+            if getattr(child.eClass, "name", None) == "StorableUnit" and getattr(child, "name", None) == storable_name:
+                expression_storable = child
+                break
+        if expression_storable is None:
+            expression_storable = self.factory.create_storable_unit(storable_name)
+            self._add_attribute_once(expression_storable, "role", "returned_expression")
+            return_action.codeElement.append(expression_storable)
+        value_element = None
+        for child in return_action.codeElement:
+            if getattr(child.eClass, "name", None) == "Value" and getattr(child, "name", None) == value_name:
+                value_element = child
+                break
+        if value_element is None:
+            value_element = self.factory.create_value(name=value_name, value=value_text)
+            return_action.codeElement.append(value_element)
+        if not self._has_has_value_relation(expression_storable, value_element):
+            has_value = self.factory.create_has_value_relation(value_element)
+            if has_value is not None and self.factory.has_feature(expression_storable, "codeRelation"):
+                expression_storable.codeRelation.append(has_value)
+        return expression_storable
 
     # ------------------------------------------------------------
     # Relation creation
