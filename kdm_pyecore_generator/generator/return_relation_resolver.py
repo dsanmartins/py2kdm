@@ -489,16 +489,6 @@ class ReturnRelationResolver:
         # used as Reads targets. This preserves the validator convention used
         # by both the Python and Java pipelines.
         if not self._is_storable_unit(target):
-            self._add_attribute_once(
-                source,
-                "skipped_return_read_target",
-                getattr(target, "name", None),
-            )
-            self._add_attribute_once(
-                source,
-                "skip_reason",
-                "return_read_target_is_not_storable_unit",
-            )
             return
 
         if self._has_return_read_relation(source, target):
@@ -513,11 +503,7 @@ class ReturnRelationResolver:
             source.actionRelation.append(relation)
             return
 
-        self._add_attribute_once(
-            source,
-            "unresolved_return_read",
-            getattr(target, "name", None),
-        )
+        return
 
     def _has_return_read_relation(self, source, target) -> bool:
         if not self.factory.has_feature(source, "actionRelation"):

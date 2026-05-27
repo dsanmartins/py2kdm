@@ -1,7 +1,8 @@
 class JsonToKDMMapper:
-    def __init__(self, factory, inventory_builder=None):
+    def __init__(self, factory, inventory_builder=None, external_builder=None):
         self.factory = factory
         self.inventory_builder = inventory_builder
+        self.external_builder = external_builder
 
         # Generic indexes.
         self.id_index = {}
@@ -122,15 +123,9 @@ class JsonToKDMMapper:
         obsolete in this context. Use element_kind or method_kind instead.
         """
         metadata = {
-            "original_id": model_element.get("id"),
-            "json_type": model_element.get("type") or model_element.get("kind"),
             "qualified_name": (
                 model_element.get("qualified_name")
                 or model_element.get("qualifiedName")
-            ),
-            "qualified_signature": (
-                model_element.get("qualified_signature")
-                or model_element.get("qualifiedSignature")
             ),
             "package": (
                 model_element.get("package_name")
@@ -460,6 +455,8 @@ class JsonToKDMMapper:
         )
         self._append_code_element(parent, callable_unit)
 
+        self._apply_callable_native_properties(callable_unit, element)
+
         file_model = self._generic_file_model(element)
         source_file = self._get_source_file(file_model)
 
@@ -473,7 +470,7 @@ class JsonToKDMMapper:
         )
 
         self._add_common_metadata(callable_unit, element)
-        self._add_callable_signature_metadata(callable_unit, element)
+        self._add_native_annotations(callable_unit, element)
 
         qualified_signature = (
             element.get("qualifiedSignature")
@@ -486,22 +483,15 @@ class JsonToKDMMapper:
             element,
         )
 
-        for param in element.get("parameters", []):
-            self._map_generic_parameter(callable_unit, param, element)
-
-        resolved_return_type = (
-            element.get("resolvedReturnType")
-            or element.get("resolved_return_type")
+        signature = self._create_callable_signature(
+            owner=callable_unit,
+            callable_model=element,
         )
 
-        if resolved_return_type and resolved_return_type != "void":
-            normalized_return = {
-                "name": f"{element.get('name', 'function')}:return",
-                "resolved_type_id": self._infer_type_id(resolved_return_type),
-                "resolved_type_qualified_name": resolved_return_type,
-            }
+        for param in element.get("parameters", []):
+            self._map_generic_parameter(signature, param, element)
 
-            self._register_typable(callable_unit, normalized_return)
+        self._map_return_parameter(signature, element)
 
     def _map_generic_field(self, parent, field: dict, owner_element: dict):
         storable_unit = self.factory.create_storable_unit(
@@ -545,31 +535,15 @@ class JsonToKDMMapper:
         )
         self._append_code_element(parent, method_unit)
 
-        resolved_return_type = (
-            method.get("resolvedReturnType")
-            or method.get("resolved_return_type")
-        )
+        self._apply_method_native_properties(method_unit, method)
+
+        self._add_common_metadata(method_unit, method)
+        self._add_native_annotations(method_unit, method)
 
         qualified_signature = (
             method.get("qualifiedSignature")
             or method.get("qualified_signature")
         )
-
-        # Do not add qualified_signature here. It is added by
-        # _add_common_metadata. Do not use tag 'kind'; use method_kind.
-        self.factory.add_attributes_from_dict(
-            method_unit,
-            {
-                "method_kind": method.get("kind"),
-                "signature": method.get("signature"),
-                "return_type": method.get("returnType") or method.get("return_type"),
-                "resolved_return_type": resolved_return_type,
-                "modifiers": self._safe_join(method.get("modifiers", [])),
-                "annotations": self._safe_join(method.get("annotations", [])),
-            },
-        )
-
-        self._add_common_metadata(method_unit, method)
 
         self._register(
             method.get("id") or qualified_signature,
@@ -577,8 +551,15 @@ class JsonToKDMMapper:
             method,
         )
 
+        signature = self._create_callable_signature(
+            owner=method_unit,
+            callable_model=method,
+        )
+
         for param in method.get("parameters", []):
-            self._map_generic_parameter(method_unit, param, method)
+            self._map_generic_parameter(signature, param, method)
+
+        self._map_return_parameter(signature, method)
 
         for local_var in (
             method.get("localVariables", [])
@@ -586,34 +567,20 @@ class JsonToKDMMapper:
         ):
             self._map_generic_local_variable(method_unit, local_var, method, owner_element)
 
-        if resolved_return_type and resolved_return_type != "void":
-            normalized_return = {
-                "name": f"{method.get('name', 'method')}:return",
-                "resolved_type_id": self._infer_type_id(resolved_return_type),
-                "resolved_type_qualified_name": resolved_return_type,
-            }
-
-            self._register_typable(method_unit, normalized_return)
-
     def _map_generic_parameter(self, parent, param: dict, owner_callable: dict = None):
         parameter_unit = self.factory.create_parameter_unit(
             param.get("name", "param")
         )
-        self._append_code_element(parent, parameter_unit)
+        self._append_parameter_unit(parent, parameter_unit)
 
-        resolved_type = param.get("resolvedType") or param.get("resolved_type")
-
-        self.factory.add_attributes_from_dict(
-            parameter_unit,
-            {
-                "declared_type": param.get("type"),
-                "resolved_type": resolved_type,
-                "parameter_kind": param.get("kind"),
-                "parameter_index": param.get("index"),
-                "default_value": param.get("default_value"),
-                "annotations": self._safe_join(param.get("annotations", [])),
-            },
+        resolved_type = (
+            param.get("resolvedType")
+            or param.get("resolved_type")
+            or param.get("type")
         )
+
+        self._apply_parameter_native_properties(parameter_unit, param)
+        self._add_native_annotations(parameter_unit, param)
 
         normalized_param = dict(param)
         normalized_param["resolved_type_id"] = self._infer_type_id(resolved_type)
@@ -632,8 +599,9 @@ class JsonToKDMMapper:
         if callable_qs and param.get("name"):
             param_key = f"{callable_qs}:parameter:{param.get('name')}"
             self.id_index.setdefault(param_key, parameter_unit)
-            self.storable_index.setdefault(param_key, parameter_unit)
-            self.storable_index.setdefault((callable_qs, param.get("name")), parameter_unit)
+            # Parameters are intentionally not registered in storable_index:
+            # Reads/Writes in this generator are restricted to StorableUnit.
+            self.id_index.setdefault((callable_qs, "parameter", param.get("name")), parameter_unit)
 
     def _map_generic_local_variable(
         self,
@@ -702,9 +670,219 @@ class JsonToKDMMapper:
             },
         )
 
+
     # ------------------------------------------------------------------
-    # Generic relationships
+    # Native KDM callable/signature helpers
     # ------------------------------------------------------------------
+
+    def _create_callable_signature(self, owner, callable_model: dict):
+        signature_name = (
+            callable_model.get("signature")
+            or callable_model.get("name")
+            or "signature"
+        )
+
+        signature = self.factory.create_signature(signature_name)
+
+        self._append_code_element(owner, signature)
+
+        if self.factory.has_feature(owner, "type"):
+            owner.type = signature
+
+        # Do not attach SourceRegion directly to Signature.
+        # The owning MethodUnit/CallableUnit already carries the source
+        # traceability. Creating a second SourceRegion for Signature is fragile
+        # in Python generic models because callable entries may not carry a
+        # stable file/path context.
+
+        callable_key = (
+            callable_model.get("qualifiedSignature")
+            or callable_model.get("qualified_signature")
+            or callable_model.get("id")
+            or callable_model.get("name")
+        )
+
+        if callable_key:
+            self.id_index.setdefault(f"{callable_key}:signature", signature)
+
+        return signature
+
+    def _map_return_parameter(self, signature, callable_model: dict):
+        resolved_return_type = (
+            callable_model.get("resolvedReturnType")
+            or callable_model.get("resolved_return_type")
+            or callable_model.get("returnType")
+            or callable_model.get("return_type")
+        )
+
+        if not resolved_return_type:
+            return
+
+        method_kind = callable_model.get("kind") or callable_model.get("method_kind")
+
+        if method_kind == "constructor":
+            return
+
+        return_param = self.factory.create_parameter_unit("return")
+        self._append_parameter_unit(signature, return_param)
+
+        if self.factory.has_feature(return_param, "kind"):
+            return_param.kind = "return"
+
+        if self.factory.has_feature(return_param, "pos"):
+            return_param.pos = 0
+
+        normalized_return = {
+            "name": f"{callable_model.get('name', 'callable')}:return",
+            "resolved_type_id": self._infer_type_id(resolved_return_type),
+            "resolved_type_qualified_name": resolved_return_type,
+        }
+
+        self._register_typable(return_param, normalized_return)
+
+    def _append_parameter_unit(self, parent, parameter_unit):
+        if parent is None or parameter_unit is None:
+            return False
+
+        if self.factory.has_feature(parent, "parameterUnit"):
+            parent.parameterUnit.append(parameter_unit)
+            return True
+
+        return self._append_code_element(parent, parameter_unit)
+
+    def _apply_method_native_properties(self, method_unit, method: dict):
+        method_kind = method.get("kind") or method.get("method_kind") or "method"
+
+        if self.factory.has_feature(method_unit, "kind"):
+            method_unit.kind = self._normalize_method_kind(method_kind)
+
+        modifiers = set(method.get("modifiers", []) or [])
+
+        if self.factory.has_feature(method_unit, "export"):
+            method_unit.export = self._visibility_from_modifiers(modifiers)
+
+        if self.factory.has_feature(method_unit, "isStatic"):
+            method_unit.isStatic = "static" in modifiers
+
+        if self.factory.has_feature(method_unit, "isFinal"):
+            method_unit.isFinal = "final" in modifiers
+
+        if self.factory.has_feature(method_unit, "isAbstract"):
+            method_unit.isAbstract = "abstract" in modifiers
+
+    def _apply_callable_native_properties(self, callable_unit, callable_model: dict):
+        callable_kind = (
+            callable_model.get("callable_kind")
+            or callable_model.get("kind")
+            or "regular"
+        )
+
+        if self.factory.has_feature(callable_unit, "kind"):
+            callable_unit.kind = self._normalize_callable_kind(callable_kind)
+
+        modifiers = set(callable_model.get("modifiers", []) or [])
+
+        if self.factory.has_feature(callable_unit, "isStatic"):
+            callable_unit.isStatic = "static" in modifiers
+
+    def _apply_parameter_native_properties(self, parameter_unit, param: dict):
+        kind = param.get("kind") or "byValue"
+
+        if self.factory.has_feature(parameter_unit, "kind"):
+            parameter_unit.kind = self._normalize_parameter_kind(kind)
+
+        index = param.get("index")
+
+        if index is None:
+            index = param.get("position")
+
+        if index is not None and self.factory.has_feature(parameter_unit, "pos"):
+            try:
+                parameter_unit.pos = int(index) + 1
+            except Exception:
+                parameter_unit.pos = index
+
+        modifiers = set(param.get("modifiers", []) or [])
+
+        if self.factory.has_feature(parameter_unit, "isFinal"):
+            parameter_unit.isFinal = "final" in modifiers
+
+    def _normalize_method_kind(self, kind):
+        if kind in {"method", "constructor", "destructor", "operator"}:
+            return kind
+
+        return "unknown"
+
+    def _normalize_callable_kind(self, kind):
+        if kind in {"regular", "external", "operator", "stored"}:
+            return kind
+
+        if kind == "function":
+            return "regular"
+
+        return "unknown"
+
+    def _normalize_parameter_kind(self, kind):
+        if kind in {
+            "byValue",
+            "byName",
+            "byReference",
+            "variadic",
+            "return",
+            "throws",
+            "exception",
+            "catchall",
+        }:
+            return kind
+
+        return "byValue"
+
+    def _visibility_from_modifiers(self, modifiers):
+        if "public" in modifiers:
+            return "public"
+
+        if "private" in modifiers:
+            return "private"
+
+        if "protected" in modifiers:
+            return "protected"
+
+        return "unknown"
+
+    def _add_native_annotations(self, kdm_element, model_element: dict):
+        """
+        Adds Java/Python source annotations using native KDM Annotation when
+        possible.
+
+        This method is defensive because some KDMFactory versions expose the
+        Annotation classifier as self.Annotation but do not yet provide the
+        helper method add_annotation(...).
+        """
+
+        annotations = model_element.get("annotations", []) or []
+
+        for annotation in annotations:
+            text = f"@{annotation}"
+
+            if hasattr(self.factory, "add_annotation"):
+                self.factory.add_annotation(kdm_element, text)
+                continue
+
+            if not self.factory.has_feature(kdm_element, "annotation"):
+                continue
+
+            annotation_cls = getattr(self.factory, "Annotation", None)
+
+            if annotation_cls is None:
+                continue
+
+            annotation_element = annotation_cls()
+
+            if self.factory.has_feature(annotation_element, "text"):
+                annotation_element.text = text
+
+            kdm_element.annotation.append(annotation_element)
+
 
     def _map_generic_relationships(self, data: dict):
         relationships = data.get("relationships", [])
@@ -754,43 +932,56 @@ class JsonToKDMMapper:
         file_model = self._generic_file_model(relationship)
         source_file = self._get_source_file(file_model)
 
+        line = (
+            relationship.get("line")
+            or relationship.get("lineStart")
+            or relationship.get("line_start")
+        )
+
         self.factory.add_source_region(
             action,
             path=file_model.get("path"),
             language=self.language,
-            start_line=relationship.get("line"),
-            end_line=relationship.get("line"),
+            start_line=line,
+            end_line=line,
             file_item=source_file,
-        )
-
-        # Do not add attribute 'target'. It is treated as obsolete by the
-        # validator. Use called_signature instead.
-        relationship_line = relationship.get("line") or relationship.get("lineStart") or relationship.get("line_start")
-
-        self.factory.add_attributes_from_dict(
-            action,
-            {
-                "original_id": self._generic_relationship_action_id(relationship),
-                "call_source": source_key,
-                "called_signature": target_key,
-                "relationship_type": "calls",
-                "source_line": relationship_line,
-            },
         )
 
         self._append_code_element(body_block, action)
 
+        if target is None:
+            target = self._get_or_create_external_call_target(
+                target_key=target_key,
+                relationship=relationship,
+            )
+
         if target is not None:
             calls_relation = self.factory.create_calls_relation(target)
             self._append_action_relation(action, calls_relation)
-        else:
-            self.factory.add_attributes_from_dict(
-                action,
-                {
-                    "resolution_status": "unresolved",
-                    "unresolved_target_name": target_key,
-                },
-            )
+
+    def _get_or_create_external_call_target(self, target_key, relationship: dict):
+        """
+        Creates a conservative external CallableUnit for a call target that is
+        outside the analyzed project.
+
+        This avoids storing temporary attributes such as resolution_status or
+        unresolved_target_name. If no target key is available, the call remains
+        without a Calls relation rather than inventing an unreliable target.
+        """
+
+        if not target_key or self.external_builder is None:
+            return None
+
+        target_name = str(target_key)
+
+        call_model = {
+            "name": target_name,
+            "target_id": target_name,
+            "classification": "external",
+            "kind": "call",
+        }
+
+        return self.external_builder.get_or_create_external_target(call_model)
 
     def _map_generic_imports_relationship(self, relationship: dict):
         source_key = relationship.get("source")
@@ -875,13 +1066,8 @@ class JsonToKDMMapper:
         )
 
         if target is None:
-            self.factory.add_attributes_from_dict(
-                action,
-                {
-                    f"unresolved_{access_kind}_target": relationship.get("target"),
-                },
-            )
             return
+
 
         # KDM access relations are intentionally restricted by the validator
         # to StorableUnit targets. The generic JSON index may also resolve a
@@ -891,14 +1077,8 @@ class JsonToKDMMapper:
         # access relations here. Parameter types are still represented through
         # ParameterUnit + HasType.
         if not self._is_valid_access_target(target):
-            self.factory.add_attributes_from_dict(
-                action,
-                {
-                    f"skipped_{access_kind}_target": relationship.get("target"),
-                    "skip_reason": "access_target_is_not_storable_unit",
-                },
-            )
             return
+
 
         if access_kind == "reads":
             relation = self.factory.create_reads_relation(target)
@@ -1014,15 +1194,6 @@ class JsonToKDMMapper:
             file_item=source_file,
         )
 
-        self.factory.add_attributes_from_dict(
-            action,
-            {
-                "original_id": self._generic_relationship_action_id(relationship),
-                "relationship_type": relationship.get("type"),
-                "source_line": line,
-            },
-        )
-
         self._append_code_element(body_block, action)
         return action
 
@@ -1087,36 +1258,6 @@ class JsonToKDMMapper:
             return None
 
         return before_args.rsplit(".", 1)[0]
-
-    def _generic_relationship_action_id(self, relationship: dict):
-        """
-        Builds a stable identifier for an ActionElement created from a generic
-        relationship.
-
-        Java models may contain several calls to the same target inside the
-        same callable, for example repeated builder.append(...) calls. The KDM
-        validator uses traceability identifiers to distinguish valid repeated
-        actions. Therefore each generic calls relationship must generate a
-        unique original_id based on source, target and source location.
-        """
-
-        relation_type = relationship.get("type") or "relationship"
-        source = relationship.get("source") or "unknown_source"
-        target = relationship.get("target") or "unknown_target"
-        source_file = (
-            relationship.get("sourceFile")
-            or relationship.get("source_file")
-            or relationship.get("file")
-            or "unknown_file"
-        )
-        line = (
-            relationship.get("line")
-            or relationship.get("lineStart")
-            or relationship.get("line_start")
-            or "unknown_line"
-        )
-
-        return f"generic:{relation_type}:{source}:{target}:{source_file}:{line}"
 
     def _get_or_create_callable_body(self, callable_unit):
         """
@@ -1242,27 +1383,11 @@ class JsonToKDMMapper:
 
     def _add_callable_signature_metadata(self, callable_unit, callable_model: dict):
         """
-        Adds lightweight signature metadata to MethodUnit or CallableUnit.
+        Deprecated compatibility hook.
 
-        Do not add qualified_signature here because _add_common_metadata
-        already adds it. This avoids duplicate Attribute validation errors.
+        Callable and method signatures are now represented with native
+        code:Signature and code:ParameterUnit elements.
         """
-        metadata = {
-            "method_kind": callable_model.get("method_kind"),
-            "is_async": callable_model.get("is_async"),
-            "return_annotation": callable_model.get("return_annotation"),
-            "signature": callable_model.get("signature"),
-            "return_type": (
-                callable_model.get("returnType")
-                or callable_model.get("return_type")
-            ),
-            "resolved_return_type": (
-                callable_model.get("resolvedReturnType")
-                or callable_model.get("resolved_return_type")
-            ),
-        }
-
-        self.factory.add_attributes_from_dict(callable_unit, metadata)
         self._add_decorator_metadata(callable_unit, callable_model)
 
     def _add_decorator_metadata(self, kdm_element, model_element: dict):

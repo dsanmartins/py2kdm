@@ -1,3 +1,5 @@
+import re
+
 class BodyActionMapper:
     def __init__(
         self,
@@ -7,6 +9,7 @@ class BodyActionMapper:
         inventory_builder=None,
         language="unknown",
         external_builder=None,
+        storable_index=None,
     ):
         self.factory = factory
         self.id_index = id_index
@@ -14,6 +17,7 @@ class BodyActionMapper:
         self.inventory_builder = inventory_builder
         self.language = language
         self.external_builder = external_builder
+        self.storable_index = storable_index or {}
 
         # Index for statement/control ActionElements.
         # It also stores TryUnit and CatchUnit instances created from body nodes.
@@ -233,18 +237,9 @@ class BodyActionMapper:
             or line_start
         )
 
-        call_id = (
-            self._get_value(statement, "call_id", "callId", "value_call_id", "valueCallId")
-            or self._get_value(call, "id")
-        )
-
-        # Do not store line_start/line_end as Attribute elements.
-        # Source positions must be represented only through source::SourceRegion;
-        # the KDM validator treats line_start and line_end attributes as obsolete
-        # temporary metadata.
-
-        if call_id is not None:
-            self._add_attribute_once(action, "call_id", str(call_id))
+        # Do not store call_id or line_start/line_end as Attribute elements.
+        # Source positions are represented by source::SourceRegion, and
+        # call semantics are represented by action::Calls/action::Creates.
 
     def _has_concrete_source_region(self, element):
         if element is None or not self.factory.has_feature(element, "source"):
@@ -417,6 +412,13 @@ class BodyActionMapper:
                 parent_kdm=parent_kdm,
             )
 
+            self._add_java_behavior_relations(
+                action=action,
+                item=item,
+                callable_model=callable_model,
+                file_model=file_model,
+            )
+
             next_parent = action
         else:
             next_parent = parent_kdm
@@ -440,7 +442,7 @@ class BodyActionMapper:
             owner_action=next_parent,
         )
 
-        for child in item.get("body", []):
+        for child in self._get_list(item, "body"):
             self._map_body_item(
                 item=child,
                 callable_model=callable_model,
@@ -448,7 +450,7 @@ class BodyActionMapper:
                 parent_kdm=next_parent,
             )
 
-        for child in item.get("orelse", []):
+        for child in self._get_list(item, "orelse", "elseBody"):
             self._map_body_item(
                 item=child,
                 callable_model=callable_model,
@@ -456,7 +458,7 @@ class BodyActionMapper:
                 parent_kdm=next_parent,
             )
 
-        for handler in item.get("handlers", []):
+        for handler in self._get_list(item, "handlers", "catchClauses"):
             self._map_body_item(
                 item=handler,
                 callable_model=callable_model,
@@ -469,6 +471,504 @@ class BodyActionMapper:
             callable_model=callable_model,
             file_model=file_model,
             parent_kdm=next_parent,
+        )
+
+
+
+    # ------------------------------------------------------------
+    # Java rich body semantics
+    # ------------------------------------------------------------
+
+    def _add_java_behavior_relations(
+        self,
+        action,
+        item: dict,
+        callable_model: dict,
+        file_model: dict,
+    ):
+        """
+        Adds Java behavior relations derived from the rich generic JSON body.
+
+        This method is intentionally restricted to Java. Python already has
+        mature dedicated resolvers for Reads/Writes/Creates/Throws/Try/Catch.
+        The method uses native KDM relations whenever possible and avoids
+        serializing debug attributes.
+        """
+
+        if self.language != "java":
+            return
+
+        if action is None or not isinstance(item, dict):
+            return
+
+        statement_type = self._statement_type(item)
+        node_type = self._get_value(item, "type")
+        control_type = self._control_type(item)
+
+        # Reads from conditions such as if (name == null), while (...), switch (...)
+        if node_type == "control_structure":
+            self._add_java_reads_from_expression(
+                action=action,
+                callable_model=callable_model,
+                expression=self._get_value(item, "condition", "selector", "expression"),
+            )
+
+            for call in self._get_list(item, "condition_calls", "conditionCalls"):
+                self._add_java_reads_from_call_arguments(action, callable_model, call)
+
+        if statement_type == "assignment":
+            for target_name in self._get_list(item, "targets"):
+                self._add_java_write(
+                    action=action,
+                    callable_model=callable_model,
+                    reference_name=target_name,
+                )
+
+            self._add_java_reads_from_expression(
+                action=action,
+                callable_model=callable_model,
+                expression=self._get_value(item, "value"),
+            )
+
+            value_call = self._get_value(item, "value_call", "valueCall", default=None)
+            if isinstance(value_call, dict):
+                self._add_java_reads_from_call_arguments(action, callable_model, value_call)
+                self._add_java_creates_if_constructor(action, value_call)
+
+            if self._is_java_object_creation_item(item):
+                self._add_java_creates_from_item(action, item)
+
+        elif statement_type == "return":
+            before_reads = self._count_action_relations(action, "Reads")
+
+            self._add_java_reads_from_expression(
+                action=action,
+                callable_model=callable_model,
+                expression=self._get_value(item, "value"),
+            )
+
+            value_call = self._get_value(item, "value_call", "valueCall", default=None)
+            if isinstance(value_call, dict):
+                self._add_java_reads_from_call_arguments(action, callable_model, value_call)
+                self._add_java_creates_if_constructor(action, value_call)
+
+            # Keep the validator satisfied for returns whose value is a literal,
+            # an external expression, or a parameter that is intentionally not a
+            # valid Reads target under the current KDM convention.
+            after_reads = self._count_action_relations(action, "Reads")
+            if before_reads == after_reads and not self._has_attribute_tag(action, "return_flow"):
+                self._add_attribute_once(action, "unresolved_return_value", "true")
+
+        elif statement_type == "call":
+            call = self._get_value(item, "call", default=None)
+            if isinstance(call, dict):
+                self._add_java_reads_from_call_arguments(action, callable_model, call)
+                self._add_java_creates_if_constructor(action, call)
+
+        elif statement_type in {"throw", "raise"}:
+            self._add_java_throw_relation(action, item)
+
+            for call in self._get_list(item, "exception_calls", "exceptionCalls"):
+                self._add_java_reads_from_call_arguments(action, callable_model, call)
+                self._add_java_creates_if_constructor(action, call)
+
+        # Generic expression calls nested in any statement.
+        for call in self._get_list(item, "value_calls", "valueCalls"):
+            self._add_java_reads_from_call_arguments(action, callable_model, call)
+            self._add_java_creates_if_constructor(action, call)
+
+        for call in self._get_list(item, "condition_calls", "conditionCalls"):
+            self._add_java_reads_from_call_arguments(action, callable_model, call)
+
+        # Object creation can be encoded directly in local variable declarations
+        # or assignment/return values.
+        if self._is_java_object_creation_item(item):
+            self._add_java_creates_from_item(action, item)
+
+    def _add_java_write(self, action, callable_model: dict, reference_name):
+        target = self._resolve_java_storable(callable_model, reference_name)
+
+        if target is None:
+            return
+
+        self._append_action_relation_once(
+            action=action,
+            relation_type="Writes",
+            target=target,
+        )
+
+    def _add_java_read(self, action, callable_model: dict, reference_name):
+        target = self._resolve_java_storable(callable_model, reference_name)
+
+        if target is None:
+            return
+
+        self._append_action_relation_once(
+            action=action,
+            relation_type="Reads",
+            target=target,
+        )
+
+    def _add_java_reads_from_expression(self, action, callable_model: dict, expression):
+        for reference_name in self._java_reference_candidates(expression):
+            self._add_java_read(action, callable_model, reference_name)
+
+    def _add_java_reads_from_call_arguments(self, action, callable_model: dict, call: dict):
+        if not isinstance(call, dict):
+            return
+
+        scope = self._get_value(call, "scope", "receiver")
+        if scope:
+            self._add_java_read(action, callable_model, scope)
+
+        for argument in self._get_list(call, "arguments"):
+            if isinstance(argument, dict):
+                value = self._get_value(argument, "value", "name")
+            else:
+                value = argument
+
+            self._add_java_reads_from_expression(action, callable_model, value)
+
+    def _append_action_relation_once(self, action, relation_type: str, target):
+        if action is None or target is None:
+            return
+
+        if not self.factory.has_feature(action, "actionRelation"):
+            return
+
+        for relation in action.actionRelation:
+            if getattr(relation.eClass, "name", None) != relation_type:
+                continue
+
+            if getattr(relation, "to", None) is target:
+                return
+
+        if relation_type == "Reads":
+            relation = self.factory.create_reads_relation(target)
+        elif relation_type == "Writes":
+            relation = self.factory.create_writes_relation(target)
+        elif relation_type == "Creates":
+            relation = self.factory.create_creates_relation(target)
+        elif relation_type == "Throws":
+            relation = self.factory.create_throws_relation(target)
+        else:
+            return
+
+        action.actionRelation.append(relation)
+
+    def _resolve_java_storable(self, callable_model: dict, reference_name):
+        if not reference_name:
+            return None
+
+        reference_text = str(reference_name).strip()
+
+        if not reference_text:
+            return None
+
+        # Strip common Java syntax around field references.
+        reference_text = reference_text.replace("this.", "")
+        reference_text = reference_text.split("[", 1)[0]
+
+        if "." in reference_text:
+            # repository.findName(...) should read repository; this.field
+            # was handled above.
+            reference_text = reference_text.split(".", 1)[0]
+
+        if not reference_text or not self._is_identifier_like(reference_text):
+            return None
+
+        callable_key = self._callable_key(callable_model)
+
+        candidates = []
+
+        if callable_key:
+            candidates.extend(
+                [
+                    (callable_key, reference_text),
+                    (callable_key, "local", reference_text),
+                    f"{callable_key}:local:{reference_text}",
+                    f"{callable_key}:parameter:{reference_text}",
+                ]
+            )
+
+        owner_qn = self._owner_qualified_name_from_callable(callable_model)
+
+        if owner_qn:
+            candidates.append(f"{owner_qn}.{reference_text}")
+
+        candidates.append(reference_text)
+
+        for key in candidates:
+            target = self.storable_index.get(key) or self.id_index.get(key)
+
+            if self._is_storable_unit(target):
+                return target
+
+        return None
+
+    def _owner_qualified_name_from_callable(self, callable_model: dict):
+        signature = self._get_value(
+            callable_model,
+            "qualifiedSignature",
+            "qualified_signature",
+            "id",
+            default=None,
+        )
+
+        if not signature or not isinstance(signature, str):
+            return None
+
+        if ".<init>" in signature:
+            return signature.split(".<init>", 1)[0]
+
+        if "(" in signature:
+            before_params = signature.split("(", 1)[0]
+            if "." in before_params:
+                return before_params.rsplit(".", 1)[0]
+
+        return None
+
+    def _java_reference_candidates(self, expression):
+        if expression is None:
+            return []
+
+        if isinstance(expression, dict):
+            values = []
+            for key in ("name", "value", "target", "scope", "receiver"):
+                if expression.get(key):
+                    values.extend(self._java_reference_candidates(expression.get(key)))
+            return values
+
+        expression_text = str(expression)
+
+        if not expression_text:
+            return []
+
+        # Remove quoted strings and character literals.
+        expression_text = re.sub(r'"(?:\\.|[^"\\])*"', " ", expression_text)
+        expression_text = re.sub(r"'(?:\\.|[^'\\])*'", " ", expression_text)
+
+        candidates = []
+
+        for token in re.findall(r"\b[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)?\b", expression_text):
+            first = token.split(".", 1)[0]
+
+            if first in self._java_keywords():
+                continue
+
+            if first in {"String", "Long", "Integer", "Boolean", "List", "Map", "ArrayList", "HashMap", "StringBuilder"}:
+                continue
+
+            candidates.append(first)
+
+        return candidates
+
+    def _java_keywords(self):
+        return {
+            "abstract", "assert", "boolean", "break", "byte", "case", "catch",
+            "char", "class", "const", "continue", "default", "do", "double",
+            "else", "enum", "extends", "false", "final", "finally", "float",
+            "for", "if", "implements", "import", "instanceof", "int",
+            "interface", "long", "new", "null", "package", "private",
+            "protected", "public", "return", "short", "static", "strictfp",
+            "super", "switch", "synchronized", "this", "throw", "throws",
+            "transient", "true", "try", "void", "volatile", "while",
+        }
+
+    def _is_identifier_like(self, text: str):
+        return re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", str(text or "")) is not None
+
+    def _is_storable_unit(self, element):
+        return element is not None and getattr(element.eClass, "name", None) == "StorableUnit"
+
+    def _is_java_object_creation_item(self, item: dict):
+        value_kind = self._get_value(item, "valueKind", "value_kind")
+        statement_type = self._statement_type(item)
+
+        return (
+            value_kind == "object_creation"
+            or statement_type == "object_creation"
+            or self._get_value(item, "objectCreation", "object_creation") is not None
+        )
+
+    def _add_java_creates_if_constructor(self, action, call: dict):
+        constructor_name = self._constructor_name_from_call(call)
+
+        if not constructor_name:
+            return
+
+        self._add_java_creates(action, constructor_name)
+
+    def _add_java_creates_from_item(self, action, item: dict):
+        constructor_name = (
+            self._get_value(item, "className", "class_name", "assignedType", "assigned_type")
+            or self._constructor_name_from_value(self._get_value(item, "value"))
+        )
+
+        value_call = self._get_value(item, "value_call", "valueCall", default=None)
+        if not constructor_name and isinstance(value_call, dict):
+            constructor_name = self._constructor_name_from_call(value_call)
+
+        if not constructor_name:
+            return
+
+        self._add_java_creates(action, constructor_name)
+
+    def _constructor_name_from_call(self, call: dict):
+        if not isinstance(call, dict):
+            return None
+
+        classification = self._get_value(call, "classification")
+        kind = self._get_value(call, "kind")
+
+        target_id = self._get_value(call, "target_id", "targetId", "resolvedTarget", "resolved_target")
+        class_name = self._get_value(call, "className", "class_name")
+
+        if class_name:
+            return str(class_name).split(".")[-1]
+
+        if target_id and ".<init>" in str(target_id):
+            return str(target_id).split(".<init>", 1)[0].split(".")[-1]
+
+        if target_id and str(target_id).endswith(")"):
+            # Constructor signatures sometimes arrive as pkg.Type(...)
+            before_params = str(target_id).split("(", 1)[0]
+            last = before_params.split(".")[-1]
+            if last and last[:1].isupper():
+                return last
+
+        if classification == "constructor" or kind == "constructor_call":
+            name = self._get_value(call, "methodName", "method_name", "name", "function")
+            if name:
+                return str(name).split(".")[-1]
+
+        return None
+
+    def _constructor_name_from_value(self, value):
+        if value is None:
+            return None
+
+        value_text = str(value).strip()
+
+        match = re.search(r"\bnew\s+([A-Za-z_][A-Za-z0-9_.$]*)", value_text)
+        if match:
+            return match.group(1).split(".")[-1]
+
+        if value_text and value_text[0].isupper():
+            return value_text.split("(", 1)[0].split(".")[-1]
+
+        return None
+
+    def _add_java_creates(self, action, constructor_name: str):
+        if not constructor_name:
+            return
+
+        target = self._resolve_class_unit_by_name(constructor_name)
+
+        if target is None and self.external_builder is not None:
+            target = self.external_builder.get_or_create_external_class(
+                library_name=self._infer_java_library_name(constructor_name),
+                class_name=constructor_name,
+            )
+
+        if target is None:
+            return
+
+        self._append_action_relation_once(
+            action=action,
+            relation_type="Creates",
+            target=target,
+        )
+
+    def _resolve_class_unit_by_name(self, class_name: str):
+        if not class_name:
+            return None
+
+        for element in self.id_index.values():
+            if getattr(element.eClass, "name", None) != "ClassUnit":
+                continue
+
+            if getattr(element, "name", None) == class_name:
+                return element
+
+        return None
+
+    def _infer_java_library_name(self, class_name: str):
+        if class_name in {"StringBuilder", "String", "Long", "Integer", "Boolean", "RuntimeException", "IllegalArgumentException", "IllegalStateException"}:
+            return "java.lang"
+
+        if class_name in {"ArrayList", "HashMap", "List", "Map"}:
+            return "java.util"
+
+        return "java.external"
+
+    def _add_java_throw_relation(self, action, item: dict):
+        exception_name = self._java_exception_name_from_item(item)
+
+        if not exception_name:
+            return
+
+        exception_data = self._get_or_create_java_thrown_exception_data(
+            action=action,
+            exception_name=exception_name,
+        )
+
+        if exception_data is None:
+            return
+
+        self._append_action_relation_once(
+            action=action,
+            relation_type="Throws",
+            target=exception_data,
+        )
+
+    def _java_exception_name_from_item(self, item: dict):
+        exception_name = self._get_value(item, "exception", "exceptionType")
+
+        if exception_name:
+            return str(exception_name).split(".")[-1]
+
+        for call in self._get_list(item, "exception_calls", "exceptionCalls"):
+            constructor_name = self._constructor_name_from_call(call)
+            if constructor_name:
+                return constructor_name
+
+        value = self._get_value(item, "value")
+        constructor_name = self._constructor_name_from_value(value)
+        if constructor_name:
+            return constructor_name
+
+        return None
+
+    def _get_or_create_java_thrown_exception_data(self, action, exception_name: str):
+        if action is None or not exception_name:
+            return None
+
+        if not self.factory.has_feature(action, "codeElement"):
+            return None
+
+        storable_name = f"{exception_name}_exception"
+
+        for child in action.codeElement:
+            if getattr(child.eClass, "name", None) == "StorableUnit" and getattr(child, "name", None) == storable_name:
+                return child
+
+        exception_data = self.factory.create_storable_unit(storable_name)
+
+        self._add_attribute_once(exception_data, "role", "thrown_exception")
+
+        action.codeElement.append(exception_data)
+
+        return exception_data
+
+    def _count_action_relations(self, action, relation_type: str):
+        if action is None or not self.factory.has_feature(action, "actionRelation"):
+            return 0
+
+        return sum(
+            1
+            for relation in action.actionRelation
+            if getattr(relation.eClass, "name", None) == relation_type
         )
 
 
@@ -1547,8 +2047,6 @@ class BodyActionMapper:
             target = self._resolve_constructor_target_static(constructor_name)
 
             if target is None:
-                self._add_attribute_once(child, "resolution_status", "unresolved")
-                self._add_attribute_once(child, "unresolved_constructor", constructor_name)
                 continue
 
             creates_relation = self.factory.create_creates_relation(target)

@@ -47,6 +47,7 @@ class KDMFactory:
         self.ClassUnit = resolver.find("ClassUnit")
         self.MethodUnit = resolver.find("MethodUnit")
         self.CallableUnit = resolver.find("CallableUnit")
+        self.Signature = resolver.find("Signature")
         self.ParameterUnit = resolver.find("ParameterUnit")
         self.StorableUnit = resolver.find("StorableUnit")
 
@@ -84,6 +85,7 @@ class KDMFactory:
 
         # KDM annotations
         self.Attribute = resolver.find("Attribute")
+        self.Annotation = resolver.find("Annotation")
 
         # Source package
         self.InventoryModel = resolver.find("InventoryModel")
@@ -225,6 +227,18 @@ class KDMFactory:
         unit = self.CallableUnit()
         unit.name = name
         return unit
+
+    def create_signature(self, name: str):
+        """
+        Creates a KDM Signature.
+
+        A Signature is the native KDM representation of a callable or method
+        signature. ControlElement.type should reference this Signature.
+        """
+
+        signature = self.Signature()
+        signature.name = name
+        return signature
 
     def create_parameter_unit(self, name: str):
         """
@@ -524,6 +538,33 @@ class KDMFactory:
 
         return attribute
 
+    def create_annotation(self, text: str):
+        """
+        Creates a KDM Annotation element.
+        """
+
+        annotation = self.Annotation()
+
+        if self.has_feature(annotation, "text"):
+            annotation.text = str(text)
+
+        return annotation
+
+    def add_annotation(self, element, text: str):
+        """
+        Adds a native KDM Annotation to an annotatable element.
+        """
+
+        if text is None:
+            return None
+
+        if not self.has_feature(element, "annotation"):
+            return None
+
+        annotation = self.create_annotation(text)
+        element.annotation.append(annotation)
+        return annotation
+
     def add_attribute(self, element, tag: str, value):
         """
         Adds a KDM Attribute to an element if the element supports attributes.
@@ -629,13 +670,11 @@ class KDMFactory:
 
         If only one of start_line or end_line is provided, the other one is
         inferred so that the region covers a single source line.
-
-        A SourceRegion without either a physical file reference or a path is
-        invalid for the validator. Therefore, if callers provide only line
-        numbers but no physical source location, the region is skipped instead
-        of generating invalid KDM.
         """
 
+        # KDM SourceRegion must identify its physical artifact either through
+        # a SourceFile reference or through an explicit path. Line numbers alone
+        # are not sufficient and produce invalid orphan SourceRegion elements.
         if path is None and file_item is None:
             return
 

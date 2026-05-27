@@ -104,8 +104,6 @@ class ReferenceResolver:
                 file_item=source_file,
             )
 
-            self._add_call_traceability_metadata(action, call)
-
             source.codeElement.append(action)
 
             target = self._resolve_call_target(call)
@@ -117,8 +115,9 @@ class ReferenceResolver:
                 else:
                     calls_relation = self.factory.create_calls_relation(target)
                     action.actionRelation.append(calls_relation)
-            else:
-                self._add_unresolved_call_metadata(action, call)
+            # If no target can be resolved, leave the ActionElement without
+            # temporary unresolved_* attributes. The call name and SourceRegion
+            # still provide minimal traceability without polluting the KDM.
 
     def _call_action_name(self, call: dict):
         name = (
@@ -139,39 +138,12 @@ class ReferenceResolver:
         )
 
     def _add_call_traceability_metadata(self, action, call: dict):
-        """
-        Adds only technical traceability attributes.
-
-        Semantic resolution is represented by action::Calls or action::Creates,
-        not by temporary attributes such as resolved or target_id.
-        """
-
-        metadata = {
-            "original_id": call.get("id"),
-            "classification": call.get("classification"),
-            "occurrence_index": call.get("occurrence_index"),
-            "called_signature": self._get_value(call, "target_id", "targetId", "resolvedTarget", "resolved_target"),
-        }
-
-        self.factory.add_attributes_from_dict(action, metadata)
+        """Deprecated: call traceability is represented by SourceRegion and Calls/Creates."""
+        return
 
     def _add_unresolved_call_metadata(self, action, call: dict):
-        """
-        Adds explicit unresolved metadata only when the call target could not
-        be represented as a KDM relation.
-        """
-
-        self.factory.add_attribute(
-            action,
-            "resolution_status",
-            "unresolved",
-        )
-
-        self.factory.add_attribute(
-            action,
-            "unresolved_target_name",
-            self._get_value(call, "name", "methodName"),
-        )
+        """Deprecated: unresolved calls are not serialized as debug attributes."""
+        return
 
     def _resolve_call_target(self, call: dict):
         target_id = self._get_value(call, "target_id", "targetId", "resolvedTarget", "resolved_target")
@@ -179,11 +151,22 @@ class ReferenceResolver:
         if target_id in self.id_index:
             return self.id_index[target_id]
 
-        if self._is_external_or_builtin(call):
-            if self.external_builder is None:
-                return None
+        if self.external_builder is None:
+            return None
 
+        if self._is_external_or_builtin(call):
             return self.external_builder.get_or_create_external_target(call)
+
+        # Java and other statically extracted models may provide a fully
+        # qualified target signature even when it is outside the analyzed
+        # project, for example java.util.List.size(). Represent this as an
+        # external CallableUnit instead of serializing unresolved_* attributes.
+        if target_id:
+            external_call = dict(call)
+            external_call.setdefault("classification", "external")
+            external_call["name"] = str(target_id)
+            external_call["target_id"] = str(target_id)
+            return self.external_builder.get_or_create_external_target(external_call)
 
         return None
 

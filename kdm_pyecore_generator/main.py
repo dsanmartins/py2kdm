@@ -118,9 +118,15 @@ def generate_kdm(
     # 5. Create CodeModel and structural KDM elements
     # ------------------------------------------------------------
 
+    # External builder is created before structural mapping so generic
+    # relationships can resolve external calls directly to KDM targets instead
+    # of storing temporary unresolved_* attributes.
+    external_builder = ExternalModelBuilder(factory, segment)
+
     mapper = JsonToKDMMapper(
         factory=factory,
         inventory_builder=inventory_builder,
+        external_builder=external_builder,
     )
 
     segment = mapper.transform_structure_into_segment(data, segment)
@@ -142,7 +148,7 @@ def generate_kdm(
     # 6. External libraries model builder
     # ------------------------------------------------------------
 
-    external_builder = ExternalModelBuilder(factory, segment)
+    # external_builder was created before structural mapping.
 
     # ------------------------------------------------------------
     # 7. Resolve types using code::HasType
@@ -196,6 +202,7 @@ def generate_kdm(
         inventory_builder=inventory_builder,
         language=language,
         external_builder=external_builder,
+        storable_index=mapper.storable_index,
     )
 
     body_action_mapper.map_body_actions(data)
