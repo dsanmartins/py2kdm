@@ -2,7 +2,7 @@ site_name: py2kdm
 site_author: "Daniel San Martín"
 extra:
   author_url: "https://www.danielsanmartin.cl/"
-site_description: KDM-based reverse engineering workbench for Python projects
+site_description: KDM-based reverse engineering workbench for Python and Java projects
 copyright: 'Author: <a href="https://www.danielsanmartin.cl/">Daniel San Martín</a>'
 
 theme:
@@ -23,6 +23,7 @@ nav:
   - Pipeline Internals:
       - Architecture: architecture.md
       - Python Extractor: python_extractor.md
+      - Java Extractor: java_extractor.md
       - Intermediate JSON Model: intermediate_json_model.md
       - Dynamic Analysis: dynamic_analysis.md
       - Dynamic Scenarios: dynamic_scenarios.md
@@ -32,6 +33,7 @@ nav:
       - Architecture Agents: architecture_agents.md
       - JSON to KDM Mapping: json_to_kdm_mapping.md
       - Validation Rules: validation_rules.md
+      - KDM Regression Checks: kdm_regression_checks.md
   - Development:
       - Development Guide: development_guide.md
       - Testing Strategy: testing_strategy.md

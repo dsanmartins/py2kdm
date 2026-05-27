@@ -6,19 +6,56 @@ The **Artifacts** tab summarizes generated files and lets the user inspect them 
 
 | Artifact | Description |
 |---|---|
-| `python_model.json` | Static model extracted from Python source code. |
+| `python_model.json` | Intermediate model extracted from Python source code. |
+| `java_model.json` | Intermediate model extracted from Java source code by `java2kdm`. |
 | `runtime_trace.<scenario>.json` | Raw runtime trace for one scenario. |
 | `python_model.runtime_enriched.<scenario>.json` | Intermediate runtime-enriched model for one scenario. |
 | `python_model.runtime_enriched.combined.json` | Combined runtime-enriched model after all enabled scenarios. |
-| `python_model.runtime_enriched.architecture.json` | Recovered architecture over runtime-enriched model. |
-| `python_model.runtime_enriched.ai_architecture.json` | Architecture proposal with pre-review AI suggestions. |
-| `python_model.reviewed_architecture.json` | Human-reviewed architecture model. |
-| `model.reviewed.kdm.xmi` | Final KDM XMI generated from the reviewed architecture. |
+| `*.architecture.json` | Recovered architecture over the selected intermediate model. |
+| `*.ai_architecture.json` | Architecture proposal with pre-review AI suggestions. |
+| `*.reviewed_architecture.json` | Human-reviewed architecture model. |
+| `model.kdm.xmi` | Generated KDM XMI model. |
 
-## JSON summaries
+## Java artifacts
 
-For JSON files, the GUI reports top-level keys, metadata, static relationship counts, runtime enrichment summary, architecture element counts, AI suggestion counts, and human review decisions.
+A Java run typically produces:
 
-## XMI summaries
+```text
+outputs/demo-java-project/java_model.json
+outputs/demo-java-project/model.kdm.xmi
+```
 
-For XMI files, the GUI reports approximate counters for `action:Calls`, `runtime_call` labels, `structure:Component`, `structure:Subsystem`, `structure:StructureRelationship`, and `extensionFamily`.
+## Python artifacts
+
+A Python run typically produces:
+
+```text
+outputs/pymape_hierarchical/python_model.json
+outputs/pymape_hierarchical/model.kdm.xmi
+```
+
+If dynamic analysis or architecture recovery is enabled, additional enriched JSON files are generated.
+
+## KDM inspection
+
+The final XMI should contain structural and behavioral KDM elements such as:
+
+```text
+SourceFile
+CompilationUnit
+ClassUnit
+MethodUnit
+CallableUnit
+ParameterUnit
+StorableUnit
+ActionElement
+BlockUnit
+Calls
+Reads
+Writes
+Creates
+Throws
+TryUnit
+CatchUnit
+ExceptionFlow
+```
