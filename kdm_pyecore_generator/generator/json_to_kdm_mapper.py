@@ -24,6 +24,11 @@ class JsonToKDMMapper:
         # Generic model support.
         self.compilation_unit_by_path = {}
 
+        # Formal KDM extension support for Java annotations and Python decorators.
+        self.segment = None
+        self.annotation_extension_family = None
+        self.annotation_stereotypes = {}
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -61,6 +66,7 @@ class JsonToKDMMapper:
         """
         project_name = data.get("projectName", "UnknownProject")
         self.language = data.get("language", "unknown")
+        self.segment = segment
 
         code_model = self.factory.create_code_model(f"{project_name}_CodeModel")
         segment.model.append(code_model)
@@ -223,7 +229,7 @@ class JsonToKDMMapper:
         )
 
         self._add_common_metadata(class_unit, cls)
-        self._add_decorator_metadata(class_unit, cls)
+        self._add_native_annotations(class_unit, cls)
 
         self._register(cls.get("id"), class_unit, cls)
 
@@ -255,6 +261,7 @@ class JsonToKDMMapper:
 
         self._add_common_metadata(method_unit, method)
         self._add_callable_signature_metadata(method_unit, method)
+        self._add_native_annotations(method_unit, method)
 
         self._register(method.get("id"), method_unit, method)
 
@@ -286,6 +293,7 @@ class JsonToKDMMapper:
 
         self._add_common_metadata(callable_unit, func)
         self._add_callable_signature_metadata(callable_unit, func)
+        self._add_native_annotations(callable_unit, func)
 
         self._register(func.get("id"), callable_unit, func)
 
@@ -302,16 +310,22 @@ class JsonToKDMMapper:
         parameter_unit = self.factory.create_parameter_unit(
             param.get("name", "param")
         )
-        parent.codeElement.append(parameter_unit)
+
+        if self.factory.has_feature(parent, "parameterUnit"):
+            parent.parameterUnit.append(parameter_unit)
+        else:
+            parent.codeElement.append(parameter_unit)
+
+        self._apply_parameter_native_properties(parameter_unit, param)
+        self._add_native_annotations(parameter_unit, param)
 
         self._register_typable(parameter_unit, param)
 
+        # Keep only metadata that has no native KDM counterpart in this
+        # generator. Parameter kind and position are represented by
+        # ParameterUnit.kind and ParameterUnit.pos. Type information is
+        # represented by native type and HasType.
         metadata = {
-            "type_resolution": param.get("type_resolution"),
-            "declared_type": param.get("type"),
-            "resolved_type": param.get("resolvedType") or param.get("resolved_type"),
-            "parameter_kind": param.get("kind"),
-            "parameter_index": param.get("index"),
             "default_value": param.get("default_value"),
         }
 
@@ -344,11 +358,19 @@ class JsonToKDMMapper:
             file_item=source_file,
         )
 
+        self._apply_data_native_properties(
+            storable_unit,
+            var,
+            default_kind="local",
+        )
+        self._add_native_annotations(storable_unit, var)
+
+        # Keep only metadata that has no reliable native KDM counterpart.
+        # declared_type/resolved_type are represented by type and HasType.
         metadata = {
             "full_name": var.get("full_name"),
-            "type_resolution": var.get("type_resolution"),
-            "declared_type": var.get("type"),
-            "resolved_type": var.get("resolvedType") or var.get("resolved_type"),
+            "value_kind": var.get("value_kind") or var.get("valueKind"),
+            "value_type": var.get("value_type") or var.get("valueType"),
         }
 
         self.factory.add_attributes_from_dict(storable_unit, metadata)
@@ -418,22 +440,9 @@ class JsonToKDMMapper:
             file_item=source_file,
         )
 
-        # Do not add qualified_name or package here. They are added by
-        # _add_common_metadata. Do not use tag 'kind'; use element_kind.
-        self.factory.add_attributes_from_dict(
-            class_unit,
-            {
-                "element_kind": kind,
-                "modifiers": self._safe_join(element.get("modifiers", [])),
-                "annotations": self._safe_join(element.get("annotations", [])),
-                "extends_types": self._safe_join(element.get("extendsTypes", [])),
-                "implements_types": self._safe_join(
-                    element.get("implementsTypes", [])
-                ),
-            },
-        )
-
+        self._apply_class_native_properties(class_unit, element)
         self._add_common_metadata(class_unit, element)
+        self._add_native_annotations(class_unit, element)
 
         self._register(
             element.get("id")
@@ -501,15 +510,12 @@ class JsonToKDMMapper:
 
         resolved_type = field.get("resolvedType") or field.get("resolved_type")
 
-        self.factory.add_attributes_from_dict(
+        self._apply_data_native_properties(
             storable_unit,
-            {
-                "declared_type": field.get("type"),
-                "resolved_type": resolved_type,
-                "modifiers": self._safe_join(field.get("modifiers", [])),
-                "annotations": self._safe_join(field.get("annotations", [])),
-            },
+            field,
+            default_kind="unknown",
         )
+        self._add_native_annotations(storable_unit, field)
 
         normalized_field = dict(field)
         normalized_field["resolved_type_id"] = self._infer_type_id(resolved_type)
@@ -661,14 +667,79 @@ class JsonToKDMMapper:
             file_item=source_file,
         )
 
-        self.factory.add_attributes_from_dict(
+        self._apply_data_native_properties(
             storable_unit,
-            {
-                "declared_type": local_var.get("type"),
-                "resolved_type": resolved_type,
-                "assigned_value_kind": local_var.get("valueKind") or local_var.get("value_kind"),
-            },
+            local_var,
+            default_kind="local",
         )
+        self._add_native_annotations(storable_unit, local_var)
+
+
+
+    # ------------------------------------------------------------------
+    # Native KDM class/data metadata helpers
+    # ------------------------------------------------------------------
+
+    def _apply_class_native_properties(self, class_unit, class_model: dict):
+        """
+        Maps class-level JSON metadata to native KDM properties when
+        available.
+
+        Redundant extractor attributes such as element_kind, modifiers and
+        annotations are intentionally not emitted as kdm:Attribute elements.
+        """
+
+        modifiers = set(class_model.get("modifiers", []) or [])
+
+        if self.factory.has_feature(class_unit, "export"):
+            class_unit.export = self._visibility_from_modifiers(modifiers)
+
+        if self.factory.has_feature(class_unit, "isFinal"):
+            class_unit.isFinal = "final" in modifiers
+
+        if self.factory.has_feature(class_unit, "isAbstract"):
+            class_unit.isAbstract = "abstract" in modifiers
+
+    def _apply_data_native_properties(
+        self,
+        data_element,
+        data_model: dict,
+        default_kind: str = "unknown",
+    ):
+        """
+        Maps variable, field and local-variable metadata to native KDM
+        properties when supported by the concrete metaclass.
+
+        Type information is handled by TypeRelationResolver through the native
+        type reference and HasType. Annotations are represented as kdm:Annotation.
+        """
+
+        modifiers = set(data_model.get("modifiers", []) or [])
+
+        if self.factory.has_feature(data_element, "kind"):
+            data_element.kind = self._normalize_storable_kind(
+                data_model.get("kind") or data_model.get("storableKind") or default_kind
+            )
+
+        if self.factory.has_feature(data_element, "export"):
+            data_element.export = self._visibility_from_modifiers(modifiers)
+
+        if self.factory.has_feature(data_element, "isStatic"):
+            data_element.isStatic = "static" in modifiers
+
+        if self.factory.has_feature(data_element, "isFinal"):
+            data_element.isFinal = "final" in modifiers
+
+    def _normalize_storable_kind(self, kind):
+        if kind in {"global", "local", "external", "register", "unknown"}:
+            return kind
+
+        if kind in {"field", "member"}:
+            # The current generator still represents fields as StorableUnit.
+            # A future, stricter mapping can migrate Java fields to MemberUnit.
+            return "unknown"
+
+        return "unknown"
 
 
     # ------------------------------------------------------------------
@@ -851,37 +922,339 @@ class JsonToKDMMapper:
 
     def _add_native_annotations(self, kdm_element, model_element: dict):
         """
-        Adds Java/Python source annotations using native KDM Annotation when
-        possible.
+        Models Java annotations and Python decorators using KDM semantics.
 
-        This method is defensive because some KDMFactory versions expose the
-        Annotation classifier as self.Annotation but do not yet provide the
-        helper method add_annotation(...).
+        The primary representation is a native kdm:Annotation attached to the
+        annotated element. In addition, when the element is extendable, the
+        mapper adds a formal KDM extension:
+
+        - ExtensionFamily: LanguageAnnotations
+        - Stereotype: JavaAnnotationUsage or PythonDecoratorUsage
+        - TaggedValue entries:
+          annotation_name
+          annotation_text
+          annotation_value
+          annotation_language
+
+        This avoids representing annotations as loose kdm:Attribute entries.
         """
 
-        annotations = model_element.get("annotations", []) or []
+        normalized_annotations = self._normalize_annotation_entries(
+            model_element.get("annotations", []) or model_element.get("decorators", []) or []
+        )
+
+        if not normalized_annotations:
+            return
+
+        stereotype, tag_defs = self._get_or_create_annotation_stereotype()
+
+        if stereotype is not None:
+            self.factory.add_stereotype_to_element(kdm_element, stereotype)
+
+        for annotation in normalized_annotations:
+            text = annotation["text"]
+            name = annotation["name"]
+            values = annotation.get("values") or {}
+
+            self._add_annotation_text_once(kdm_element, text)
+
+            if stereotype is not None and tag_defs:
+                self.factory.add_tagged_value(
+                    kdm_element,
+                    tag_defs.get("annotation_name"),
+                    name,
+                )
+                self.factory.add_tagged_value(
+                    kdm_element,
+                    tag_defs.get("annotation_text"),
+                    text,
+                )
+                self.factory.add_tagged_value(
+                    kdm_element,
+                    tag_defs.get("annotation_language"),
+                    self.language,
+                )
+
+                for key, value in values.items():
+                    self.factory.add_tagged_value(
+                        kdm_element,
+                        tag_defs.get("annotation_value"),
+                        f"{key}={value}",
+                    )
+
+    def _add_annotation_text_once(self, kdm_element, text: str):
+        if kdm_element is None or not text:
+            return None
+
+        if not self.factory.has_feature(kdm_element, "annotation"):
+            return None
+
+        for existing in kdm_element.annotation:
+            if getattr(existing, "text", None) == text:
+                return existing
+
+        if hasattr(self.factory, "add_annotation"):
+            return self.factory.add_annotation(kdm_element, text)
+
+        annotation_cls = getattr(self.factory, "Annotation", None)
+
+        if annotation_cls is None:
+            return None
+
+        annotation = annotation_cls()
+
+        if self.factory.has_feature(annotation, "text"):
+            annotation.text = text
+
+        kdm_element.annotation.append(annotation)
+        return annotation
+
+    def _get_or_create_annotation_stereotype(self):
+        if self.segment is None:
+            return None, None
+
+        stereotype_name = (
+            "JavaAnnotationUsage"
+            if self.language == "java"
+            else "PythonDecoratorUsage"
+            if self.language == "python"
+            else "SourceAnnotationUsage"
+        )
+
+        if stereotype_name in self.annotation_stereotypes:
+            return self.annotation_stereotypes[stereotype_name]
+
+        family = self._get_or_create_annotation_extension_family()
+
+        if family is None:
+            return None, None
+
+        stereotype = None
+
+        if self.factory.has_feature(family, "stereotype"):
+            for existing in family.stereotype:
+                if getattr(existing, "name", None) == stereotype_name:
+                    stereotype = existing
+                    break
+
+        if stereotype is None:
+            stereotype = self.factory.create_stereotype(
+                stereotype_name,
+                "code:CodeItem",
+            )
+
+            if self.factory.has_feature(family, "stereotype"):
+                family.stereotype.append(stereotype)
+
+        tag_defs = self._ensure_annotation_tag_definitions(stereotype)
+
+        self.annotation_stereotypes[stereotype_name] = (stereotype, tag_defs)
+        return stereotype, tag_defs
+
+    def _get_or_create_annotation_extension_family(self):
+        if self.annotation_extension_family is not None:
+            return self.annotation_extension_family
+
+        if self.segment is None:
+            return None
+
+        if not self.factory.has_feature(self.segment, "extensionFamily"):
+            return None
+
+        for family in self.segment.extensionFamily:
+            if getattr(family, "name", None) == "LanguageAnnotations":
+                self.annotation_extension_family = family
+                return family
+
+        family = self.factory.create_extension_family("LanguageAnnotations")
+        self.segment.extensionFamily.append(family)
+        self.annotation_extension_family = family
+        return family
+
+    def _ensure_annotation_tag_definitions(self, stereotype):
+        if stereotype is None or not self.factory.has_feature(stereotype, "tag"):
+            return {}
+
+        required = {
+            "annotation_name": "String",
+            "annotation_text": "String",
+            "annotation_value": "String",
+            "annotation_language": "String",
+        }
+
+        tag_defs = {}
+
+        for existing in stereotype.tag:
+            tag_name = getattr(existing, "tag", None)
+            if tag_name in required:
+                tag_defs[tag_name] = existing
+
+        for tag_name, value_type in required.items():
+            if tag_name in tag_defs:
+                continue
+
+            tag_definition = self.factory.create_tag_definition(
+                tag_name,
+                value_type,
+            )
+            stereotype.tag.append(tag_definition)
+            tag_defs[tag_name] = tag_definition
+
+        return tag_defs
+
+    def _normalize_annotation_entries(self, annotations):
+        normalized = []
 
         for annotation in annotations:
-            text = f"@{annotation}"
+            parsed = self._normalize_single_annotation(annotation)
 
-            if hasattr(self.factory, "add_annotation"):
-                self.factory.add_annotation(kdm_element, text)
+            if parsed is not None:
+                normalized.append(parsed)
+
+        return normalized
+
+    def _normalize_single_annotation(self, annotation):
+        if isinstance(annotation, dict):
+            name = (
+                annotation.get("name")
+                or annotation.get("qualifiedName")
+                or annotation.get("qualified_name")
+                or annotation.get("type")
+            )
+
+            values = (
+                annotation.get("values")
+                or annotation.get("arguments")
+                or annotation.get("members")
+                or {}
+            )
+
+            if isinstance(values, list):
+                values = {
+                    str(index): value
+                    for index, value in enumerate(values)
+                }
+
+            if values is None:
+                values = {}
+
+            if not isinstance(values, dict):
+                values = {"value": values}
+
+            if not name:
+                text = str(annotation)
+                name = text
+            else:
+                text = self._format_annotation_text(name, values)
+
+            return {
+                "name": str(name).lstrip("@"),
+                "text": text,
+                "values": {
+                    str(key): str(value)
+                    for key, value in values.items()
+                },
+            }
+
+        text = str(annotation).strip()
+
+        if not text:
+            return None
+
+        if not text.startswith("@"):
+            text = f"@{text}"
+
+        name, values = self._parse_annotation_text(text)
+
+        return {
+            "name": name,
+            "text": text,
+            "values": values,
+        }
+
+    def _parse_annotation_text(self, text: str):
+        clean_text = text.strip()
+
+        if clean_text.startswith("@"):
+            clean_text = clean_text[1:]
+
+        if "(" not in clean_text:
+            return clean_text, {}
+
+        name, raw_values = clean_text.split("(", 1)
+        raw_values = raw_values.rsplit(")", 1)[0].strip()
+
+        values = {}
+
+        if raw_values:
+            parts = self._split_annotation_arguments(raw_values)
+
+            for index, part in enumerate(parts):
+                if "=" in part:
+                    key, value = part.split("=", 1)
+                    values[key.strip()] = value.strip().strip('"')
+                else:
+                    values[str(index)] = part.strip().strip('"')
+
+        return name.strip(), values
+
+    def _split_annotation_arguments(self, raw_values: str):
+        parts = []
+        current = []
+        depth = 0
+        in_string = False
+        quote = None
+
+        for char in raw_values:
+            if in_string:
+                current.append(char)
+
+                if char == quote:
+                    in_string = False
+
                 continue
 
-            if not self.factory.has_feature(kdm_element, "annotation"):
+            if char in {"'", '"'}:
+                in_string = True
+                quote = char
+                current.append(char)
                 continue
 
-            annotation_cls = getattr(self.factory, "Annotation", None)
-
-            if annotation_cls is None:
+            if char in {"(", "{", "["}:
+                depth += 1
+                current.append(char)
                 continue
 
-            annotation_element = annotation_cls()
+            if char in {")", "}", "]"}:
+                depth = max(0, depth - 1)
+                current.append(char)
+                continue
 
-            if self.factory.has_feature(annotation_element, "text"):
-                annotation_element.text = text
+            if char == "," and depth == 0:
+                parts.append("".join(current).strip())
+                current = []
+                continue
 
-            kdm_element.annotation.append(annotation_element)
+            current.append(char)
+
+        if current:
+            parts.append("".join(current).strip())
+
+        return parts
+
+    def _format_annotation_text(self, name: str, values: dict):
+        clean_name = str(name).lstrip("@")
+
+        if not values:
+            return f"@{clean_name}"
+
+        formatted_values = ", ".join(
+            f"{key}={value}"
+            for key, value in values.items()
+        )
+
+        return f"@{clean_name}({formatted_values})"
+
 
 
     def _map_generic_relationships(self, data: dict):
@@ -1385,29 +1758,22 @@ class JsonToKDMMapper:
         """
         Deprecated compatibility hook.
 
-        Callable and method signatures are now represented with native
-        code:Signature and code:ParameterUnit elements.
+        Callable and method signatures are represented with native
+        code:Signature and code:ParameterUnit elements. Python decorators are
+        represented by _add_native_annotations using kdm:Annotation,
+        Stereotype and TaggedValue.
         """
-        self._add_decorator_metadata(callable_unit, callable_model)
+        return
 
     def _add_decorator_metadata(self, kdm_element, model_element: dict):
-        decorators = model_element.get("decorators", [])
+        """
+        Deprecated compatibility hook.
 
-        if not decorators:
-            return
+        Do not emit Attribute tag="decorators" or tag="decorator_N".
+        Decorators are represented by _add_native_annotations.
+        """
+        self._add_native_annotations(kdm_element, model_element)
 
-        self.factory.add_attribute(
-            kdm_element,
-            "decorators",
-            ", ".join(str(decorator) for decorator in decorators),
-        )
-
-        for index, decorator in enumerate(decorators):
-            self.factory.add_attribute(
-                kdm_element,
-                f"decorator_{index}",
-                decorator,
-            )
 
     # ------------------------------------------------------------------
     # Registration helpers

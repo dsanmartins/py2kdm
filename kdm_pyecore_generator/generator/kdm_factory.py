@@ -40,6 +40,9 @@ class KDMFactory:
         # Extension package
         self.ExtensionFamily = resolver.find("ExtensionFamily")
         self.Stereotype = resolver.find("Stereotype")
+        self.TagDefinition = resolver.find("TagDefinition")
+        self.TaggedValue = resolver.find("TaggedValue")
+        self.TaggedRef = resolver.find("TaggedRef")
 
         # Code package
         self.CodeModel = resolver.find("CodeModel")
@@ -172,6 +175,81 @@ class KDMFactory:
             self.add_attribute(stereotype, "type", stereotype_type)
 
         return stereotype
+
+
+    def create_tag_definition(self, tag: str, value_type: str = "String"):
+        """
+        Creates a KDM TagDefinition.
+
+        TagDefinition belongs to a Stereotype and defines the schema of a
+        formal KDM extension value.
+        """
+
+        tag_definition = self.TagDefinition()
+        tag_definition.tag = tag
+
+        if self.has_feature(tag_definition, "type"):
+            tag_definition.type = value_type
+
+        return tag_definition
+
+    def create_tagged_value(self, tag_definition, value: str):
+        """
+        Creates a KDM TaggedValue linked to a TagDefinition.
+        """
+
+        tagged_value = self.TaggedValue()
+
+        if self.has_feature(tagged_value, "tag"):
+            tagged_value.tag = tag_definition
+
+        if self.has_feature(tagged_value, "value"):
+            tagged_value.value = str(value)
+
+        return tagged_value
+
+    def add_stereotype_to_element(self, element, stereotype):
+        """
+        Adds a Stereotype reference to an ExtendableElement.
+        """
+
+        if element is None or stereotype is None:
+            return False
+
+        if not self.has_feature(element, "stereotype"):
+            return False
+
+        for existing in element.stereotype:
+            if existing is stereotype:
+                return True
+
+        element.stereotype.append(stereotype)
+        return True
+
+    def add_tagged_value(self, element, tag_definition, value):
+        """
+        Adds a TaggedValue to an ExtendableElement.
+        """
+
+        if element is None or tag_definition is None or value is None:
+            return None
+
+        if not self.has_feature(element, "taggedValue"):
+            return None
+
+        value_text = str(value)
+
+        for existing in element.taggedValue:
+            existing_tag = getattr(existing, "tag", None)
+            existing_value = getattr(existing, "value", None)
+
+            if existing_tag is tag_definition and existing_value == value_text:
+                return existing
+
+        tagged_value = self.create_tagged_value(tag_definition, value_text)
+        element.taggedValue.append(tagged_value)
+        return tagged_value
+
 
     # ------------------------------------------------------------
     # Code model elements
