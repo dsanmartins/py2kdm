@@ -63,8 +63,9 @@ def validate_project_setup(
     config_path: Path | None,
     project_root: Path,
     output_dir: Path,
-    dynamic_enabled: bool,
-    scenarios: Iterable[tuple[bool, str, str, str]],
+    language: str = "python",
+    dynamic_enabled: bool = True,
+    scenarios: Iterable[tuple[bool, str, str, str]] = (),
     llm_provider: str,
     llm_model: str,
 ) -> ProjectSetupValidationReport:
@@ -85,6 +86,7 @@ def validate_project_setup(
     _validate_dynamic_scenarios(
         findings=findings,
         project_root=project_root,
+        language=language,
         dynamic_enabled=dynamic_enabled,
         scenarios=list(scenarios),
     )
@@ -149,7 +151,7 @@ def _validate_project_paths(
                 severity="error",
                 field="project_root",
                 message="Project root is empty.",
-                suggestion="Select the Python project root.",
+                suggestion="Select the project root.",
             )
         )
     elif not project_root.exists():
@@ -218,9 +220,25 @@ def _validate_dynamic_scenarios(
     *,
     findings: list[ValidationFinding],
     project_root: Path,
+    language: str,
     dynamic_enabled: bool,
     scenarios: list[tuple[bool, str, str, str]],
 ):
+    language = (language or "python").lower()
+
+    if language == "java":
+        findings.append(
+            ValidationFinding(
+                severity="info",
+                field="dynamic_analysis",
+                message=(
+                    "Dynamic analysis is disabled for Java projects. "
+                    "Java architecture recovery uses static KDM-based evidence."
+                ),
+            )
+        )
+        return
+
     if not dynamic_enabled:
         findings.append(
             ValidationFinding(

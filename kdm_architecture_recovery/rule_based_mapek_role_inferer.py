@@ -103,12 +103,16 @@ class RuleBasedMAPEKRoleInferer:
     def infer_roles(self, project_model: dict):
         """
         Returns role suggestions for classes, methods and functions.
+
+        Supports both the Python extractor shape, where classes/functions live
+        inside files[], and the Java extractor shape, where classes/interfaces
+        are commonly stored at top-level under elements[].
         """
 
         suggestions = []
 
         for file_model in project_model.get("files", []):
-            for cls in file_model.get("classes", []):
+            for cls in self._iter_file_classes(file_model):
                 suggestion = self._infer_class_role(cls, file_model)
 
                 if suggestion is not None:
@@ -132,16 +136,50 @@ class RuleBasedMAPEKRoleInferer:
                     )
                 )
 
+        for element in project_model.get("elements", []):
+            kind = str(self._value(element, "kind", "type") or "").lower()
+
+            if kind not in {"class", "interface", "enum"}:
+                continue
+
+            synthetic_file = {
+                "path": self._value(element, "sourcePath", "path") or "",
+                "name": self._value(element, "sourceFile", "name") or "",
+            }
+
+            suggestion = self._infer_class_role(element, synthetic_file)
+
+            if suggestion is not None:
+                suggestions.append(suggestion)
+
+            for method in element.get("methods", []):
+                suggestions.extend(
+                    self._infer_callable_roles(
+                        callable_model=method,
+                        file_model=synthetic_file,
+                        owner_class=element,
+                    )
+                )
+
         return self._deduplicate_suggestions(suggestions)
+
+    def _iter_file_classes(self, file_model: dict):
+        for cls in file_model.get("classes", []):
+            yield cls
+
+        for element in file_model.get("elements", []):
+            kind = str(self._value(element, "kind", "type") or "").lower()
+            if kind in {"class", "interface", "enum"}:
+                yield element
 
     # ------------------------------------------------------------
     # Class-level role inference
     # ------------------------------------------------------------
 
     def _infer_class_role(self, cls: dict, file_model: dict):
-        class_name = cls.get("name", "")
-        qualified_name = cls.get("qualified_name", "")
-        path = file_model.get("path", "")
+        class_name = self._value(cls, "name") or ""
+        qualified_name = self._value(cls, "qualified_name", "qualifiedName", "name") or ""
+        path = self._value(file_model, "path", "sourcePath") or ""
         methods = cls.get("methods", [])
 
         best = None
@@ -186,7 +224,7 @@ class RuleBasedMAPEKRoleInferer:
                 continue
 
             candidate = {
-                "code_element_id": cls.get("id"),
+                "code_element_id": self._value(cls, "id"),
                 "code_element_qualified_name": qualified_name,
                 "code_element_type": "class",
                 "suggested_role": rule["role"],
@@ -239,7 +277,8 @@ class RuleBasedMAPEKRoleInferer:
         file_model: dict,
         owner_class: dict = None,
     ):
-        decorators = callable_model.get("decorators", [])
+        decorators = list(callable_model.get("decorators", []))
+        decorators.extend(callable_model.get("annotations", []))
 
         if not decorators:
             return None
@@ -258,14 +297,14 @@ class RuleBasedMAPEKRoleInferer:
                         evidence.append(f"Loop hint inferred from decorator: {loop_hint}")
 
                     return {
-                        "code_element_id": callable_model.get("id"),
-                        "code_element_qualified_name": callable_model.get(
-                            "qualified_name"
+                        "code_element_id": self._value(callable_model, "id"),
+                        "code_element_qualified_name": self._value(
+                            callable_model, "qualified_name", "qualifiedName", "qualifiedSignature", "name"
                         ),
-                        "code_element_type": callable_model.get("type", "callable"),
-                        "owner_class_id": owner_class.get("id") if owner_class else None,
+                        "code_element_type": self._value(callable_model, "type", "kind") or "callable",
+                        "owner_class_id": self._value(owner_class, "id") if owner_class else None,
                         "owner_class_qualified_name": (
-                            owner_class.get("qualified_name") if owner_class else None
+                            self._value(owner_class, "qualified_name", "qualifiedName", "name") if owner_class else None
                         ),
                         "suggested_role": role,
                         "confidence": 0.95,
@@ -299,14 +338,14 @@ class RuleBasedMAPEKRoleInferer:
             for term, role in self.REGISTRATION_ROLE_TERMS.items():
                 if term in call_name:
                     return {
-                        "code_element_id": callable_model.get("id"),
-                        "code_element_qualified_name": callable_model.get(
-                            "qualified_name"
+                        "code_element_id": self._value(callable_model, "id"),
+                        "code_element_qualified_name": self._value(
+                            callable_model, "qualified_name", "qualifiedName", "qualifiedSignature", "name"
                         ),
-                        "code_element_type": callable_model.get("type", "callable"),
-                        "owner_class_id": owner_class.get("id") if owner_class else None,
+                        "code_element_type": self._value(callable_model, "type", "kind") or "callable",
+                        "owner_class_id": self._value(owner_class, "id") if owner_class else None,
                         "owner_class_qualified_name": (
-                            owner_class.get("qualified_name") if owner_class else None
+                            self._value(owner_class, "qualified_name", "qualifiedName", "name") if owner_class else None
                         ),
                         "suggested_role": role,
                         "confidence": 0.85,
@@ -333,11 +372,11 @@ class RuleBasedMAPEKRoleInferer:
         matches = []
 
         for method in methods:
-            method_name = str(method.get("name", "")).lower()
+            method_name = str(self._value(method, "name", "qualifiedName", "qualified_name", "qualifiedSignature") or "").lower()
 
             for term in terms:
                 if term.lower() in method_name:
-                    matches.append(method.get("name"))
+                    matches.append(self._value(method, "name", "qualifiedName", "qualifiedSignature"))
                     break
 
         return matches
@@ -358,7 +397,7 @@ class RuleBasedMAPEKRoleInferer:
 
         for method in methods:
             for call in method.get("calls", []):
-                call_name = str(call.get("name", "")).lower()
+                call_name = self._call_display_name(call).lower()
 
                 for term in role_terms:
                     if term in call_name:
@@ -411,8 +450,20 @@ class RuleBasedMAPEKRoleInferer:
 
         return None
 
-    def _call_display_name(self, call: dict):
-        for key in ["name", "qualified_name", "function", "method"]:
+    def _call_display_name(self, call):
+        if not isinstance(call, dict):
+            return str(call or "")
+
+        for key in [
+            "name",
+            "qualified_name",
+            "qualifiedName",
+            "function",
+            "method",
+            "target",
+            "targetName",
+            "targetQualifiedName",
+        ]:
             if call.get(key):
                 return str(call.get(key))
 
@@ -423,6 +474,16 @@ class RuleBasedMAPEKRoleInferer:
             return f"{receiver}.{method}"
 
         return ""
+
+    def _value(self, data: dict, *keys):
+        if not isinstance(data, dict):
+            return None
+
+        for key in keys:
+            if key in data and data.get(key) is not None:
+                return data.get(key)
+
+        return None
 
     def _status_from_confidence(self, confidence: float):
         if confidence >= 0.85:

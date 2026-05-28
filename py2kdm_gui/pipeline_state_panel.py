@@ -20,19 +20,11 @@ class PipelineStatePanel(QWidget):
     """
 
     STEPS = [
-        ("static_extraction", "Static extraction", "python_model.json"),
-        (
-            "dynamic_analysis",
-            "Dynamic analysis",
-            "python_model.runtime_enriched.combined.json",
-        ),
+        ("static_extraction", "Static extraction", None),
+        ("dynamic_analysis", "Dynamic analysis", None),
         ("architecture_recovery", "Architecture recovery", None),
         ("pre_review_agents", "Pre-review agents", None),
-        (
-            "human_review",
-            "Human review export",
-            "python_model.reviewed_architecture.json",
-        ),
+        ("human_review", "Human review export", None),
         ("final_kdm", "Final KDM generation", "model.reviewed.kdm.xmi"),
     ]
 
@@ -70,34 +62,56 @@ class PipelineStatePanel(QWidget):
         self,
         output_dir: Path,
         dynamic_enabled: bool,
+        language: str = "python",
     ) -> dict[str, str]:
         output_dir = Path(output_dir)
-        state = self.compute_state(output_dir=output_dir, dynamic_enabled=dynamic_enabled)
-        self._render_state(state)
-        self.set_path_values(output_dir=output_dir, dynamic_enabled=dynamic_enabled)
+        language = self._normalize_language(language)
+        state = self.compute_state(
+            output_dir=output_dir,
+            dynamic_enabled=dynamic_enabled,
+            language=language,
+        )
+        self._render_state(
+            state=state,
+            output_dir=output_dir,
+            dynamic_enabled=dynamic_enabled,
+            language=language,
+        )
+        self.set_path_values(
+            output_dir=output_dir,
+            dynamic_enabled=dynamic_enabled,
+            language=language,
+        )
         return state
 
     def compute_state(
         self,
         output_dir: Path,
         dynamic_enabled: bool,
+        language: str = "python",
     ) -> dict[str, str]:
         output_dir = Path(output_dir)
+        language = self._normalize_language(language)
+        basename = self._model_basename(language)
 
         artifacts = {
-            "static_extraction": output_dir / "python_model.json",
-            "dynamic_analysis": output_dir / "python_model.runtime_enriched.combined.json",
-            "architecture_recovery_runtime": output_dir / "python_model.runtime_enriched.architecture.json",
-            "architecture_recovery_static": output_dir / "python_model.architecture.json",
-            "pre_review_runtime": output_dir / "python_model.runtime_enriched.ai_architecture.json",
-            "pre_review_static": output_dir / "python_model.ai_architecture.json",
-            "human_review": output_dir / "python_model.reviewed_architecture.json",
+            "static_extraction": output_dir / f"{basename}.json",
+            "dynamic_analysis": output_dir / f"{basename}.runtime_enriched.combined.json",
+            "architecture_recovery_runtime": output_dir / f"{basename}.runtime_enriched.architecture.json",
+            "architecture_recovery_static": output_dir / f"{basename}.architecture.json",
+            "pre_review_runtime": output_dir / f"{basename}.runtime_enriched.ai_architecture.json",
+            "pre_review_static": output_dir / f"{basename}.ai_architecture.json",
+            "human_review": output_dir / f"{basename}.reviewed_architecture.json",
             "final_kdm": output_dir / "model.reviewed.kdm.xmi",
         }
 
         return {
             "static_extraction": "done" if artifacts["static_extraction"].exists() else "pending",
-            "dynamic_analysis": self._dynamic_state(artifacts, dynamic_enabled),
+            "dynamic_analysis": self._dynamic_state(
+                artifacts=artifacts,
+                dynamic_enabled=dynamic_enabled,
+                language=language,
+            ),
             "architecture_recovery": self._first_existing_state(
                 artifacts["architecture_recovery_runtime"],
                 artifacts["architecture_recovery_static"],
@@ -110,7 +124,15 @@ class PipelineStatePanel(QWidget):
             "final_kdm": "done" if artifacts["final_kdm"].exists() else "pending",
         }
 
-    def _dynamic_state(self, artifacts: dict[str, Path], dynamic_enabled: bool) -> str:
+    def _dynamic_state(
+        self,
+        artifacts: dict[str, Path],
+        dynamic_enabled: bool,
+        language: str,
+    ) -> str:
+        if language == "java":
+            return "disabled"
+
         if not dynamic_enabled:
             return "skipped"
 
@@ -119,52 +141,100 @@ class PipelineStatePanel(QWidget):
     def _first_existing_state(self, *paths: Path) -> str:
         return "done" if any(path.exists() for path in paths) else "pending"
 
-    def _artifact_for_step(self, output_dir: Path, step_id: str, dynamic_enabled: bool):
+    def _artifact_for_step(
+        self,
+        output_dir: Path,
+        step_id: str,
+        dynamic_enabled: bool,
+        language: str,
+    ):
         output_dir = Path(output_dir)
+        language = self._normalize_language(language)
+        basename = self._model_basename(language)
 
         if step_id == "static_extraction":
-            return output_dir / "python_model.json"
+            return output_dir / f"{basename}.json"
 
         if step_id == "dynamic_analysis":
-            return output_dir / "python_model.runtime_enriched.combined.json"
+            if language == "java":
+                return None
+            return output_dir / f"{basename}.runtime_enriched.combined.json"
 
         if step_id == "architecture_recovery":
-            runtime_path = output_dir / "python_model.runtime_enriched.architecture.json"
-            static_path = output_dir / "python_model.architecture.json"
+            runtime_path = output_dir / f"{basename}.runtime_enriched.architecture.json"
+            static_path = output_dir / f"{basename}.architecture.json"
             return runtime_path if runtime_path.exists() or dynamic_enabled else static_path
 
         if step_id == "pre_review_agents":
-            runtime_path = output_dir / "python_model.runtime_enriched.ai_architecture.json"
-            static_path = output_dir / "python_model.ai_architecture.json"
+            runtime_path = output_dir / f"{basename}.runtime_enriched.ai_architecture.json"
+            static_path = output_dir / f"{basename}.ai_architecture.json"
             return runtime_path if runtime_path.exists() or dynamic_enabled else static_path
 
         if step_id == "human_review":
-            return output_dir / "python_model.reviewed_architecture.json"
+            return output_dir / f"{basename}.reviewed_architecture.json"
 
         if step_id == "final_kdm":
             return output_dir / "model.reviewed.kdm.xmi"
 
         return None
 
-    def _render_state(self, state: dict[str, str]):
+    def _render_state(
+        self,
+        state: dict[str, str],
+        output_dir: Path,
+        dynamic_enabled: bool,
+        language: str,
+    ):
         self.table.setRowCount(0)
 
-        for step_id, label, artifact_name in self.STEPS:
+        for step_id, label, default_artifact_name in self.STEPS:
             row = self.table.rowCount()
             self.table.insertRow(row)
 
             status = state.get(step_id, "pending")
+            path = self._artifact_for_step(output_dir, step_id, dynamic_enabled, language)
+
+            if step_id == "dynamic_analysis" and language == "java":
+                artifact_name = "disabled for Java"
+            elif path is not None:
+                artifact_name = path.name
+            else:
+                artifact_name = default_artifact_name or "runtime/static variant"
+
             self.table.setItem(row, 0, QTableWidgetItem(label))
             self.table.setItem(row, 1, QTableWidgetItem(status))
-            self.table.setItem(row, 2, QTableWidgetItem(artifact_name or "runtime/static variant"))
+            self.table.setItem(row, 2, QTableWidgetItem(artifact_name))
             self.table.setItem(row, 3, QTableWidgetItem(""))
 
-    def set_path_values(self, output_dir: Path, dynamic_enabled: bool):
+    def set_path_values(
+        self,
+        output_dir: Path,
+        dynamic_enabled: bool,
+        language: str = "python",
+    ):
         output_dir = Path(output_dir)
+        language = self._normalize_language(language)
 
         for row, (step_id, _, _) in enumerate(self.STEPS):
-            path = self._artifact_for_step(output_dir, step_id, dynamic_enabled)
+            path = self._artifact_for_step(output_dir, step_id, dynamic_enabled, language)
+
+            if step_id == "dynamic_analysis" and language == "java":
+                self.table.setItem(
+                    row,
+                    3,
+                    QTableWidgetItem(
+                        "DISABLED: Java projects use static KDM-based recovery."
+                    ),
+                )
+                continue
 
             if path is not None:
                 status = "EXISTS" if path.exists() else "MISSING"
                 self.table.setItem(row, 3, QTableWidgetItem(f"{status}: {path}"))
+
+    def _normalize_language(self, language: str) -> str:
+        language = (language or "python").lower()
+        return language if language in {"python", "java"} else "python"
+
+    def _model_basename(self, language: str) -> str:
+        return "java_model" if language == "java" else "python_model"

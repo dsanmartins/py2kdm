@@ -1,9 +1,10 @@
 class TypeResolver:
-    def __init__(self, factory, id_index, external_builder, code_model):
+    def __init__(self, factory, id_index, external_builder, code_model, language="unknown"):
         self.factory = factory
         self.id_index = id_index
         self.external_builder = external_builder
         self.code_model = code_model
+        self.language = str(language or "unknown").lower()
 
         self.builtin_types_unit = None
         self.type_index = {}
@@ -24,7 +25,7 @@ class TypeResolver:
             # as the target of HasType.
             return None
 
-        # 2. Builtin Python types
+        # 2. Builtin language types
         if type_id.startswith("builtin_type:"):
             type_name = type_id.replace("builtin_type:", "")
             return self.get_or_create_builtin_type(type_name)
@@ -58,6 +59,38 @@ class TypeResolver:
 
         return False
 
+    def _find_internal_type_by_name(self, type_name: str):
+        if not type_name:
+            return None
+
+        raw_name = str(type_name).replace("external_type:", "").strip()
+
+        while raw_name.endswith("[]"):
+            raw_name = raw_name[:-2]
+
+        if "<" in raw_name:
+            raw_name = raw_name.split("<", 1)[0]
+
+        raw_name = raw_name.rstrip(">")
+        simple_name = raw_name.rsplit(".", 1)[-1]
+
+        for candidate in self.id_index.values():
+            if not self._is_datatype(candidate):
+                continue
+
+            candidate_name = getattr(candidate, "name", None)
+            if candidate_name == raw_name or candidate_name == simple_name:
+                return candidate
+
+            for attribute in getattr(candidate, "attribute", []) or []:
+                if getattr(attribute, "tag", None) not in {"qualified_name", "qualifiedName"}:
+                    continue
+                value = getattr(attribute, "value", None)
+                if value == raw_name or (isinstance(value, str) and value.endswith(f".{simple_name}")):
+                    return candidate
+
+        return None
+
     def get_or_create_builtin_type(self, type_name: str):
         key = f"builtin_type:{type_name}"
 
@@ -84,10 +117,19 @@ class TypeResolver:
         return datatype
 
     def get_or_create_external_type(self, qualified_name: str):
+        # Java extractors sometimes label unresolved project classes as
+        # external_type:<SimpleName>. Before creating an external ClassUnit,
+        # try to resolve the name against already-created internal ClassUnit,
+        # InterfaceUnit or Datatype elements.
+        if self.language == "java":
+            internal = self._find_internal_type_by_name(qualified_name)
+            if internal is not None:
+                return internal
+
         parts = qualified_name.split(".")
 
         if len(parts) > 1:
-            library_name = parts[0]
+            library_name = ".".join(parts[:-1]) if self.language == "java" else parts[0]
             class_name = parts[-1]
         else:
             library_name = "external"
@@ -99,6 +141,11 @@ class TypeResolver:
         )
 
     def get_or_create_generic_type(self, qualified_name: str):
+        if self.language == "java":
+            internal = self._find_internal_type_by_name(qualified_name)
+            if internal is not None:
+                return internal
+
         key = f"generic_type:{qualified_name}"
 
         if key in self.type_index:
@@ -117,23 +164,8 @@ class TypeResolver:
         if self.builtin_types_unit is not None:
             return self.builtin_types_unit
 
-        # Builtin/generic datatypes are auxiliary datatypes. They should not
-        # pollute the project CodeModel. Keep them in the external model when
-        # an ExternalModelBuilder is available.
-        if self.external_builder is not None:
-            external_model = self.external_builder.ensure_external_model()
-            try:
-                self.builtin_types_unit = self.external_builder._get_or_create_library_unit(
-                    external_model,
-                    "builtins",
-                )
-                return self.builtin_types_unit
-            except Exception:
-                pass
-
-        self.builtin_types_unit = self.factory.create_compilation_unit(
-            "builtins"
-        )
+        unit_name = "java_builtins_types" if self.language == "java" else "python_builtins_types"
+        self.builtin_types_unit = self.factory.create_compilation_unit(unit_name)
         self.code_model.codeElement.append(self.builtin_types_unit)
 
         return self.builtin_types_unit

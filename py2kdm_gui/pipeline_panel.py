@@ -144,6 +144,14 @@ class PipelinePanel(QWidget):
         self.project_root_edit = QLineEdit()
         self.output_dir_edit = QLineEdit()
         self.project_name_edit = QLineEdit()
+        self.language_combo = QComboBox()
+        self.language_combo.addItem("Auto-detect", "auto")
+        self.language_combo.addItem("Python", "python")
+        self.language_combo.addItem("Java", "java")
+        self.language_hint_label = QLabel(
+            "Java projects use static KDM-based recovery. "
+            "Dynamic trace enrichment is available only for Python projects."
+        )
         self.config_path_edit = QLineEdit()
         self.config_path_edit.setReadOnly(True)
 
@@ -171,20 +179,24 @@ class PipelinePanel(QWidget):
         layout.addWidget(QLabel("Project name"), 2, 0)
         layout.addWidget(self.project_name_edit, 2, 1, 1, 2)
 
-        layout.addWidget(QLabel("Config file"), 3, 0)
-        layout.addWidget(self.config_path_edit, 3, 1)
+        layout.addWidget(QLabel("Source language"), 3, 0)
+        layout.addWidget(self.language_combo, 3, 1, 1, 2)
+        layout.addWidget(self.language_hint_label, 4, 1, 1, 2)
+
+        layout.addWidget(QLabel("Config file"), 5, 0)
+        layout.addWidget(self.config_path_edit, 5, 1)
         cfg_buttons = QHBoxLayout()
         cfg_buttons.addWidget(self.load_config_btn)
         cfg_buttons.addWidget(self.save_config_btn)
         cfg_buttons.addWidget(self.save_config_as_btn)
-        layout.addLayout(cfg_buttons, 3, 2)
+        layout.addLayout(cfg_buttons, 5, 2)
 
         mode_buttons = QHBoxLayout()
         mode_buttons.addWidget(self.manual_setup_radio)
         mode_buttons.addWidget(self.config_setup_radio)
         mode_buttons.addStretch(1)
-        layout.addWidget(QLabel("Setup mode"), 4, 0)
-        layout.addLayout(mode_buttons, 4, 1, 1, 2)
+        layout.addWidget(QLabel("Setup mode"), 6, 0)
+        layout.addLayout(mode_buttons, 6, 1, 1, 2)
 
         return group
 
@@ -318,7 +330,9 @@ class PipelinePanel(QWidget):
         self.clean_outputs_btn.clicked.connect(self.clean_project_outputs)
 
         self.llm_provider_combo.currentTextChanged.connect(self._refresh_env_status)
+        self.language_combo.currentIndexChanged.connect(lambda _: self._on_language_changed())
         self.enable_dynamic_checkbox.stateChanged.connect(lambda _: self.refresh_state())
+        self.project_root_edit.textChanged.connect(lambda _: self._on_project_root_changed())
         self.output_dir_edit.textChanged.connect(lambda _: self.refresh_state())
 
         self.controller.output_received.connect(self._append_log)
@@ -371,6 +385,7 @@ class PipelinePanel(QWidget):
             name=self.project_name_edit.text().strip(),
             root=self.project_root_edit.text().strip(),
             output_dir=self.output_dir_edit.text().strip(),
+            language=self.selected_language,
             dynamic_analysis=DynamicAnalysisConfig(
                 enabled=self.enable_dynamic_checkbox.isChecked(),
                 scenarios=scenarios,
@@ -386,6 +401,7 @@ class PipelinePanel(QWidget):
         self.project_name_edit.setText(config.name)
         self.project_root_edit.setText(config.root)
         self.output_dir_edit.setText(config.output_dir)
+        self._set_language_combo(config.language)
         self.enable_dynamic_checkbox.setChecked(config.dynamic_analysis.enabled)
 
         self.scenario_table.setRowCount(0)
@@ -485,6 +501,8 @@ class PipelinePanel(QWidget):
             self.project_root_edit,
             self.output_dir_edit,
             self.project_name_edit,
+            self.language_combo,
+            self.language_hint_label,
             self.browse_project_btn,
             self.browse_output_btn,
             self.enable_dynamic_checkbox,
@@ -515,6 +533,96 @@ class PipelinePanel(QWidget):
 
 
     # ------------------------------------------------------------
+    # Language support
+    # ------------------------------------------------------------
+
+    def _set_language_combo(self, language: str):
+        language = language if language in {"auto", "python", "java"} else "auto"
+
+        for index in range(self.language_combo.count()):
+            if self.language_combo.itemData(index) == language:
+                self.language_combo.setCurrentIndex(index)
+                return
+
+        self.language_combo.setCurrentIndex(0)
+
+    def _detect_language(self, project_root: Path) -> str:
+        try:
+            if not project_root.exists() or not project_root.is_dir():
+                return "python"
+
+            java_files = list(project_root.rglob("*.java"))
+            python_files = [
+                path
+                for path in project_root.rglob("*.py")
+                if "__pycache__" not in path.parts
+            ]
+
+            if java_files and not python_files:
+                return "java"
+
+            if python_files and not java_files:
+                return "python"
+
+            if java_files and python_files:
+                return "java"
+
+        except OSError:
+            return "python"
+
+        return "python"
+
+    def dynamic_analysis_enabled_for_current_language(self) -> bool:
+        return (
+            self.resolved_language == "python"
+            and self.enable_dynamic_checkbox.isChecked()
+        )
+
+    def _on_language_changed(self):
+        self._refresh_dynamic_availability()
+        self.refresh_state()
+
+    def _on_project_root_changed(self):
+        self._refresh_dynamic_availability()
+        self.refresh_state()
+
+    def _refresh_dynamic_availability(self):
+        if not hasattr(self, "enable_dynamic_checkbox"):
+            return
+
+        try:
+            language = self.resolved_language
+        except Exception:
+            language = self.selected_language
+
+        is_java = language == "java"
+
+        if is_java:
+            self.enable_dynamic_checkbox.blockSignals(True)
+            self.enable_dynamic_checkbox.setChecked(False)
+            self.enable_dynamic_checkbox.blockSignals(False)
+            self.enable_dynamic_checkbox.setToolTip(
+                "Dynamic trace enrichment is not available for Java projects."
+            )
+            self.run_dynamic_btn.setToolTip(
+                "Disabled for Java: recovery uses static KDM-based evidence."
+            ) if hasattr(self, "run_dynamic_btn") else None
+        else:
+            self.enable_dynamic_checkbox.setToolTip("")
+            self.run_dynamic_btn.setToolTip("") if hasattr(self, "run_dynamic_btn") else None
+
+        manual_mode = getattr(self, "setup_mode", "manual") == "manual"
+        dynamic_widgets_enabled = manual_mode and not is_java
+
+        self.enable_dynamic_checkbox.setEnabled(dynamic_widgets_enabled)
+        self.scenario_table.setEnabled(dynamic_widgets_enabled)
+        self.add_scenario_btn.setEnabled(dynamic_widgets_enabled)
+        self.browse_scenario_btn.setEnabled(dynamic_widgets_enabled)
+        self.remove_scenario_btn.setEnabled(dynamic_widgets_enabled)
+
+
+
+    # ------------------------------------------------------------
     # Path helpers
     # ------------------------------------------------------------
 
@@ -527,30 +635,49 @@ class PipelinePanel(QWidget):
         return Path(self.output_dir_edit.text()).expanduser().resolve()
 
     @property
+    def selected_language(self) -> str:
+        if not hasattr(self, "language_combo"):
+            return "auto"
+        return self.language_combo.currentData() or "auto"
+
+    @property
+    def resolved_language(self) -> str:
+        selected = self.selected_language
+
+        if selected != "auto":
+            return selected
+
+        return self._detect_language(self.project_root)
+
+    @property
+    def model_basename(self) -> str:
+        return "java_model" if self.resolved_language == "java" else "python_model"
+
+    @property
     def intermediate_json(self) -> Path:
-        return self.output_dir / "python_model.json"
+        return self.output_dir / f"{self.model_basename}.json"
 
     @property
     def runtime_enriched_json(self) -> Path:
-        return self.output_dir / "python_model.runtime_enriched.combined.json"
+        return self.output_dir / f"{self.model_basename}.runtime_enriched.combined.json"
 
     @property
     def architecture_json(self) -> Path:
-        if self.runtime_enriched_json.exists():
-            return self.output_dir / "python_model.runtime_enriched.architecture.json"
-        return self.output_dir / "python_model.architecture.json"
+        if self.dynamic_analysis_enabled_for_current_language() and self.runtime_enriched_json.exists():
+            return self.output_dir / f"{self.model_basename}.runtime_enriched.architecture.json"
+        return self.output_dir / f"{self.model_basename}.architecture.json"
 
     @property
     def ai_architecture_json(self) -> Path:
-        if self.runtime_enriched_json.exists():
-            return self.output_dir / "python_model.runtime_enriched.ai_architecture.json"
-        return self.output_dir / "python_model.ai_architecture.json"
+        if self.dynamic_analysis_enabled_for_current_language() and self.runtime_enriched_json.exists():
+            return self.output_dir / f"{self.model_basename}.runtime_enriched.ai_architecture.json"
+        return self.output_dir / f"{self.model_basename}.ai_architecture.json"
 
     @property
     def reviewed_architecture_json(self) -> Path:
         if self.reviewed_architecture_path_override is not None:
             return self.reviewed_architecture_path_override
-        return self.output_dir / "python_model.reviewed_architecture.json"
+        return self.output_dir / f"{self.model_basename}.reviewed_architecture.json"
 
     @property
     def final_kdm_xmi(self) -> Path:
@@ -568,7 +695,7 @@ class PipelinePanel(QWidget):
     def _browse_project(self):
         path = QFileDialog.getExistingDirectory(
             self,
-            "Select Python project root",
+            "Select project root",
             str(PY2KDM_PROJECT_ROOT),
         )
         if path:
@@ -703,7 +830,8 @@ class PipelinePanel(QWidget):
             config_path=self.current_config_path,
             project_root=self.project_root,
             output_dir=self.output_dir,
-            dynamic_enabled=self.enable_dynamic_checkbox.isChecked(),
+            language=self.resolved_language,
+            dynamic_enabled=self.dynamic_analysis_enabled_for_current_language(),
             scenarios=self._scenarios(include_disabled=True),
             llm_provider=self.llm_provider_combo.currentText(),
             llm_model=self.llm_model_edit.text().strip(),
@@ -742,13 +870,26 @@ class PipelinePanel(QWidget):
         self.controller.run_static_extraction(
             project_root=self.project_root,
             intermediate_json=self.intermediate_json,
+            language=self.resolved_language,
         )
 
     def run_dynamic_analysis(self):
         if not self.validate_setup(show_message=False):
             return
 
-        if not self.enable_dynamic_checkbox.isChecked():
+        if self.resolved_language == "java":
+            QMessageBox.information(
+                self,
+                "Dynamic analysis unavailable for Java",
+                (
+                    "Dynamic analysis is currently available only for Python projects.\n\n"
+                    "For Java projects, architecture recovery uses the static enriched KDM model."
+                ),
+            )
+            self._continue_auto_queue()
+            return
+
+        if not self.dynamic_analysis_enabled_for_current_language():
             QMessageBox.information(
                 self,
                 "Dynamic analysis disabled",
@@ -795,7 +936,7 @@ class PipelinePanel(QWidget):
         output_json = (
             self.runtime_enriched_json
             if is_last
-            else self.output_dir / f"python_model.runtime_enriched.{name}.json"
+            else self.output_dir / f"{self.model_basename}.runtime_enriched.{name}.json"
         )
 
         self._pending_dynamic_output = output_json
@@ -816,7 +957,8 @@ class PipelinePanel(QWidget):
 
         input_json = (
             self.runtime_enriched_json
-            if self.runtime_enriched_json.exists()
+            if self.dynamic_analysis_enabled_for_current_language()
+            and self.runtime_enriched_json.exists()
             else self.intermediate_json
         )
 
@@ -912,7 +1054,10 @@ class PipelinePanel(QWidget):
         if not self.intermediate_json.exists():
             self._auto_queue.append("static")
 
-        if self.enable_dynamic_checkbox.isChecked() and not self.runtime_enriched_json.exists():
+        if (
+            self.dynamic_analysis_enabled_for_current_language()
+            and not self.runtime_enriched_json.exists()
+        ):
             self._auto_queue.append("dynamic")
 
         if not self.architecture_json.exists():
@@ -1029,9 +1174,11 @@ class PipelinePanel(QWidget):
 
     def refresh_state(self):
         self._ensure_output_dir()
+        self._refresh_dynamic_availability()
         state = self.state_panel.refresh(
             output_dir=self.output_dir,
-            dynamic_enabled=self.enable_dynamic_checkbox.isChecked(),
+            dynamic_enabled=self.dynamic_analysis_enabled_for_current_language(),
+            language=self.resolved_language,
         )
         self._update_button_state(state)
         self._refresh_env_status()
@@ -1042,7 +1189,7 @@ class PipelinePanel(QWidget):
 
         setup_ready = self._is_setup_ready()
         static_done = state.get("static_extraction") == "done"
-        dynamic_done_or_skipped = state.get("dynamic_analysis") in {"done", "skipped"}
+        dynamic_done_or_skipped = state.get("dynamic_analysis") in {"done", "skipped", "disabled"}
         recovery_done = state.get("architecture_recovery") == "done"
         agents_done = state.get("pre_review_agents") == "done"
         review_done = (
@@ -1051,7 +1198,11 @@ class PipelinePanel(QWidget):
         )
 
         self.run_static_btn.setEnabled(setup_ready)
-        self.run_dynamic_btn.setEnabled(setup_ready and static_done)
+        self.run_dynamic_btn.setEnabled(
+            setup_ready
+            and static_done
+            and self.dynamic_analysis_enabled_for_current_language()
+        )
         self.run_recovery_btn.setEnabled(setup_ready and static_done and dynamic_done_or_skipped)
         self.run_agents_btn.setEnabled(setup_ready and recovery_done)
         self.load_review_btn.setEnabled(setup_ready and (recovery_done or agents_done))

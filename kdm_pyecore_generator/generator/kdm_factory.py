@@ -47,9 +47,8 @@ class KDMFactory:
         # Code package
         self.CodeModel = resolver.find("CodeModel")
         self.CompilationUnit = resolver.find("CompilationUnit")
-        self.ClassUnit = resolver.find("ClassUnit")
-        self.InterfaceUnit = resolver.find("InterfaceUnit")
         self.Package = resolver.find("Package")
+        self.ClassUnit = resolver.find("ClassUnit")
         self.MethodUnit = resolver.find("MethodUnit")
         self.CallableUnit = resolver.find("CallableUnit")
         self.Signature = resolver.find("Signature")
@@ -272,12 +271,23 @@ class KDMFactory:
         Creates a KDM CompilationUnit.
 
         In py2kdm, a Python source file is represented as a CompilationUnit
-        in the generated CodeModel.
+        in the generated CodeModel. Java projects can also be exported in a
+        MoDisco-like layout where packages, rather than compilation units,
+        contain ClassUnit elements.
         """
 
         unit = self.CompilationUnit()
         unit.name = name
         return unit
+
+    def create_package(self, name: str):
+        """
+        Creates a KDM Package.
+        """
+
+        package = self.Package()
+        package.name = name
+        return package
 
     def create_class_unit(self, name: str):
         """
@@ -285,24 +295,6 @@ class KDMFactory:
         """
 
         unit = self.ClassUnit()
-        unit.name = name
-        return unit
-
-    def create_interface_unit(self, name: str):
-        """
-        Creates a KDM InterfaceUnit.
-        """
-
-        unit = self.InterfaceUnit()
-        unit.name = name
-        return unit
-
-    def create_package_unit(self, name: str):
-        """
-        Creates a KDM Package.
-        """
-
-        unit = self.Package()
         unit.name = name
         return unit
 
@@ -562,7 +554,7 @@ class KDMFactory:
     # Code relations
     # ------------------------------------------------------------
 
-    def create_extends_relation(self, target):
+    def create_extends_relation(self, target, source=None):
         """
         Creates a code::Extends relation.
         """
@@ -573,11 +565,19 @@ class KDMFactory:
             raise ValueError("Extends relation does not have feature 'to'.")
 
         relation.to = target
+
+        if source is not None and self.has_feature(relation, "from"):
+            relation.from_ = source
+
         return relation
 
-    def create_implements_relation(self, target):
+    def create_implements_relation(self, target, source=None):
         """
         Creates a code::Implements relation.
+
+        KDM 1.4 defines Implements as an AbstractCodeRelationship whose
+        target is a CodeItem.  This is used for Java implements clauses and
+        interface-like contracts.
         """
 
         relation = self.Implements()
@@ -586,6 +586,10 @@ class KDMFactory:
             raise ValueError("Implements relation does not have feature 'to'.")
 
         relation.to = target
+
+        if source is not None and self.has_feature(relation, "from"):
+            relation.from_ = source
+
         return relation
 
     def create_imports_relation(self, target):

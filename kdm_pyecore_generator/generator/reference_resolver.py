@@ -39,31 +39,6 @@ class ReferenceResolver:
 
         return [value]
 
-
-    def _is_kdm_datatype(self, element) -> bool:
-        """Return True only for KDM code::Datatype elements.
-
-        Extends.to is typed as code::Datatype in the KDM Ecore model.
-        In Python models, a base name can sometimes resolve to a CallableUnit
-        because functions/classes may share simple names or because dynamic
-        constructs are inferred broadly. Those targets must not be used for
-        code::Extends.
-        """
-        if element is None or not hasattr(element, "eClass"):
-            return False
-
-        eclass = element.eClass
-        names = {getattr(eclass, "name", None)}
-
-        for attr in ("eAllSuperTypes", "eSuperTypes"):
-            try:
-                for super_type in getattr(eclass, attr, []) or []:
-                    names.add(getattr(super_type, "name", None))
-            except Exception:
-                pass
-
-        return "Datatype" in names
-
     def _has_rich_body(self, callable_model: dict):
         body = callable_model.get("body") or callable_model.get("statements") or []
         return isinstance(body, list) and len(body) > 0
@@ -241,16 +216,13 @@ class ReferenceResolver:
     def _add_class_extends(self, cls: dict, file_model: dict):
         source_class = self.id_index.get(cls.get("id"))
 
-        # code::Extends can only be attached from a Datatype to a Datatype.
-        # Defensive check is needed for Python models where dynamic constructs
-        # may resolve a class/base name to a CallableUnit or other non-type.
-        if not self._is_kdm_datatype(source_class):
+        if source_class is None:
             return
 
         for base_name in cls.get("bases", []):
             target_class = self._resolve_base_class(base_name, file_model)
 
-            if not self._is_kdm_datatype(target_class):
+            if target_class is None:
                 continue
 
             extends_relation = self.factory.create_extends_relation(target_class)
@@ -302,15 +274,22 @@ class ReferenceResolver:
             self._add_file_imports(file_model)
 
     def _add_file_imports(self, file_model: dict):
-        source_unit = self.id_index.get(file_model.get("id"))
+        source_unit = self._resolve_import_source(file_model)
 
-        if source_unit is None:
+        if source_unit is None or not self.factory.has_feature(source_unit, "codeRelation"):
             return
 
         for import_model in file_model.get("imports", []):
-            target = self._resolve_import_target(import_model)
+            normalized_import = self._normalize_import_model(import_model)
+            if normalized_import is None:
+                continue
+
+            target = self._resolve_import_target(normalized_import)
 
             if target is None:
+                continue
+
+            if self._has_code_relation(source_unit, "Imports", target):
                 continue
 
             imports_relation = self.factory.create_imports_relation(target)
@@ -320,14 +299,95 @@ class ReferenceResolver:
                 imports_relation,
                 path=file_model.get("path"),
                 language=self.language,
-                start_line=import_model.get("line"),
-                end_line=import_model.get("line"),
+                start_line=normalized_import.get("line"),
+                end_line=normalized_import.get("line"),
                 file_item=source_file,
             )
 
-            self._add_import_traceability_metadata(imports_relation, import_model)
+            self._add_import_traceability_metadata(imports_relation, normalized_import)
 
             source_unit.codeRelation.append(imports_relation)
+
+    def _resolve_import_source(self, file_model: dict):
+        """Finds the KDM CodeItem that should own imports for a source file.
+
+        Python keeps a CompilationUnit per file, so file_model['id'] normally
+        resolves directly.  Java uses a MoDisco-like package hierarchy without
+        CompilationUnit containers; JsonToKDMMapper registers the first ClassUnit
+        in each file under the synthetic key file_import_source:<path>.
+        """
+
+        source_unit = self.id_index.get(file_model.get("id"))
+
+        if source_unit is not None and self.factory.has_feature(source_unit, "codeRelation"):
+            return source_unit
+
+        path = file_model.get("path")
+        if path:
+            source_unit = self.id_index.get(f"file_import_source:{path}")
+            if source_unit is not None:
+                return source_unit
+
+        return None
+
+    def _normalize_import_model(self, import_model):
+        """Normalizes Python/Java import entries to a dictionary.
+
+        Java extractors may encode imports as strings, for example
+        'android.app.Activity', or dictionaries.  This method keeps import
+        traceability fields when present and derives module/name consistently.
+        """
+
+        if isinstance(import_model, str):
+            text = import_model.strip()
+            if not text:
+                return None
+            if text.endswith(".*"):
+                return {
+                    "module": text[:-2],
+                    "name": None,
+                    "target_type": "module",
+                    "classification": "external",
+                    "qualifiedName": text,
+                }
+            if "." in text:
+                module, name = text.rsplit(".", 1)
+            else:
+                module, name = None, text
+            return {
+                "module": module,
+                "name": name,
+                "target_type": "class" if name and name[:1].isupper() else "module",
+                "classification": "external",
+                "qualifiedName": text,
+            }
+
+        if not isinstance(import_model, dict):
+            return None
+
+        normalized = dict(import_model)
+        import_name = (
+            normalized.get("qualifiedName")
+            or normalized.get("qualified_name")
+            or normalized.get("imported")
+            or normalized.get("import")
+            or normalized.get("module")
+        )
+
+        if import_name and isinstance(import_name, str):
+            text = import_name.strip()
+            if text.endswith(".*"):
+                normalized.setdefault("module", text[:-2])
+                normalized.setdefault("target_type", "module")
+                normalized.setdefault("classification", "external")
+            elif "." in text and not normalized.get("name"):
+                module, name = text.rsplit(".", 1)
+                normalized.setdefault("module", module)
+                normalized.setdefault("name", name)
+                normalized.setdefault("target_type", "class" if name[:1].isupper() else "module")
+                normalized.setdefault("classification", "external")
+
+        return normalized
 
     def _add_import_traceability_metadata(self, relation, import_model: dict):
         """
@@ -344,24 +404,64 @@ class ReferenceResolver:
         self.factory.add_attributes_from_dict(relation, metadata)
 
     def _resolve_import_target(self, import_model: dict):
-        target_id = import_model.get("target_id")
+        target_id = self._get_value(
+            import_model,
+            "target_id",
+            "targetId",
+            "resolvedTarget",
+            "resolved_target",
+        )
 
-        # Internal resolved import
+        # Internal resolved import.
         if target_id in self.id_index:
             return self.id_index[target_id]
 
-        classification = import_model.get("classification")
+        import_qn = (
+            import_model.get("qualifiedName")
+            or import_model.get("qualified_name")
+            or import_model.get("imported")
+            or import_model.get("import")
+        )
 
-        # External import
-        if classification == "external":
-            if self.external_builder is None:
-                return None
+        if import_qn in self.qualified_name_index:
+            return self.qualified_name_index[import_qn]
 
-            return self.external_builder.get_or_create_external_import_target(
+        simple_name = import_model.get("name")
+        if not simple_name and isinstance(import_qn, str) and "." in import_qn:
+            simple_name = import_qn.rsplit(".", 1)[-1]
+
+        if simple_name:
+            candidates = self.class_name_index.get(str(simple_name), [])
+            if len(candidates) == 1:
+                return candidates[0]
+
+        # External import.  Java imports may not explicitly carry
+        # classification=external, so use the external builder whenever a
+        # normalized module/name is available.
+        if self.external_builder is not None:
+            target = self.external_builder.get_or_create_external_import_target(
                 import_model
             )
+            if target is not None:
+                return target
 
         return None
+
+    def _has_code_relation(self, source, relation_type: str, target) -> bool:
+        if source is None or target is None:
+            return False
+
+        for relation in list(getattr(source, "codeRelation", []) or []):
+            try:
+                if relation.eClass.name != relation_type:
+                    continue
+            except Exception:
+                continue
+
+            if getattr(relation, "to", None) is target:
+                return True
+
+        return False
 
     # ------------------------------------------------------------
     # Indexing helpers

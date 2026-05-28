@@ -132,6 +132,12 @@ class BodyActionMapper:
         # external ClassUnit.
         self._resolve_unresolved_constructor_creates(body_block)
 
+        # Constructor fallback may add semantic relations after the first
+        # normalization pass. Run the duplicate-action sanitizer again so
+        # Java calls discovered through both statement and expression
+        # traversals remain represented only once inside each BlockUnit.
+        self._deduplicate_child_actions(body_block)
+
     # ------------------------------------------------------------
     # Callable body BlockUnit
     # ------------------------------------------------------------
@@ -757,24 +763,68 @@ class BodyActionMapper:
         return None
 
     def _action_validation_signature(self, action):
+        """
+        Returns the same duplicate-action signature used by KDMValidator.
+
+        Earlier versions used only startLine/endLine. Java body mapping may
+        attach actions produced by different traversals of the same AST node,
+        and the validator identifies such duplicates using the complete first
+        SourceRegion tuple plus body_id/call_id fallbacks. Keeping both sides
+        aligned prevents valid duplicate detection from being postponed until
+        validation time.
+        """
         return (
             getattr(action.eClass, "name", None),
             getattr(action, "name", None),
             getattr(action, "kind", None),
-            self._first_source_line(action, "startLine"),
-            self._first_source_line(action, "endLine"),
+            self._action_traceability_key(action),
         )
 
-    def _first_source_line(self, element, feature_name: str):
+    def _action_traceability_key(self, action):
+        source_key = self._first_source_region_key(action)
+        if source_key is not None:
+            return ("source", source_key)
+
+        body_id = self._get_attribute_value(action, "body_id")
+        if body_id is not None:
+            return ("body", body_id)
+
+        call_id = self._get_attribute_value(action, "call_id")
+        if call_id is not None:
+            return ("call", call_id)
+
+        return None
+
+    def _first_source_region_key(self, element):
         if element is None or not self.factory.has_feature(element, "source"):
             return None
 
         for source_ref in element.source:
-            for region in getattr(source_ref, "region", []):
-                if self.factory.has_feature(region, feature_name):
-                    value = getattr(region, feature_name, None)
-                    if value is not None:
-                        return value
+            if not self.factory.has_feature(source_ref, "region"):
+                continue
+
+            for region in source_ref.region:
+                return (
+                    getattr(region, "path", None),
+                    getattr(region, "startLine", None),
+                    getattr(region, "endLine", None),
+                    getattr(region, "startPosition", None),
+                    getattr(region, "endPosition", None),
+                )
+
+        return None
+
+    def _first_source_line(self, element, feature_name: str):
+        source_key = self._first_source_region_key(element)
+
+        if source_key is None:
+            return None
+
+        if feature_name == "startLine":
+            return source_key[1]
+
+        if feature_name == "endLine":
+            return source_key[2]
 
         return None
 
@@ -851,6 +901,45 @@ class BodyActionMapper:
                 return False
 
         return False
+
+    def deduplicate_all_child_actions(self, root):
+        """
+        Globally normalizes duplicate ActionElement children before validation.
+
+        This is intentionally a generation-time cleanup, not a validator
+        relaxation. It walks the generated KDM tree and applies the same
+        per-container duplicate collapse used during body mapping, ensuring
+        actions created or moved by later resolvers are still normalized.
+        """
+        visited = set()
+
+        def walk(element):
+            if element is None:
+                return
+
+            element_id = id(element)
+            if element_id in visited:
+                return
+            visited.add(element_id)
+
+            if self.factory.has_feature(element, "codeElement"):
+                self._deduplicate_child_actions(element)
+                for child in list(element.codeElement):
+                    walk(child)
+
+            if self.factory.has_feature(element, "model"):
+                for child in list(element.model):
+                    walk(child)
+
+            if self.factory.has_feature(element, "codeRelation"):
+                for relation in list(element.codeRelation):
+                    walk(getattr(relation, "to", None))
+
+            if self.factory.has_feature(element, "actionRelation"):
+                for relation in list(element.actionRelation):
+                    walk(getattr(relation, "to", None))
+
+        walk(root)
 
     # ------------------------------------------------------------
     # Action creation / reuse
@@ -1028,27 +1117,205 @@ class BodyActionMapper:
         statement_type = self._json_get(item, "statement_type", "statementType")
         value_kind = self._json_get(item, "value_kind", "valueKind")
 
+        # Preserve the rich KDM semantics for Java body actions.  Moving the
+        # structural containment to Package -> ClassUnit must not remove
+        # action::Calls/action::Creates relations from body-level
+        # ActionElement nodes.
+        self._add_calls_for_body_item(action, item)
+
         if value_kind == "object_creation":
             self._add_creates_for_body_item(action, item)
 
         if statement_type in {"throw", "raise"}:
             self._add_throws_for_body_item(action, item)
 
+    def _add_calls_for_body_item(self, action, item: dict):
+        if not self.factory.has_feature(action, "actionRelation"):
+            return
+
+        for call in self._body_call_models(item):
+            if not isinstance(call, dict):
+                continue
+
+            if self._is_constructor_call_model(call):
+                # Constructors are represented by action::Creates.
+                continue
+
+            target = self._resolve_call_target_for_body_item(call)
+
+            if target is None:
+                continue
+
+            if self._has_action_relation(source=action, target=target, relation_type="Calls"):
+                continue
+
+            relation = self.factory.create_calls_relation(target)
+
+            if relation is not None:
+                action.actionRelation.append(relation)
+
+    def _body_call_models(self, item: dict):
+        calls = []
+
+        statement_type = self._json_get(item, "statement_type", "statementType")
+
+        if statement_type == "call":
+            call = self._json_get(item, "call", "call")
+            if isinstance(call, dict):
+                calls.append(call)
+            else:
+                calls.append(self._call_model_from_body_item(item))
+
+        value_call = self._json_get(item, "value_call", "valueCall")
+        if isinstance(value_call, dict):
+            calls.append(value_call)
+
+        for key_snake, key_camel in (
+            ("condition_calls", "conditionCalls"),
+            ("value_calls", "valueCalls"),
+            ("exception_calls", "exceptionCalls"),
+        ):
+            for call in self._json_list(item, key_snake, key_camel):
+                if isinstance(call, dict):
+                    calls.append(call)
+
+        for with_item in item.get("items", []) or []:
+            for call in with_item.get("context_calls", []) or with_item.get("contextCalls", []) or []:
+                if isinstance(call, dict):
+                    calls.append(call)
+
+        return calls
+
+    def _call_model_from_body_item(self, item: dict):
+        return {
+            "id": item.get("call_id") or item.get("callId"),
+            "name": (
+                item.get("methodName")
+                or item.get("method_name")
+                or item.get("method")
+                or item.get("name")
+                or item.get("value")
+            ),
+            "method": item.get("method") or item.get("methodName") or item.get("method_name"),
+            "targetId": item.get("targetId") or item.get("target_id") or item.get("resolvedTarget") or item.get("resolved_target"),
+            "resolvedTarget": item.get("resolvedTarget") or item.get("resolved_target"),
+            "classification": item.get("classification"),
+            "kind": item.get("kind"),
+            "receiver": item.get("receiver"),
+        }
+
+    def _is_constructor_call_model(self, call: dict) -> bool:
+        classification = call.get("classification")
+        kind = call.get("kind")
+        name = call.get("name") or call.get("method") or call.get("targetId") or call.get("target_id")
+
+        if classification in {"constructor", "object_creation"}:
+            return True
+
+        if kind in {"constructor", "constructor_call", "object_creation"}:
+            return True
+
+        if isinstance(name, str) and (".<init>" in name or name.endswith(".<init>")):
+            return True
+
+        return False
+
+    def _resolve_call_target_for_body_item(self, call: dict):
+        candidate_keys = [
+            call.get("targetId"),
+            call.get("target_id"),
+            call.get("resolvedTarget"),
+            call.get("resolved_target"),
+            call.get("qualifiedSignature"),
+            call.get("qualified_signature"),
+            call.get("id"),
+        ]
+
+        for key in candidate_keys:
+            target = self._resolve_indexed_call_target(key)
+            if target is not None:
+                return target
+
+        if self.external_builder is None:
+            return None
+
+        external_call = dict(call)
+        external_call.setdefault("classification", "external")
+
+        if not (external_call.get("name") or external_call.get("method") or external_call.get("function")):
+            external_call["name"] = (
+                call.get("targetId")
+                or call.get("target_id")
+                or call.get("resolvedTarget")
+                or call.get("resolved_target")
+                or "call"
+            )
+
+        return self.external_builder.get_or_create_external_target(external_call)
+
+    def _resolve_indexed_call_target(self, key):
+        if not key:
+            return None
+
+        if key in self.id_index:
+            return self.id_index[key]
+
+        text = str(key)
+
+        for candidate in (
+            text,
+            text.split("(", 1)[0],
+            text.replace(".<init>", ""),
+        ):
+            if candidate in self.id_index:
+                return self.id_index[candidate]
+
+        return None
+
     def _add_creates_for_body_item(self, action, item: dict):
         call = self._json_get(item, "value_call", "valueCall") or {}
-        target_name = (
-            call.get("targetId")
-            or call.get("resolvedTarget")
-            or item.get("className")
-            or item.get("class_name")
-            or call.get("name")
-        )
-        target = self._resolve_or_create_class_target(target_name)
+
+        if not isinstance(call, dict):
+            call = {}
+
+        # Java body nodes may contain both the constructor/type name and the
+        # target variable id. The KDM action::Creates relation expects its
+        # target to be a Datatype (for example ClassUnit), not a StorableUnit
+        # representing the local variable that receives the new object.
+        # Therefore, prefer explicit type/class names and only use targetId as
+        # a last-resort candidate if it resolves to a class-like element.
+        candidate_names = [
+            item.get("className"),
+            item.get("class_name"),
+            item.get("typeName"),
+            item.get("type_name"),
+            item.get("resolvedType"),
+            item.get("resolved_type"),
+            call.get("className"),
+            call.get("class_name"),
+            call.get("typeName"),
+            call.get("type_name"),
+            call.get("resolvedType"),
+            call.get("resolved_type"),
+            call.get("resolvedTarget"),
+            call.get("resolved_target"),
+            call.get("name"),
+            call.get("targetId"),
+            call.get("target_id"),
+        ]
+
+        target = self._resolve_first_class_like_target(candidate_names)
+
         if target is None or not self.factory.has_feature(action, "actionRelation"):
             return
-        if self._has_action_relation(action, "Creates", target):
+
+        if self._has_action_relation(source=action, target=target, relation_type="Creates"):
             return
-        action.actionRelation.append(self.factory.create_creates_relation(target))
+
+        creates_relation = self.factory.create_creates_relation(target)
+
+        if creates_relation is not None:
+            action.actionRelation.append(creates_relation)
 
     def _add_throws_for_body_item(self, action, item: dict):
         exception_name = (
@@ -1072,7 +1339,7 @@ class BodyActionMapper:
         storable = self._get_or_create_exception_storable(action, str(exception_name))
         if storable is None:
             return
-        if self._has_action_relation(action, "Throws", storable):
+        if self._has_action_relation(source=action, target=storable, relation_type="Throws"):
             return
         action.actionRelation.append(self.factory.create_throws_relation(storable))
 
@@ -1097,12 +1364,37 @@ class BodyActionMapper:
         text = text.replace("<>", "")
         for key in (target_name, text, text.split(".")[-1]):
             target = self.id_index.get(key)
-            if target is not None:
+            if self._is_class_like(target):
                 return target
         class_name = text.split(".")[-1]
         library = ".".join(text.split(".")[:-1]) or "java.lang"
         if self.external_builder is not None:
-            return self.external_builder.get_or_create_external_class(library, class_name)
+            target = self.external_builder.get_or_create_external_class(library, class_name)
+            if self._is_class_like(target):
+                return target
+        return None
+
+    def _resolve_first_class_like_target(self, candidate_names):
+        if not candidate_names:
+            return None
+
+        seen = set()
+
+        for candidate_name in candidate_names:
+            if candidate_name is None:
+                continue
+
+            text = str(candidate_name).strip()
+
+            if not text or text in seen:
+                continue
+
+            seen.add(text)
+            target = self._resolve_or_create_class_target(text)
+
+            if self._is_class_like(target):
+                return target
+
         return None
 
 
@@ -1388,7 +1680,7 @@ class BodyActionMapper:
             constructor_name = getattr(child, "name", None)
             target = self._resolve_constructor_target_static(constructor_name)
 
-            if target is None:
+            if target is None or not self._is_class_like(target):
                 continue
 
             creates_relation = self.factory.create_creates_relation(target)

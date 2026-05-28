@@ -6,20 +6,7 @@ if str(PY2KDM_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PY2KDM_PROJECT_ROOT))
 
 
-try:
-    from py2kdm_common.paths import ensure_parent, resolve_from_root
-except ModuleNotFoundError:
-    def resolve_from_root(path):
-        p = Path(path)
-        if p.is_absolute():
-            return p
-        return PY2KDM_PROJECT_ROOT / p
-
-    def ensure_parent(path):
-        p = Path(path)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        return p
-
+from py2kdm_common.paths import ensure_parent, resolve_from_root
 import argparse
 
 from pyecore.resources import URI
@@ -52,7 +39,6 @@ GENERATOR_ROOT = Path(__file__).resolve().parent
 DEFAULT_KDM_ECORE_PATH = GENERATOR_ROOT / "metamodels" / "kdm_1_4.ecore"
 DEFAULT_JSON_INPUT_PATH = "input/python_model.json"
 DEFAULT_OUTPUT_PATH = "output/example_project.kdm.xmi"
-GENERATOR_VERSION = "v2.23-fix-java-external-roots"
 
 
 def generate_kdm(
@@ -83,8 +69,6 @@ def generate_kdm(
     dict
         Summary information about the generated model.
     """
-
-    print(f"[kdm_pyecore_generator] version: {GENERATOR_VERSION}")
 
     # Resolve paths from the project root. This makes the generator robust
     # when called from the project root, a subdirectory, or a GUI process.
@@ -137,7 +121,8 @@ def generate_kdm(
     # External builder is created before structural mapping so generic
     # relationships can resolve external calls directly to KDM targets instead
     # of storing temporary unresolved_* attributes.
-    external_builder = ExternalModelBuilder(factory, segment)
+    external_builder = ExternalModelBuilder(factory, segment, language=language)
+    external_builder.configure_from_project_model(data)
 
     mapper = JsonToKDMMapper(
         factory=factory,
@@ -175,6 +160,7 @@ def generate_kdm(
         id_index=mapper.id_index,
         external_builder=external_builder,
         code_model=internal_code_model,
+        language=language,
     )
 
     type_relation_resolver = TypeRelationResolver(
@@ -244,25 +230,18 @@ def generate_kdm(
     runtime_call_resolver.add_runtime_call_relations(data)
 
     # ------------------------------------------------------------
-    # 8c. Create builtin exception container
+    # 8c. Create Python builtins model
     # ------------------------------------------------------------
 
-    builtin_model = None
-    if language == "python":
+    # Python needs a dedicated builtins model to materialize exceptions such
+    # as ValueError and RuntimeError. Java should not generate a separate
+    # JavaBuiltins CodeModel; unresolved Java exception types are left
+    # unresolved unless they already exist as internal/external KDM elements.
+    if language == "java":
+        builtin_model = None
+    else:
         builtin_model = factory.create_code_model("PythonBuiltins")
         segment.model.append(builtin_model)
-    else:
-        # For non-Python projects, avoid creating a PythonBuiltins CodeModel.
-        # Builtin/exception helper classes are placed under ExternalLibraries
-        # in a neutral `builtins` CompilationUnit when needed.
-        try:
-            external_model = external_builder.ensure_external_model()
-            builtin_model = external_builder._get_or_create_library_unit(
-                external_model,
-                "builtins",
-            )
-        except Exception:
-            builtin_model = None
 
     # ------------------------------------------------------------
     # 8d. Resolve exception semantics
@@ -289,12 +268,9 @@ def generate_kdm(
     # 9. Resolve assigned values using code::HasValue
     # ------------------------------------------------------------
 
-    # Store synthetic literal values outside the project CodeModel.  For
-    # Python, keep them under PythonBuiltins.  For other languages, keep them
-    # under the neutral external builtins container.
     value_resolver = ValueResolver(
         factory=factory,
-        code_model=builtin_model or internal_code_model,
+        code_model=internal_code_model,
     )
 
     value_relation_resolver = ValueRelationResolver(
@@ -345,6 +321,17 @@ def generate_kdm(
     reference_resolver.add_extends_relations(data)
     reference_resolver.add_import_relations(data)
 
+    # ------------------------------------------------------------
+    # 10b. Normalize duplicate executable actions
+    #
+    # Java models may expose the same method invocation both as a statement
+    # action and as a nested expression action. The BodyActionMapper already
+    # collapses duplicates during body construction; this final pass guarantees
+    # that actions moved or enriched by later resolvers are normalized before
+    # KDM validation and XMI serialization.
+    # ------------------------------------------------------------
+
+    body_action_mapper.deduplicate_all_child_actions(segment)
 
     # ------------------------------------------------------------
     # 11. Structure Model

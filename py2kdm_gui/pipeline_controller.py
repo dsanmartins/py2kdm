@@ -42,15 +42,34 @@ class PipelineController(QObject):
         self,
         project_root: Path,
         intermediate_json: Path,
+        language: str = "python",
     ) -> None:
-        command = [
-            sys.executable,
-            str(PY2KDM_PROJECT_ROOT / "python_kdm_extractor" / "main.py"),
-            "--input",
-            str(project_root),
-            "--output",
-            str(intermediate_json),
-        ]
+        language = (language or "python").lower()
+
+        if language == "java":
+            command = [
+                "java",
+                "-jar",
+                str(
+                    PY2KDM_PROJECT_ROOT
+                    / "tools"
+                    / "java2kdm"
+                    / "java2kdm-1.0-SNAPSHOT.jar"
+                ),
+                str(project_root),
+                str(intermediate_json),
+                str(PY2KDM_PROJECT_ROOT / "schemas" / "python_model.schema.json"),
+            ]
+        else:
+            command = [
+                sys.executable,
+                str(PY2KDM_PROJECT_ROOT / "python_kdm_extractor" / "main.py"),
+                "--input",
+                str(project_root),
+                "--output",
+                str(intermediate_json),
+            ]
+
         self._run(
             step_name="Static extraction",
             command=command,

@@ -33,6 +33,7 @@ class ProjectConfig:
     name: str
     root: str
     output_dir: str
+    language: str = "auto"
     dynamic_analysis: DynamicAnalysisConfig = field(default_factory=DynamicAnalysisConfig)
     agents: AgentConfig = field(default_factory=AgentConfig)
 
@@ -54,10 +55,15 @@ class ProjectConfig:
 
         agents = data.get("agents", {})
 
+        language = project.get("language", data.get("language", "auto"))
+        if language not in {"auto", "python", "java"}:
+            language = "auto"
+
         return cls(
             name=project.get("name", ""),
             root=project.get("root", ""),
             output_dir=project.get("output_dir", ""),
+            language=language,
             dynamic_analysis=DynamicAnalysisConfig(
                 enabled=dynamic.get("enabled", True),
                 scenarios=scenarios,
@@ -75,6 +81,7 @@ class ProjectConfig:
                 "name": self.name,
                 "root": self.root,
                 "output_dir": self.output_dir,
+                "language": self.language,
             },
             "dynamic_analysis": {
                 "enabled": self.dynamic_analysis.enabled,

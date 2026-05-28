@@ -229,51 +229,179 @@ class AutonomicApplicabilityGate:
         corpus = []
 
         for file_model in project_model.get("files", []):
-            self._append_terms(corpus, file_model.get("name"))
-            self._append_terms(corpus, file_model.get("path"))
-            self._append_terms(corpus, file_model.get("qualified_name"))
+            self._append_terms(corpus, self._value(file_model, "name"))
+            self._append_terms(corpus, self._value(file_model, "path"))
+            self._append_terms(corpus, self._value(file_model, "qualified_name"))
 
             for import_model in file_model.get("imports", []):
-                self._append_terms(corpus, import_model.get("module"))
-                self._append_terms(corpus, import_model.get("name"))
-                self._append_terms(corpus, import_model.get("alias"))
+                self._append_import_terms(corpus, import_model)
 
-            for cls in file_model.get("classes", []):
-                self._append_terms(corpus, cls.get("name"))
-                self._append_terms(corpus, cls.get("qualified_name"))
-
-                for base in cls.get("bases", []):
-                    self._append_terms(corpus, base)
-
-                for method in cls.get("methods", []):
-                    self._append_terms(corpus, method.get("name"))
-                    self._append_terms(corpus, method.get("qualified_name"))
-                    self._append_terms(corpus, method.get("return_annotation"))
-
-                    for call in method.get("calls", []):
-                        self._append_terms(corpus, call.get("name"))
-                        self._append_terms(corpus, call.get("receiver"))
-                        self._append_terms(corpus, call.get("method"))
-                        self._append_terms(corpus, call.get("function"))
-
-                for attr in cls.get("attributes", []):
-                    self._append_terms(corpus, attr.get("name"))
-
-                for attr in cls.get("instance_attributes", []):
-                    self._append_terms(corpus, attr.get("name"))
-                    self._append_terms(corpus, attr.get("full_name"))
+            for cls in self._iter_classes_from_file(file_model):
+                self._append_class_terms(corpus, cls)
 
             for func in file_model.get("functions", []):
-                self._append_terms(corpus, func.get("name"))
-                self._append_terms(corpus, func.get("qualified_name"))
+                self._append_callable_terms(corpus, func)
 
-                for call in func.get("calls", []):
-                    self._append_terms(corpus, call.get("name"))
-                    self._append_terms(corpus, call.get("receiver"))
-                    self._append_terms(corpus, call.get("method"))
-                    self._append_terms(corpus, call.get("function"))
+        # Java extractor output stores the main code entities at top-level
+        # under elements[]. Keep this support here so the MAPE-K gate works
+        # for both Python and Java models.
+        for element in project_model.get("elements", []):
+            kind = str(self._value(element, "kind", "type") or "").lower()
+
+            if kind in {"class", "interface", "enum"}:
+                self._append_class_terms(corpus, element)
+            else:
+                self._append_element_terms(corpus, element)
+
+        for relationship in project_model.get("relationships", []):
+            self._append_relationship_terms(corpus, relationship)
 
         return corpus
+
+    def _append_import_terms(self, corpus: list, import_model):
+        if isinstance(import_model, dict):
+            self._append_terms(corpus, self._value(import_model, "module"))
+            self._append_terms(corpus, self._value(import_model, "name"))
+            self._append_terms(corpus, self._value(import_model, "alias"))
+            self._append_terms(corpus, self._value(import_model, "qualifiedName", "qualified_name"))
+        else:
+            self._append_terms(corpus, import_model)
+
+    def _append_class_terms(self, corpus: list, cls: dict):
+        self._append_element_terms(corpus, cls)
+
+        for base in cls.get("bases", []):
+            self._append_terms(corpus, base)
+
+        for base in cls.get("superTypes", []):
+            self._append_terms(corpus, base)
+
+        for interface in cls.get("interfaces", []):
+            self._append_terms(corpus, interface)
+
+        for field in cls.get("fields", []):
+            self._append_element_terms(corpus, field)
+
+        for attr in cls.get("attributes", []):
+            self._append_element_terms(corpus, attr)
+
+        for attr in cls.get("instance_attributes", []):
+            self._append_element_terms(corpus, attr)
+
+        for variable in cls.get("variables", []):
+            self._append_element_terms(corpus, variable)
+
+        for method in cls.get("methods", []):
+            self._append_callable_terms(corpus, method)
+
+    def _append_callable_terms(self, corpus: list, callable_model: dict):
+        self._append_element_terms(corpus, callable_model)
+        self._append_terms(corpus, self._value(callable_model, "return_annotation", "returnType"))
+        self._append_terms(corpus, self._value(callable_model, "qualifiedSignature"))
+
+        for annotation in callable_model.get("annotations", []):
+            self._append_terms(corpus, annotation)
+
+        for decorator in callable_model.get("decorators", []):
+            self._append_terms(corpus, decorator)
+
+        for parameter in callable_model.get("parameters", []):
+            self._append_element_terms(corpus, parameter)
+
+        for variable in callable_model.get("local_variables", []):
+            self._append_element_terms(corpus, variable)
+
+        for variable in callable_model.get("variables", []):
+            self._append_element_terms(corpus, variable)
+
+        for call in callable_model.get("calls", []):
+            self._append_call_terms(corpus, call)
+
+    def _append_call_terms(self, corpus: list, call):
+        if isinstance(call, dict):
+            for key in [
+                "name",
+                "qualified_name",
+                "qualifiedName",
+                "receiver",
+                "method",
+                "function",
+                "target",
+                "targetName",
+                "targetQualifiedName",
+            ]:
+                self._append_terms(corpus, call.get(key))
+        else:
+            self._append_terms(corpus, call)
+
+    def _append_relationship_terms(self, corpus: list, relationship):
+        if isinstance(relationship, dict):
+            for key in [
+                "type",
+                "kind",
+                "source",
+                "sourceName",
+                "sourceQualifiedName",
+                "target",
+                "targetName",
+                "targetQualifiedName",
+            ]:
+                self._append_terms(corpus, relationship.get(key))
+        else:
+            self._append_terms(corpus, relationship)
+
+    def _append_element_terms(self, corpus: list, element):
+        if isinstance(element, dict):
+            for key in [
+                "name",
+                "qualified_name",
+                "qualifiedName",
+                "full_name",
+                "fullName",
+                "path",
+                "type",
+                "kind",
+                "assigned_type",
+                "assignedType",
+                "fieldType",
+                "returnType",
+            ]:
+                self._append_terms(corpus, element.get(key))
+        else:
+            self._append_terms(corpus, element)
+
+    def _iter_classes_from_file(self, file_model: dict):
+        for cls in file_model.get("classes", []):
+            yield cls
+
+        # Some extractors may store file-level elements instead of classes.
+        for element in file_model.get("elements", []):
+            kind = str(self._value(element, "kind", "type") or "").lower()
+            if kind in {"class", "interface", "enum"}:
+                yield element
+
+    def _iter_all_classes(self, project_model: dict):
+        for file_model in project_model.get("files", []):
+            yield from self._iter_classes_from_file(file_model)
+
+        for element in project_model.get("elements", []):
+            kind = str(self._value(element, "kind", "type") or "").lower()
+            if kind in {"class", "interface", "enum"}:
+                yield element
+
+    def _iter_class_methods(self, cls: dict):
+        for method in cls.get("methods", []):
+            yield method
+
+    def _value(self, data: dict, *keys):
+        if not isinstance(data, dict):
+            return None
+
+        for key in keys:
+            if key in data and data.get(key) is not None:
+                return data.get(key)
+
+        return None
 
     def _append_terms(self, corpus: list, value):
         if value is None:
@@ -370,34 +498,63 @@ class AutonomicApplicabilityGate:
 
     def _rule_partial_control_loop_relations(self, project_model: dict):
         role_by_class_id = {}
+        role_by_class_name = {}
 
-        for file_model in project_model.get("files", []):
-            for cls in file_model.get("classes", []):
-                role = self._role_from_name(cls.get("name", ""))
-                if role:
-                    role_by_class_id[cls.get("id")] = role
+        for cls in self._iter_all_classes(project_model):
+            name = self._value(cls, "name", "qualified_name", "qualifiedName")
+            role = self._role_from_name(name)
 
-        if len(set(role_by_class_id.values())) < 2:
+            if not role:
+                continue
+
+            class_id = self._value(cls, "id")
+            qualified_name = self._value(cls, "qualified_name", "qualifiedName", "name")
+
+            if class_id:
+                role_by_class_id[class_id] = role
+
+            if qualified_name:
+                role_by_class_name[str(qualified_name)] = role
+                role_by_class_name[str(qualified_name).split(".")[-1]] = role
+
+        if len(set(role_by_class_id.values()) | set(role_by_class_name.values())) < 2:
             return []
 
         relations_between_roles = []
 
-        for file_model in project_model.get("files", []):
-            for cls in file_model.get("classes", []):
-                source_role = role_by_class_id.get(cls.get("id"))
+        for cls in self._iter_all_classes(project_model):
+            source_role = self._role_for_element(cls, role_by_class_id, role_by_class_name)
 
-                if source_role is None:
-                    continue
+            if source_role is None:
+                continue
 
-                for method in cls.get("methods", []):
-                    for call in method.get("calls", []):
-                        target_id = call.get("target_id")
-                        target_role = role_by_class_id.get(target_id)
+            for method in self._iter_class_methods(cls):
+                for call in method.get("calls", []):
+                    target_role = self._role_for_call(call, role_by_class_id, role_by_class_name)
 
-                        if target_role and target_role != source_role:
-                            relations_between_roles.append(
-                                f"{source_role}->{target_role}"
-                            )
+                    if target_role and target_role != source_role:
+                        relations_between_roles.append(f"{source_role}->{target_role}")
+
+        # Java models may expose inter-class dependencies at project level.
+        for relationship in project_model.get("relationships", []):
+            if not isinstance(relationship, dict):
+                continue
+
+            source_role = self._role_for_relationship_endpoint(
+                relationship,
+                role_by_class_id,
+                role_by_class_name,
+                prefix="source",
+            )
+            target_role = self._role_for_relationship_endpoint(
+                relationship,
+                role_by_class_id,
+                role_by_class_name,
+                prefix="target",
+            )
+
+            if source_role and target_role and source_role != target_role:
+                relations_between_roles.append(f"{source_role}->{target_role}")
 
         if not relations_between_roles:
             return []
@@ -411,6 +568,92 @@ class AutonomicApplicabilityGate:
                 ),
             }
         ]
+
+    def _role_for_element(self, element, role_by_id: dict, role_by_name: dict):
+        if not isinstance(element, dict):
+            return None
+
+        element_id = self._value(element, "id")
+        if element_id in role_by_id:
+            return role_by_id[element_id]
+
+        for key in ["qualified_name", "qualifiedName", "name"]:
+            value = self._value(element, key)
+            if value and str(value) in role_by_name:
+                return role_by_name[str(value)]
+            if value and str(value).split(".")[-1] in role_by_name:
+                return role_by_name[str(value).split(".")[-1]]
+
+        return None
+
+    def _role_for_call(self, call, role_by_id: dict, role_by_name: dict):
+        if isinstance(call, dict):
+            target_id = self._value(call, "target_id", "targetId")
+            if target_id in role_by_id:
+                return role_by_id[target_id]
+
+            for key in [
+                "target",
+                "targetName",
+                "targetQualifiedName",
+                "qualified_name",
+                "qualifiedName",
+                "name",
+                "receiver",
+                "function",
+                "method",
+            ]:
+                value = self._value(call, key)
+                role = self._role_from_text_or_index(value, role_by_name)
+                if role:
+                    return role
+        else:
+            return self._role_from_text_or_index(call, role_by_name)
+
+        return None
+
+    def _role_for_relationship_endpoint(
+        self,
+        relationship: dict,
+        role_by_id: dict,
+        role_by_name: dict,
+        prefix: str,
+    ):
+        candidate_keys = [
+            prefix,
+            f"{prefix}Id",
+            f"{prefix}_id",
+            f"{prefix}Name",
+            f"{prefix}QualifiedName",
+            f"{prefix}_qualified_name",
+        ]
+
+        for key in candidate_keys:
+            value = self._value(relationship, key)
+
+            if value in role_by_id:
+                return role_by_id[value]
+
+            role = self._role_from_text_or_index(value, role_by_name)
+            if role:
+                return role
+
+        return None
+
+    def _role_from_text_or_index(self, value, role_by_name: dict):
+        if value is None:
+            return None
+
+        text = str(value)
+
+        if text in role_by_name:
+            return role_by_name[text]
+
+        short_name = text.split(".")[-1]
+        if short_name in role_by_name:
+            return role_by_name[short_name]
+
+        return self._role_from_name(text)
 
     def _role_from_name(self, name: str):
         lowered = str(name or "").lower()
