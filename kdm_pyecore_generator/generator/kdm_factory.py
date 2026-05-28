@@ -48,6 +48,8 @@ class KDMFactory:
         self.CodeModel = resolver.find("CodeModel")
         self.CompilationUnit = resolver.find("CompilationUnit")
         self.ClassUnit = resolver.find("ClassUnit")
+        self.InterfaceUnit = resolver.find("InterfaceUnit")
+        self.Package = resolver.find("Package")
         self.MethodUnit = resolver.find("MethodUnit")
         self.CallableUnit = resolver.find("CallableUnit")
         self.Signature = resolver.find("Signature")
@@ -73,6 +75,7 @@ class KDMFactory:
 
         # Code relationships
         self.Extends = resolver.find("Extends")
+        self.Implements = resolver.find("Implements")
         self.Imports = resolver.find("Imports")
         self.HasType = resolver.find("HasType")
         self.HasValue = resolver.find("HasValue")
@@ -282,6 +285,24 @@ class KDMFactory:
         """
 
         unit = self.ClassUnit()
+        unit.name = name
+        return unit
+
+    def create_interface_unit(self, name: str):
+        """
+        Creates a KDM InterfaceUnit.
+        """
+
+        unit = self.InterfaceUnit()
+        unit.name = name
+        return unit
+
+    def create_package_unit(self, name: str):
+        """
+        Creates a KDM Package.
+        """
+
+        unit = self.Package()
         unit.name = name
         return unit
 
@@ -550,6 +571,19 @@ class KDMFactory:
 
         if not self.has_feature(relation, "to"):
             raise ValueError("Extends relation does not have feature 'to'.")
+
+        relation.to = target
+        return relation
+
+    def create_implements_relation(self, target):
+        """
+        Creates a code::Implements relation.
+        """
+
+        relation = self.Implements()
+
+        if not self.has_feature(relation, "to"):
+            raise ValueError("Implements relation does not have feature 'to'.")
 
         relation.to = target
         return relation

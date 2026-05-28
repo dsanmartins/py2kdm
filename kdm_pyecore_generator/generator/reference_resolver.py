@@ -39,6 +39,31 @@ class ReferenceResolver:
 
         return [value]
 
+
+    def _is_kdm_datatype(self, element) -> bool:
+        """Return True only for KDM code::Datatype elements.
+
+        Extends.to is typed as code::Datatype in the KDM Ecore model.
+        In Python models, a base name can sometimes resolve to a CallableUnit
+        because functions/classes may share simple names or because dynamic
+        constructs are inferred broadly. Those targets must not be used for
+        code::Extends.
+        """
+        if element is None or not hasattr(element, "eClass"):
+            return False
+
+        eclass = element.eClass
+        names = {getattr(eclass, "name", None)}
+
+        for attr in ("eAllSuperTypes", "eSuperTypes"):
+            try:
+                for super_type in getattr(eclass, attr, []) or []:
+                    names.add(getattr(super_type, "name", None))
+            except Exception:
+                pass
+
+        return "Datatype" in names
+
     def _has_rich_body(self, callable_model: dict):
         body = callable_model.get("body") or callable_model.get("statements") or []
         return isinstance(body, list) and len(body) > 0
@@ -216,13 +241,16 @@ class ReferenceResolver:
     def _add_class_extends(self, cls: dict, file_model: dict):
         source_class = self.id_index.get(cls.get("id"))
 
-        if source_class is None:
+        # code::Extends can only be attached from a Datatype to a Datatype.
+        # Defensive check is needed for Python models where dynamic constructs
+        # may resolve a class/base name to a CallableUnit or other non-type.
+        if not self._is_kdm_datatype(source_class):
             return
 
         for base_name in cls.get("bases", []):
             target_class = self._resolve_base_class(base_name, file_model)
 
-            if target_class is None:
+            if not self._is_kdm_datatype(target_class):
                 continue
 
             extends_relation = self.factory.create_extends_relation(target_class)

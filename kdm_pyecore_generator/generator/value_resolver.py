@@ -1,6 +1,11 @@
 class ValueResolver:
     def __init__(self, factory, code_model):
         self.factory = factory
+        # Container where literal Value elements will be stored.  In earlier
+        # versions this was always the project CodeModel, which polluted the
+        # main project model with a synthetic CompilationUnit named
+        # ``python_literal_values``.  The caller can now pass PythonBuiltins or
+        # another external/helper CodeModel instead.
         self.code_model = code_model
 
         self.values_unit = None

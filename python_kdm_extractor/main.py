@@ -11,7 +11,16 @@ for candidate in (PY2KDM_PROJECT_ROOT, PYTHON_KDM_EXTRACTOR_ROOT):
         sys.path.insert(0, str(candidate))
 
 
-from py2kdm_common.paths import ensure_parent, resolve_from_root
+try:
+    from py2kdm_common.paths import ensure_parent, resolve_from_root
+except ModuleNotFoundError:
+    def resolve_from_root(path):
+        return Path(path).expanduser().resolve()
+
+    def ensure_parent(path):
+        path = Path(path).expanduser().resolve()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        return path
 
 from extractor.project_scanner import find_python_files
 from extractor.file_extractor import extract_file_model
@@ -23,6 +32,7 @@ from extractor.relationship_builder import RelationshipBuilder
 from extractor.element_builder import ElementBuilder
 from extractor.summary_builder import SummaryBuilder
 from extractor.body_call_synchronizer import BodyCallSynchronizer
+from extractor.common_schema_normalizer import CommonSchemaNormalizer
 
 
 DEFAULT_OUTPUT_PATH = "output/python_model.json"
@@ -88,6 +98,9 @@ def extract_project(project_path: str | Path):
 
     element_builder = ElementBuilder()
     element_builder.build_elements(project_model)
+
+    common_schema_normalizer = CommonSchemaNormalizer()
+    common_schema_normalizer.normalize(project_model)
 
     summary_builder = SummaryBuilder()
     summary_builder.build_summary(project_model)

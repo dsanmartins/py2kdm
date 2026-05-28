@@ -74,6 +74,15 @@ class ExceptionRelationResolver:
         self.builtin_model = builtin_model
         self.builtin_index = builtin_index or {}
         self.external_index = external_index or {}
+        self.known_builtin_exceptions = {
+            "BaseException", "Exception", "ArithmeticError", "AssertionError",
+            "AttributeError", "EOFError", "ImportError", "IndexError",
+            "KeyError", "KeyboardInterrupt", "LookupError", "MemoryError",
+            "NameError", "NotImplementedError", "OSError", "OverflowError",
+            "RecursionError", "ReferenceError", "RuntimeError", "StopIteration",
+            "SyntaxError", "SystemError", "SystemExit", "TypeError",
+            "UnboundLocalError", "ValueError", "ZeroDivisionError",
+        }
         self.finally_action_index = finally_action_index or {}
 
     # ------------------------------------------------------------
@@ -555,6 +564,16 @@ class ExceptionRelationResolver:
             ):
                 return element
 
+        # Search external index by exact or simple name before falling back to builtins.
+        for element_id, element in self.external_index.items():
+            element_name = getattr(element, "name", None)
+            if element_name == exception_name:
+                return element
+            if isinstance(element_id, str):
+                clean_id = element_id.replace("external_type:", "").replace("external:", "")
+                if clean_id == exception_name or clean_id.endswith(f".{exception_name}"):
+                    return element
+
         return self._get_or_create_builtin_exception(exception_name)
 
     def _get_or_create_builtin_exception(self, exception_name: str):
@@ -566,6 +585,14 @@ class ExceptionRelationResolver:
         if not exception_name:
             return None
 
+        # Only true Python built-in exceptions belong in PythonBuiltins.
+        # Qualified external exceptions such as aiohttp.client_exceptions.ClientError
+        # must remain in ExternalLibraries or be left unresolved.
+        simple_name = str(exception_name).split(".")[-1]
+        if "." in str(exception_name) or simple_name not in self.known_builtin_exceptions:
+            return None
+
+        exception_name = simple_name
         builtin_id = f"builtin:{exception_name}"
 
         if builtin_id in self.builtin_index:

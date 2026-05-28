@@ -6,7 +6,20 @@ if str(PY2KDM_PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PY2KDM_PROJECT_ROOT))
 
 
-from py2kdm_common.paths import ensure_parent, resolve_from_root
+try:
+    from py2kdm_common.paths import ensure_parent, resolve_from_root
+except ModuleNotFoundError:
+    def resolve_from_root(path):
+        p = Path(path)
+        if p.is_absolute():
+            return p
+        return PY2KDM_PROJECT_ROOT / p
+
+    def ensure_parent(path):
+        p = Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        return p
+
 import argparse
 
 from pyecore.resources import URI
@@ -228,11 +241,25 @@ def generate_kdm(
     runtime_call_resolver.add_runtime_call_relations(data)
 
     # ------------------------------------------------------------
-    # 8c. Create Python builtins model
+    # 8c. Create builtin exception container
     # ------------------------------------------------------------
 
-    builtin_model = factory.create_code_model("PythonBuiltins")
-    segment.model.append(builtin_model)
+    builtin_model = None
+    if language == "python":
+        builtin_model = factory.create_code_model("PythonBuiltins")
+        segment.model.append(builtin_model)
+    else:
+        # For non-Python projects, avoid creating a PythonBuiltins CodeModel.
+        # Builtin/exception helper classes are placed under ExternalLibraries
+        # in a neutral `builtins` CompilationUnit when needed.
+        try:
+            external_model = external_builder.ensure_external_model()
+            builtin_model = external_builder._get_or_create_library_unit(
+                external_model,
+                "builtins",
+            )
+        except Exception:
+            builtin_model = None
 
     # ------------------------------------------------------------
     # 8d. Resolve exception semantics
@@ -259,9 +286,12 @@ def generate_kdm(
     # 9. Resolve assigned values using code::HasValue
     # ------------------------------------------------------------
 
+    # Store synthetic literal values outside the project CodeModel.  For
+    # Python, keep them under PythonBuiltins.  For other languages, keep them
+    # under the neutral external builtins container.
     value_resolver = ValueResolver(
         factory=factory,
-        code_model=internal_code_model,
+        code_model=builtin_model or internal_code_model,
     )
 
     value_relation_resolver = ValueRelationResolver(

@@ -117,8 +117,22 @@ class TypeResolver:
         if self.builtin_types_unit is not None:
             return self.builtin_types_unit
 
+        # Builtin/generic datatypes are auxiliary datatypes. They should not
+        # pollute the project CodeModel. Keep them in the external model when
+        # an ExternalModelBuilder is available.
+        if self.external_builder is not None:
+            external_model = self.external_builder.ensure_external_model()
+            try:
+                self.builtin_types_unit = self.external_builder._get_or_create_library_unit(
+                    external_model,
+                    "builtins",
+                )
+                return self.builtin_types_unit
+            except Exception:
+                pass
+
         self.builtin_types_unit = self.factory.create_compilation_unit(
-            "python_builtins_types"
+            "builtins"
         )
         self.code_model.codeElement.append(self.builtin_types_unit)
 

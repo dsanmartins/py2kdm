@@ -1,0 +1,2703 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<kdm:Segment xmlns:xmi="http://www.omg.org/XMI" xmlns:kdm="http://www.omg.org/spec/KDM/20160201/kdm" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:source="http://www.omg.org/spec/KDM/20160201/source" xmlns:code="http://www.omg.org/spec/KDM/20160201/code" xmlns:action="http://www.omg.org/spec/KDM/20160201/action" name="three_layer_system" xmi:version="2.0">
+  <model xsi:type="source:InventoryModel" name="three_layer_system_InventoryModel">
+    <inventoryElement xsi:type="source:SourceFile" name="app.py" path="app.py" format="text" language="python" encoding="UTF-8"/>
+    <inventoryElement xsi:type="source:SourceFile" name="user_service.py" path="services/user_service.py" format="text" language="python" encoding="UTF-8"/>
+    <inventoryElement xsi:type="source:SourceFile" name="validators.py" path="utils/validators.py" format="text" language="python" encoding="UTF-8"/>
+    <inventoryElement xsi:type="source:SourceFile" name="user_repository.py" path="repository/user_repository.py" format="text" language="python" encoding="UTF-8"/>
+    <inventoryElement xsi:type="source:SourceFile" name="user.py" path="models/user.py" format="text" language="python" encoding="UTF-8"/>
+  </model>
+  <model xsi:type="code:CodeModel" name="three_layer_system_CodeModel">
+    <codeElement xsi:type="code:Package" name="three_layer_system">
+      <attribute tag="qualified_name" value="three_layer_system"/>
+      <codeElement xsi:type="code:Package" name="models">
+        <attribute tag="qualified_name" value="three_layer_system.models"/>
+        <codeElement xsi:type="code:Package" name="user">
+          <attribute tag="qualified_name" value="three_layer_system.models.user"/>
+        </codeElement>
+        <codeElement xsi:type="code:CompilationUnit" name="models/user.py">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python"/>
+          </source>
+          <attribute tag="qualified_name" value="three_layer_system.models.user"/>
+          <attribute tag="package" value="three_layer_system.models"/>
+          <codeElement xsi:type="code:ClassUnit" name="BaseEntity">
+            <source language="python">
+              <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="1" endLine="7"/>
+            </source>
+            <attribute tag="qualified_name" value="three_layer_system.models.user.BaseEntity"/>
+            <attribute tag="package" value="three_layer_system.models.user"/>
+            <codeElement xsi:type="code:StorableUnit" name="entity_type" kind="local">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="2" endLine="2"/>
+              </source>
+              <attribute tag="value_kind" value="literal"/>
+              <attribute tag="value_type" value="str"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.19"/>
+              <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.16/@codeElement.7"/>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="to_dict">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="4" endLine="7"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.models.user.BaseEntity.to_dict"/>
+              <codeElement xsi:type="code:ParameterUnit" name="self" kind="byValue" pos="1" type="//@model.1/@codeElement.13">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.13"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="5" endLine="7"/>
+                </source>
+                <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="5" endLine="7"/>
+                  </source>
+                  <attribute tag="return_flow" value="void"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+          </codeElement>
+          <codeElement xsi:type="code:ClassUnit" name="User">
+            <source language="python">
+              <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="10" endLine="36"/>
+            </source>
+            <attribute tag="qualified_name" value="three_layer_system.models.user.User"/>
+            <attribute tag="package" value="three_layer_system.models.user"/>
+            <codeElement xsi:type="code:StorableUnit" name="entity_type" kind="local">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="11" endLine="11"/>
+              </source>
+              <attribute tag="value_kind" value="literal"/>
+              <attribute tag="value_type" value="str"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.19"/>
+              <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.16/@codeElement.8"/>
+            </codeElement>
+            <codeElement xsi:type="code:StorableUnit" name="user_id" kind="local">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="14" endLine="14"/>
+              </source>
+              <attribute tag="full_name" value="self.user_id"/>
+              <attribute tag="value_kind" value="variable_reference"/>
+            </codeElement>
+            <codeElement xsi:type="code:StorableUnit" name="name" kind="local">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="15" endLine="15"/>
+              </source>
+              <attribute tag="full_name" value="self.name"/>
+              <attribute tag="value_kind" value="variable_reference"/>
+            </codeElement>
+            <codeElement xsi:type="code:StorableUnit" name="active" kind="local">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="16" endLine="16"/>
+              </source>
+              <attribute tag="full_name" value="self.active"/>
+              <attribute tag="value_kind" value="variable_reference"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.11"/>
+            </codeElement>
+            <codeElement xsi:type="code:StorableUnit" name="roles" kind="local" type="//@model.1/@codeElement.15/@codeElement.3">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="17" endLine="17"/>
+              </source>
+              <attribute tag="full_name" value="self.roles"/>
+              <attribute tag="value_kind" value="collection_literal"/>
+              <attribute tag="value_type" value="list"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.16"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.3"/>
+              <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.16/@codeElement.5"/>
+            </codeElement>
+            <codeElement xsi:type="code:StorableUnit" name="pending_tasks" kind="local" type="//@model.1/@codeElement.15/@codeElement.2">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="18" endLine="18"/>
+              </source>
+              <attribute tag="full_name" value="self.pending_tasks"/>
+              <attribute tag="value_kind" value="literal"/>
+              <attribute tag="value_type" value="int"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.15"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.2"/>
+              <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.16/@codeElement.4"/>
+            </codeElement>
+            <codeElement xsi:type="code:StorableUnit" name="active" kind="local" type="//@model.1/@codeElement.15/@codeElement.4">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="25" endLine="25"/>
+              </source>
+              <attribute tag="full_name" value="self.active"/>
+              <attribute tag="value_kind" value="literal"/>
+              <attribute tag="value_type" value="bool"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.4"/>
+              <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.16/@codeElement.9"/>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="__init__">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="13" endLine="18"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.models.user.User.__init__"/>
+              <codeElement xsi:type="code:ParameterUnit" name="self" kind="byValue" pos="1" type="//@model.1/@codeElement.14">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.14"/>
+              </codeElement>
+              <codeElement xsi:type="code:ParameterUnit" name="user_id" kind="byValue" pos="2" type="//@model.1/@codeElement.15/@codeElement.2">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.2"/>
+              </codeElement>
+              <codeElement xsi:type="code:ParameterUnit" name="name" kind="byValue" pos="3" type="//@model.1/@codeElement.15/@codeElement.1">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.1"/>
+              </codeElement>
+              <codeElement xsi:type="code:ParameterUnit" name="active" kind="byValue" pos="4" type="//@model.1/@codeElement.15/@codeElement.4">
+                <attribute tag="default_value" value="True"/>
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.4"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="14" endLine="14"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="15" endLine="15"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.2"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.2"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="16" endLine="16"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.3"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.3"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="17" endLine="17"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.4"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="18" endLine="18"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.5"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="14" endLine="14"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="15" endLine="15"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.2"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.2"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="16" endLine="16"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.6"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.6"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="17" endLine="17"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.4"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="18" endLine="18"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.5"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="add_role">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="20" endLine="22"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.models.user.User.add_role"/>
+              <codeElement xsi:type="code:ParameterUnit" name="self" kind="byValue" pos="1" type="//@model.1/@codeElement.14">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.14"/>
+              </codeElement>
+              <codeElement xsi:type="code:ParameterUnit" name="role" kind="byValue" pos="2" type="//@model.1/@codeElement.15/@codeElement.1">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.1"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="append" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="22" endLine="22"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.14/@codeElement.0"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.4"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="21" endLine="21"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.4"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="if" kind="if">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="21" endLine="22"/>
+                  </source>
+                  <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+                    <source language="python">
+                      <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="22" endLine="22"/>
+                    </source>
+                    <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.4"/>
+                  </codeElement>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.4"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="deactivate">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="24" endLine="25"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.models.user.User.deactivate"/>
+              <codeElement xsi:type="code:ParameterUnit" name="self" kind="byValue" pos="1" type="//@model.1/@codeElement.14">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.14"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="25" endLine="25"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.3"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="25" endLine="25"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.6"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="has_role">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="27" endLine="28"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.models.user.User.has_role"/>
+              <codeElement xsi:type="code:ParameterUnit" name="self" kind="byValue" pos="1" type="//@model.1/@codeElement.14">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.14"/>
+              </codeElement>
+              <codeElement xsi:type="code:ParameterUnit" name="role" kind="byValue" pos="2" type="//@model.1/@codeElement.15/@codeElement.1">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.1"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="28" endLine="28"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.4"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="28" endLine="28"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.4"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.10/@codeElement.2/@codeElement.1/@codeElement.0"/>
+                  <codeElement xsi:type="code:StorableUnit" name="return_expression_role_in_self_roles">
+                    <attribute tag="role" value="returned_expression"/>
+                    <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.10/@codeElement.2/@codeElement.1/@codeElement.1"/>
+                  </codeElement>
+                  <codeElement xsi:type="code:Value" name="value_role_in_self_roles"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="to_dict">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="30" endLine="36"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.models.user.User.to_dict"/>
+              <codeElement xsi:type="code:ParameterUnit" name="self" kind="byValue" pos="1" type="//@model.1/@codeElement.14">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.14"/>
+              </codeElement>
+              <codeElement xsi:type="code:StorableUnit" name="data" kind="local">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="31" endLine="31"/>
+                </source>
+                <attribute tag="value_kind" value="call_result"/>
+              </codeElement>
+              <codeElement xsi:type="code:StorableUnit" name="data" kind="local">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="32" endLine="32"/>
+                </source>
+                <attribute tag="value_kind" value="attribute_reference"/>
+              </codeElement>
+              <codeElement xsi:type="code:StorableUnit" name="data" kind="local">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="33" endLine="33"/>
+                </source>
+                <attribute tag="value_kind" value="attribute_reference"/>
+              </codeElement>
+              <codeElement xsi:type="code:StorableUnit" name="data" kind="local">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="34" endLine="34"/>
+                </source>
+                <attribute tag="value_kind" value="attribute_reference"/>
+              </codeElement>
+              <codeElement xsi:type="code:StorableUnit" name="data" kind="local">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="35" endLine="35"/>
+                </source>
+                <attribute tag="value_kind" value="attribute_reference"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="to_dict" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="31" endLine="31"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.0/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="builtin:super" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="31" endLine="31"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.1/@codeElement.27"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="32" endLine="32"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="33" endLine="33"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.2"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="34" endLine="34"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.3"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="35" endLine="35"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.4"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="36" endLine="36"/>
+                  </source>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="31" endLine="31"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.11/@codeElement.5"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="32" endLine="32"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.11/@codeElement.5"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="33" endLine="33"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.11/@codeElement.5"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.2"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="34" endLine="34"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.11/@codeElement.5"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.6"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="35" endLine="35"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.11/@codeElement.5"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.4"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.4" language="python" startLine="36" endLine="36"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.11/@codeElement.5"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+            <codeRelation xsi:type="code:Extends" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.0"/>
+          </codeElement>
+        </codeElement>
+      </codeElement>
+      <codeElement xsi:type="code:Package" name="repository">
+        <attribute tag="qualified_name" value="three_layer_system.repository"/>
+        <codeElement xsi:type="code:Package" name="user_repository">
+          <attribute tag="qualified_name" value="three_layer_system.repository.user_repository"/>
+        </codeElement>
+        <codeElement xsi:type="code:CompilationUnit" name="repository/user_repository.py">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python"/>
+          </source>
+          <attribute tag="qualified_name" value="three_layer_system.repository.user_repository"/>
+          <attribute tag="package" value="three_layer_system.repository"/>
+          <codeElement xsi:type="code:ClassUnit" name="RepositoryError">
+            <source language="python">
+              <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="7" endLine="8"/>
+            </source>
+            <attribute tag="qualified_name" value="three_layer_system.repository.user_repository.RepositoryError"/>
+            <attribute tag="package" value="three_layer_system.repository.user_repository"/>
+            <codeRelation xsi:type="code:Extends" to="//@model.2/@codeElement.1/@codeElement.1"/>
+          </codeElement>
+          <codeElement xsi:type="code:ClassUnit" name="UserRepository">
+            <source language="python">
+              <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="11" endLine="55"/>
+            </source>
+            <attribute tag="qualified_name" value="three_layer_system.repository.user_repository.UserRepository"/>
+            <attribute tag="package" value="three_layer_system.repository.user_repository"/>
+            <codeElement xsi:type="code:StorableUnit" name="storage_file" kind="local">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="12" endLine="12"/>
+              </source>
+              <attribute tag="value_kind" value="literal"/>
+              <attribute tag="value_type" value="str"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.19"/>
+              <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.16/@codeElement.6"/>
+            </codeElement>
+            <codeElement xsi:type="code:StorableUnit" name="users" kind="local" type="//@model.1/@codeElement.15/@codeElement.3">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="15" endLine="15"/>
+              </source>
+              <attribute tag="full_name" value="self.users"/>
+              <attribute tag="value_kind" value="collection_literal"/>
+              <attribute tag="value_type" value="list"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.16"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.3"/>
+              <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.16/@codeElement.5"/>
+            </codeElement>
+            <codeElement xsi:type="code:StorableUnit" name="path" kind="local" type="//@model.2/@codeElement.6/@codeElement.0">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="16" endLine="16"/>
+              </source>
+              <attribute tag="full_name" value="self.path"/>
+              <attribute tag="value_kind" value="call_result"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.6/@codeElement.0"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.6/@codeElement.0"/>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="__init__">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="14" endLine="16"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.repository.user_repository.UserRepository.__init__"/>
+              <codeElement xsi:type="code:ParameterUnit" name="self" kind="byValue" pos="1" type="//@model.1/@codeElement.12">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.12"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="external:Path" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="16" endLine="16"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.1/@codeElement.25"/>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.2"/>
+                  <actionRelation xsi:type="action:Creates" to="//@model.2/@codeElement.6/@codeElement.0"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="15" endLine="15"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="15" endLine="15"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="16" endLine="16"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.2"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.0"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="save">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="18" endLine="24"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.repository.user_repository.UserRepository.save"/>
+              <codeElement xsi:type="code:ParameterUnit" name="self" kind="byValue" pos="1" type="//@model.1/@codeElement.12">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.12"/>
+              </codeElement>
+              <codeElement xsi:type="code:ParameterUnit" name="user" kind="byValue" pos="2" type="//@model.1/@codeElement.14">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.14"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="RepositoryError" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="20" endLine="20"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.11"/>
+                  <actionRelation xsi:type="action:Throws" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.4/@codeElement.2/@codeElement.0/@codeElement.0"/>
+                  <actionRelation xsi:type="action:Creates" to="//@model.2/@codeElement.1/@codeElement.28"/>
+                  <actionRelation xsi:type="action:Creates" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.0"/>
+                  <codeElement xsi:type="code:StorableUnit" name="thrown_RepositoryError">
+                    <attribute tag="role" value="thrown_exception"/>
+                    <attribute tag="exception_type" value="RepositoryError"/>
+                    <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.28"/>
+                  </codeElement>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="append" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="22" endLine="22"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.14/@codeElement.0"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="_write_to_disk" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="23" endLine="23"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.7"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="19" endLine="19"/>
+                  </source>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="if" kind="if">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="19" endLine="20"/>
+                  </source>
+                  <codeElement xsi:type="action:ActionElement" name="raise" kind="raise">
+                    <source language="python">
+                      <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="20" endLine="20"/>
+                    </source>
+                    <codeElement xsi:type="code:StorableUnit" name="thrown_RepositoryError">
+                      <attribute tag="role" value="thrown_exception"/>
+                    </codeElement>
+                    <codeElement xsi:type="code:StorableUnit" name="RepositoryError_exception">
+                      <attribute tag="role" value="thrown_exception"/>
+                      <attribute tag="exception_type_name" value="RepositoryError"/>
+                      <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.11"/>
+                    </codeElement>
+                    <actionRelation xsi:type="action:Throws" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.4/@codeElement.2/@codeElement.4/@codeElement.0/@codeElement.0"/>
+                    <actionRelation xsi:type="action:Throws" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.4/@codeElement.2/@codeElement.4/@codeElement.0/@codeElement.1"/>
+                  </codeElement>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="22" endLine="22"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="23" endLine="23"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="24" endLine="24"/>
+                  </source>
+                  <codeElement xsi:type="code:StorableUnit" name="return_literal_True">
+                    <attribute tag="role" value="returned_literal"/>
+                    <attribute tag="literal_value" value="True"/>
+                    <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.4/@codeElement.2/@codeElement.7/@codeElement.1"/>
+                  </codeElement>
+                  <codeElement xsi:type="code:Value" name="value_True">
+                    <attribute tag="role" value="literal_value"/>
+                    <attribute tag="literal_value" value="True"/>
+                  </codeElement>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.4/@codeElement.2/@codeElement.7/@codeElement.0"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="find_by_id">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="26" endLine="31"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.repository.user_repository.UserRepository.find_by_id"/>
+              <codeElement xsi:type="code:ParameterUnit" name="self" kind="byValue" pos="1" type="//@model.1/@codeElement.12">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.12"/>
+              </codeElement>
+              <codeElement xsi:type="code:ParameterUnit" name="user_id" kind="byValue" pos="2" type="//@model.1/@codeElement.15/@codeElement.2">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.2"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="27" endLine="27"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="28" endLine="28"/>
+                  </source>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="29" endLine="29"/>
+                  </source>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="for" kind="for">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="27" endLine="29"/>
+                  </source>
+                  <codeElement xsi:type="action:ActionElement" name="if" kind="if">
+                    <source language="python">
+                      <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="28" endLine="29"/>
+                    </source>
+                    <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+                      <source language="python">
+                        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="29" endLine="29"/>
+                      </source>
+                      <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                    </codeElement>
+                    <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                    <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                  </codeElement>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="31" endLine="31"/>
+                  </source>
+                  <codeElement xsi:type="code:StorableUnit" name="return_literal_None">
+                    <attribute tag="role" value="returned_literal"/>
+                    <attribute tag="literal_value" value="None"/>
+                    <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.2/@codeElement.4/@codeElement.1"/>
+                  </codeElement>
+                  <codeElement xsi:type="code:Value" name="value_None">
+                    <attribute tag="role" value="literal_value"/>
+                    <attribute tag="literal_value" value="None"/>
+                  </codeElement>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.2/@codeElement.4/@codeElement.0"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="find_active_users">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="33" endLine="42"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.repository.user_repository.UserRepository.find_active_users"/>
+              <codeElement xsi:type="code:ParameterUnit" name="self" kind="byValue" pos="1" type="//@model.1/@codeElement.12">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.12"/>
+              </codeElement>
+              <codeElement xsi:type="code:StorableUnit" name="active_users" kind="local" type="//@model.1/@codeElement.15/@codeElement.3">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="34" endLine="34"/>
+                </source>
+                <attribute tag="value_kind" value="collection_literal"/>
+                <attribute tag="value_type" value="list"/>
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.3"/>
+                <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.16/@codeElement.5"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="append" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="38" endLine="38"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.14/@codeElement.0"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="34" endLine="34"/>
+                  </source>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="36" endLine="36"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="37" endLine="37"/>
+                  </source>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="42" endLine="42"/>
+                  </source>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="34" endLine="34"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.6/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="for" kind="for">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="36" endLine="40"/>
+                  </source>
+                  <codeElement xsi:type="action:ActionElement" name="if" kind="if">
+                    <source language="python">
+                      <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="37" endLine="40"/>
+                    </source>
+                    <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+                      <source language="python">
+                        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="38" endLine="38"/>
+                      </source>
+                      <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.6/@codeElement.1"/>
+                      <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                    </codeElement>
+                    <codeElement xsi:type="action:ActionElement" name="continue" kind="continue">
+                      <source language="python">
+                        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="40" endLine="40"/>
+                      </source>
+                    </codeElement>
+                    <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.6"/>
+                    <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                  </codeElement>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="42" endLine="42"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.6/@codeElement.1"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="_write_to_disk">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="44" endLine="52"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.repository.user_repository.UserRepository._write_to_disk"/>
+              <codeElement xsi:type="code:ParameterUnit" name="self" kind="byValue" pos="1" type="//@model.1/@codeElement.12">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.12"/>
+              </codeElement>
+              <codeElement xsi:type="code:ParameterUnit" name="user" kind="byValue" pos="2" type="//@model.1/@codeElement.14">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.14"/>
+              </codeElement>
+              <codeElement xsi:type="code:StorableUnit" name="file" kind="local" type="//@model.2/@codeElement.3/@codeElement.0">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="46" endLine="46"/>
+                </source>
+                <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.3/@codeElement.0"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="builtin:open" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="46" endLine="46"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.1/@codeElement.26"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="dump" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="47" endLine="47"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.10/@codeElement.2"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="to_dict" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="47" endLine="47"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.11"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="write" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="48" endLine="48"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.3/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="RepositoryError" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="50" endLine="50"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.11"/>
+                  <actionRelation xsi:type="action:Throws" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.3/@codeElement.4/@codeElement.0"/>
+                  <actionRelation xsi:type="action:Creates" to="//@model.2/@codeElement.1/@codeElement.28"/>
+                  <actionRelation xsi:type="action:Creates" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.0"/>
+                  <codeElement xsi:type="code:StorableUnit" name="thrown_RepositoryError">
+                    <attribute tag="role" value="thrown_exception"/>
+                    <attribute tag="exception_type" value="RepositoryError"/>
+                    <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.28"/>
+                  </codeElement>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="builtin:str" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="50" endLine="50"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.1/@codeElement.23"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="builtin:print" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="52" endLine="52"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.1/@codeElement.21"/>
+                </codeElement>
+                <codeElement xsi:type="action:TryUnit" name="try">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="45" endLine="52"/>
+                  </source>
+                  <codeElement xsi:type="action:ActionElement" name="with" kind="with">
+                    <source language="python">
+                      <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="46" endLine="48"/>
+                    </source>
+                    <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+                      <source language="python">
+                        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="47" endLine="47"/>
+                      </source>
+                      <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                      <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.2"/>
+                    </codeElement>
+                    <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+                      <source language="python">
+                        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="48" endLine="48"/>
+                      </source>
+                      <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.2"/>
+                    </codeElement>
+                    <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.2"/>
+                  </codeElement>
+                  <codeElement xsi:type="action:CatchUnit" name="except">
+                    <source language="python">
+                      <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="49" endLine="50"/>
+                    </source>
+                    <codeElement xsi:type="action:ActionElement" name="raise" kind="raise">
+                      <source language="python">
+                        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="50" endLine="50"/>
+                      </source>
+                      <codeElement xsi:type="code:StorableUnit" name="thrown_RepositoryError">
+                        <attribute tag="role" value="thrown_exception"/>
+                      </codeElement>
+                      <codeElement xsi:type="code:StorableUnit" name="RepositoryError_exception">
+                        <attribute tag="role" value="thrown_exception"/>
+                        <attribute tag="exception_type_name" value="RepositoryError"/>
+                        <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.11"/>
+                      </codeElement>
+                      <actionRelation xsi:type="action:Throws" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.3/@codeElement.7/@codeElement.1/@codeElement.0/@codeElement.0"/>
+                      <actionRelation xsi:type="action:Throws" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.3/@codeElement.7/@codeElement.1/@codeElement.0/@codeElement.1"/>
+                    </codeElement>
+                    <codeElement xsi:type="code:ParameterUnit" name="exception_OSError">
+                      <attribute tag="role" value="caught_exception"/>
+                      <attribute tag="exception_type_name" value="OSError"/>
+                      <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.6"/>
+                    </codeElement>
+                    <attribute tag="exception_type_name" value="OSError"/>
+                    <attribute tag="exception_target_name" value="OSError"/>
+                  </codeElement>
+                  <codeElement xsi:type="action:FinallyUnit" name="finally">
+                    <source language="python">
+                      <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="45" endLine="52"/>
+                    </source>
+                    <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+                      <source language="python">
+                        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="52" endLine="52"/>
+                      </source>
+                    </codeElement>
+                  </codeElement>
+                  <actionRelation xsi:type="action:ExceptionFlow" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.3/@codeElement.7/@codeElement.1"/>
+                  <actionRelation xsi:type="action:ExitFlow" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.3/@codeElement.7/@codeElement.2"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="count">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="54" endLine="55"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.repository.user_repository.UserRepository.count"/>
+              <codeElement xsi:type="code:ParameterUnit" name="self" kind="byValue" pos="1" type="//@model.1/@codeElement.12">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.12"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="builtin:len" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="55" endLine="55"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.1/@codeElement.24"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.3" language="python" startLine="55" endLine="55"/>
+                  </source>
+                  <codeElement xsi:type="code:StorableUnit" name="return_expression_len">
+                    <attribute tag="role" value="returned_expression"/>
+                    <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.8/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                  </codeElement>
+                  <codeElement xsi:type="code:Value" name="value_len"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.8/@codeElement.1/@codeElement.1/@codeElement.0"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+          </codeElement>
+          <codeRelation xsi:type="code:Imports" to="//@model.2/@codeElement.10/@codeElement.0"/>
+          <codeRelation xsi:type="code:Imports" to="//@model.2/@codeElement.13/@codeElement.0"/>
+          <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.14"/>
+          <codeRelation xsi:type="code:Imports" to="//@model.2/@codeElement.15/@codeElement.0">
+            <attribute tag="classification" value="external"/>
+          </codeRelation>
+          <codeRelation xsi:type="code:Imports" to="//@model.2/@codeElement.6/@codeElement.1">
+            <attribute tag="classification" value="external"/>
+          </codeRelation>
+          <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.14">
+            <attribute tag="classification" value="internal"/>
+          </codeRelation>
+        </codeElement>
+      </codeElement>
+      <codeElement xsi:type="code:Package" name="utils">
+        <attribute tag="qualified_name" value="three_layer_system.utils"/>
+        <codeElement xsi:type="code:Package" name="validators">
+          <attribute tag="qualified_name" value="three_layer_system.utils.validators"/>
+        </codeElement>
+        <codeElement xsi:type="code:CompilationUnit" name="utils/validators.py">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python"/>
+          </source>
+          <attribute tag="qualified_name" value="three_layer_system.utils.validators"/>
+          <attribute tag="package" value="three_layer_system.utils"/>
+          <codeElement xsi:type="code:CallableUnit" name="is_valid_name">
+            <source language="python">
+              <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="1" endLine="8"/>
+            </source>
+            <attribute tag="qualified_name" value="three_layer_system.utils.validators.is_valid_name"/>
+            <codeElement xsi:type="code:ParameterUnit" name="name" kind="byValue" pos="1" type="//@model.1/@codeElement.15/@codeElement.1">
+              <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.1"/>
+            </codeElement>
+            <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+              <attribute tag="role" value="callable_body"/>
+              <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="2" endLine="2"/>
+                </source>
+              </codeElement>
+              <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="5" endLine="5"/>
+                </source>
+              </codeElement>
+            </codeElement>
+          </codeElement>
+          <codeElement xsi:type="code:CallableUnit" name="is_valid_user_data">
+            <source language="python">
+              <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="11" endLine="18"/>
+            </source>
+            <attribute tag="qualified_name" value="three_layer_system.utils.validators.is_valid_user_data"/>
+            <codeElement xsi:type="code:ParameterUnit" name="user_data" kind="byValue" pos="1" type="//@model.1/@codeElement.15/@codeElement.0">
+              <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.0"/>
+            </codeElement>
+            <codeElement xsi:type="code:StorableUnit" name="required_fields" kind="local" type="//@model.1/@codeElement.15/@codeElement.3">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="12" endLine="12"/>
+              </source>
+              <attribute tag="value_kind" value="collection_literal"/>
+              <attribute tag="value_type" value="list"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.3"/>
+              <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.16/@codeElement.5"/>
+            </codeElement>
+            <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+              <attribute tag="role" value="callable_body"/>
+              <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="12" endLine="12"/>
+                </source>
+              </codeElement>
+              <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="14" endLine="14"/>
+                </source>
+              </codeElement>
+              <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="15" endLine="15"/>
+                </source>
+              </codeElement>
+              <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="18" endLine="18"/>
+                </source>
+              </codeElement>
+            </codeElement>
+          </codeElement>
+          <codeElement xsi:type="code:CallableUnit" name="normalize_name">
+            <source language="python">
+              <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="21" endLine="22"/>
+            </source>
+            <attribute tag="qualified_name" value="three_layer_system.utils.validators.normalize_name"/>
+            <codeElement xsi:type="code:ParameterUnit" name="name" kind="byValue" pos="1" type="//@model.1/@codeElement.15/@codeElement.1">
+              <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.1"/>
+            </codeElement>
+            <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+              <attribute tag="role" value="callable_body"/>
+              <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="22" endLine="22"/>
+                </source>
+              </codeElement>
+            </codeElement>
+          </codeElement>
+          <codeElement xsi:type="code:CallableUnit" name="validate_positive_id">
+            <source language="python">
+              <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="25" endLine="29"/>
+            </source>
+            <attribute tag="qualified_name" value="three_layer_system.utils.validators.validate_positive_id"/>
+            <codeElement xsi:type="code:ParameterUnit" name="user_id" kind="byValue" pos="1" type="//@model.1/@codeElement.15/@codeElement.2">
+              <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.2"/>
+            </codeElement>
+            <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+              <attribute tag="role" value="callable_body"/>
+              <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="26" endLine="26"/>
+                </source>
+              </codeElement>
+              <codeElement xsi:type="action:ActionElement" name="throw" kind="throw">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="27" endLine="27"/>
+                </source>
+                <codeElement xsi:type="code:StorableUnit" name="thrown_ValueError">
+                  <attribute tag="role" value="thrown_exception"/>
+                  <attribute tag="exception_type" value="builtins.ValueError"/>
+                  <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.10"/>
+                </codeElement>
+                <actionRelation xsi:type="action:Throws" to="//@model.1/@codeElement.0/@codeElement.2/@codeElement.1/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.0"/>
+                <actionRelation xsi:type="action:Creates" to="//@model.2/@codeElement.1/@codeElement.10"/>
+              </codeElement>
+            </codeElement>
+          </codeElement>
+        </codeElement>
+      </codeElement>
+      <codeElement xsi:type="code:Package" name="services">
+        <attribute tag="qualified_name" value="three_layer_system.services"/>
+        <codeElement xsi:type="code:Package" name="user_service">
+          <attribute tag="qualified_name" value="three_layer_system.services.user_service"/>
+        </codeElement>
+        <codeElement xsi:type="code:CompilationUnit" name="services/user_service.py">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python"/>
+          </source>
+          <attribute tag="qualified_name" value="three_layer_system.services.user_service"/>
+          <attribute tag="package" value="three_layer_system.services"/>
+          <codeElement xsi:type="code:ClassUnit" name="BaseService">
+            <source language="python">
+              <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="13" endLine="17"/>
+            </source>
+            <attribute tag="qualified_name" value="three_layer_system.services.user_service.BaseService"/>
+            <attribute tag="package" value="three_layer_system.services.user_service"/>
+            <codeElement xsi:type="code:StorableUnit" name="service_kind" kind="local">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="14" endLine="14"/>
+              </source>
+              <attribute tag="value_kind" value="literal"/>
+              <attribute tag="value_type" value="str"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.19"/>
+              <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.16/@codeElement.1"/>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="log_action">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="16" endLine="17"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.services.user_service.BaseService.log_action"/>
+              <codeElement xsi:type="code:ParameterUnit" name="self" kind="byValue" pos="1" type="//@model.1/@codeElement.5">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.5"/>
+              </codeElement>
+              <codeElement xsi:type="code:ParameterUnit" name="action" kind="byValue" pos="2" type="//@model.1/@codeElement.15/@codeElement.1">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.1"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="builtin:print" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="17" endLine="17"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.1/@codeElement.21"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="17" endLine="17"/>
+                  </source>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+          </codeElement>
+          <codeElement xsi:type="code:ClassUnit" name="UserService">
+            <source language="python">
+              <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="20" endLine="90"/>
+            </source>
+            <attribute tag="qualified_name" value="three_layer_system.services.user_service.UserService"/>
+            <attribute tag="package" value="three_layer_system.services.user_service"/>
+            <codeElement xsi:type="code:StorableUnit" name="service_kind" kind="local">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="21" endLine="21"/>
+              </source>
+              <attribute tag="value_kind" value="literal"/>
+              <attribute tag="value_type" value="str"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.19"/>
+              <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.16/@codeElement.2"/>
+            </codeElement>
+            <codeElement xsi:type="code:StorableUnit" name="repository" kind="local" type="//@model.1/@codeElement.12">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="24" endLine="24"/>
+              </source>
+              <attribute tag="full_name" value="self.repository"/>
+              <attribute tag="value_kind" value="call_result"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.12"/>
+            </codeElement>
+            <codeElement xsi:type="code:StorableUnit" name="logger" kind="local" type="//@model.2/@codeElement.4/@codeElement.0">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="25" endLine="25"/>
+              </source>
+              <attribute tag="full_name" value="self.logger"/>
+              <attribute tag="value_kind" value="call_result"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.4/@codeElement.0"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.4/@codeElement.0"/>
+            </codeElement>
+            <codeElement xsi:type="code:StorableUnit" name="max_attempts" kind="local" type="//@model.1/@codeElement.15/@codeElement.2">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="26" endLine="26"/>
+              </source>
+              <attribute tag="full_name" value="self.max_attempts"/>
+              <attribute tag="value_kind" value="literal"/>
+              <attribute tag="value_type" value="int"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.15"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.2"/>
+              <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.16/@codeElement.3"/>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="__init__">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="23" endLine="26"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.services.user_service.UserService.__init__"/>
+              <codeElement xsi:type="code:ParameterUnit" name="self" kind="byValue" pos="1" type="//@model.1/@codeElement.6">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.6"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="UserRepository" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="24" endLine="24"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.12"/>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                  <actionRelation xsi:type="action:Creates" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="getLogger" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="25" endLine="25"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.9/@codeElement.1"/>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.2"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="26" endLine="26"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.3"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="24" endLine="24"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="25" endLine="25"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.2"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="26" endLine="26"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.3"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="create_user">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="28" endLine="46"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.services.user_service.UserService.create_user"/>
+              <codeElement xsi:type="code:ParameterUnit" name="self" kind="byValue" pos="1" type="//@model.1/@codeElement.6">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.6"/>
+              </codeElement>
+              <codeElement xsi:type="code:ParameterUnit" name="user_data" kind="byValue" pos="2" type="//@model.1/@codeElement.15/@codeElement.0">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.0"/>
+              </codeElement>
+              <codeElement xsi:type="code:StorableUnit" name="normalized_name" kind="local">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="34" endLine="34"/>
+                </source>
+                <attribute tag="value_kind" value="call_result"/>
+              </codeElement>
+              <codeElement xsi:type="code:StorableUnit" name="user" kind="local" type="//@model.1/@codeElement.14">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="36" endLine="36"/>
+                </source>
+                <attribute tag="value_kind" value="call_result"/>
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.14"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="is_valid_user_data" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="29" endLine="29"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.8"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="builtin:ValueError" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="30" endLine="30"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.1/@codeElement.22"/>
+                  <actionRelation xsi:type="action:Throws" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.4/@codeElement.1/@codeElement.0"/>
+                  <actionRelation xsi:type="action:Creates" to="//@model.2/@codeElement.1/@codeElement.10"/>
+                  <codeElement xsi:type="code:StorableUnit" name="thrown_ValueError">
+                    <attribute tag="role" value="thrown_exception"/>
+                    <attribute tag="exception_type" value="builtins.ValueError"/>
+                    <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.10"/>
+                  </codeElement>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="validate_positive_id" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="32" endLine="32"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.10"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="normalize_name" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="34" endLine="34"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.9"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="User" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="36" endLine="36"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.14"/>
+                  <actionRelation xsi:type="action:Creates" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="save" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="42" endLine="42"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.4"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="log_action" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="43" endLine="43"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.0/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="builtin:print" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="44" endLine="44"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.1/@codeElement.21"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="46" endLine="46"/>
+                  </source>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="if" kind="if">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="29" endLine="30"/>
+                  </source>
+                  <codeElement xsi:type="action:ActionElement" name="raise" kind="raise">
+                    <source language="python">
+                      <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="30" endLine="30"/>
+                    </source>
+                    <codeElement xsi:type="code:StorableUnit" name="thrown_ValueError">
+                      <attribute tag="role" value="thrown_exception"/>
+                    </codeElement>
+                    <codeElement xsi:type="code:StorableUnit" name="ValueError_exception">
+                      <attribute tag="role" value="thrown_exception"/>
+                      <attribute tag="exception_type_name" value="ValueError"/>
+                      <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.10"/>
+                    </codeElement>
+                    <actionRelation xsi:type="action:Throws" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.4/@codeElement.9/@codeElement.0/@codeElement.0"/>
+                    <actionRelation xsi:type="action:Throws" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.4/@codeElement.9/@codeElement.0/@codeElement.1"/>
+                  </codeElement>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="32" endLine="32"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.4/@codeElement.0/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="34" endLine="34"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.2"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.4/@codeElement.0/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="36" endLine="40"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.4/@codeElement.0/@codeElement.1"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.2"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="42" endLine="42"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="43" endLine="43"/>
+                  </source>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="44" endLine="44"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.2"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="46" endLine="46"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="process_users">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="48" endLine="61"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.services.user_service.UserService.process_users"/>
+              <codeElement xsi:type="code:ParameterUnit" name="self" kind="byValue" pos="1" type="//@model.1/@codeElement.6">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.6"/>
+              </codeElement>
+              <codeElement xsi:type="code:StorableUnit" name="active_users" kind="local">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="49" endLine="49"/>
+                </source>
+                <attribute tag="value_kind" value="call_result"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="find_active_users" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="49" endLine="49"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.6"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="info" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="55" endLine="55"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.4/@codeElement.1"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.2"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="builtin:print" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="57" endLine="57"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.1/@codeElement.21"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="51" endLine="51"/>
+                  </source>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="52" endLine="52"/>
+                  </source>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="53" endLine="53"/>
+                  </source>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="54" endLine="54"/>
+                  </source>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="61" endLine="61"/>
+                  </source>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="49" endLine="49"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.6/@codeElement.1"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="for" kind="for">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="51" endLine="59"/>
+                  </source>
+                  <codeElement xsi:type="action:ActionElement" name="if" kind="if">
+                    <source language="python">
+                      <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="52" endLine="59"/>
+                    </source>
+                    <codeElement xsi:type="action:ActionElement" name="for" kind="for">
+                      <source language="python">
+                        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="53" endLine="57"/>
+                      </source>
+                      <codeElement xsi:type="action:ActionElement" name="if" kind="if">
+                        <source language="python">
+                          <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="54" endLine="57"/>
+                        </source>
+                        <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+                          <source language="python">
+                            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="55" endLine="55"/>
+                          </source>
+                          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.2"/>
+                        </codeElement>
+                        <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+                          <source language="python">
+                            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="57" endLine="57"/>
+                          </source>
+                        </codeElement>
+                      </codeElement>
+                      <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.4"/>
+                      <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                    </codeElement>
+                    <codeElement xsi:type="action:ActionElement" name="continue" kind="continue">
+                      <source language="python">
+                        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="59" endLine="59"/>
+                      </source>
+                    </codeElement>
+                    <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.6"/>
+                    <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                  </codeElement>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.6/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="61" endLine="61"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.6/@codeElement.1"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.6/@codeElement.1"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="retry_save">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="63" endLine="76"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.services.user_service.UserService.retry_save"/>
+              <codeElement xsi:type="code:ParameterUnit" name="self" kind="byValue" pos="1" type="//@model.1/@codeElement.6">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.6"/>
+              </codeElement>
+              <codeElement xsi:type="code:ParameterUnit" name="user" kind="byValue" pos="2" type="//@model.1/@codeElement.14">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.14"/>
+              </codeElement>
+              <codeElement xsi:type="code:StorableUnit" name="attempts" kind="local" type="//@model.1/@codeElement.15/@codeElement.2">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="64" endLine="64"/>
+                </source>
+                <attribute tag="value_kind" value="literal"/>
+                <attribute tag="value_type" value="int"/>
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.2"/>
+                <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.16/@codeElement.4"/>
+              </codeElement>
+              <codeElement xsi:type="code:StorableUnit" name="attempts" kind="local">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="72" endLine="72"/>
+                </source>
+                <attribute tag="value_kind" value="expression"/>
+                <attribute tag="value_type" value="BinOp"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="save" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="68" endLine="68"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1/@codeElement.4"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="warning" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="71" endLine="71"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.4/@codeElement.2"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.2"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="builtin:str" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="71" endLine="71"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.1/@codeElement.23"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="builtin:print" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="74" endLine="74"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.1/@codeElement.21"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="64" endLine="64"/>
+                  </source>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="66" endLine="66"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.3"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="72" endLine="72"/>
+                  </source>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="76" endLine="76"/>
+                  </source>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="64" endLine="64"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.3"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="while" kind="while">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="66" endLine="74"/>
+                  </source>
+                  <codeElement xsi:type="action:TryUnit" name="try">
+                    <source language="python">
+                      <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="67" endLine="74"/>
+                    </source>
+                    <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+                      <source language="python">
+                        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="68" endLine="68"/>
+                      </source>
+                      <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                      <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                    </codeElement>
+                    <codeElement xsi:type="action:ActionElement" name="break" kind="break">
+                      <source language="python">
+                        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="69" endLine="69"/>
+                      </source>
+                    </codeElement>
+                    <codeElement xsi:type="action:CatchUnit" name="except">
+                      <source language="python">
+                        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="70" endLine="72"/>
+                      </source>
+                      <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+                        <source language="python">
+                          <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="71" endLine="71"/>
+                        </source>
+                        <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.2"/>
+                      </codeElement>
+                      <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                        <source language="python">
+                          <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="72" endLine="72"/>
+                        </source>
+                        <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.3"/>
+                      </codeElement>
+                      <codeElement xsi:type="code:ParameterUnit" name="exception_RepositoryError">
+                        <attribute tag="role" value="caught_exception"/>
+                        <attribute tag="exception_type_name" value="RepositoryError"/>
+                        <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.28"/>
+                      </codeElement>
+                      <attribute tag="exception_type_name" value="RepositoryError"/>
+                      <attribute tag="exception_target_name" value="RepositoryError"/>
+                    </codeElement>
+                    <codeElement xsi:type="action:FinallyUnit" name="finally">
+                      <source language="python">
+                        <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="67" endLine="74"/>
+                      </source>
+                      <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+                        <source language="python">
+                          <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="74" endLine="74"/>
+                        </source>
+                      </codeElement>
+                    </codeElement>
+                    <actionRelation xsi:type="action:ExceptionFlow" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.4/@codeElement.9/@codeElement.0/@codeElement.2"/>
+                    <actionRelation xsi:type="action:ExitFlow" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.4/@codeElement.9/@codeElement.0/@codeElement.3"/>
+                  </codeElement>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.3"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.3"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="76" endLine="76"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.7/@codeElement.3"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="export_user">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="78" endLine="80"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.services.user_service.UserService.export_user"/>
+              <codeElement xsi:type="code:ParameterUnit" name="self" kind="byValue" pos="1" type="//@model.1/@codeElement.6">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.6"/>
+              </codeElement>
+              <codeElement xsi:type="code:ParameterUnit" name="user" kind="byValue" pos="2" type="//@model.1/@codeElement.14">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.14"/>
+              </codeElement>
+              <codeElement xsi:type="code:StorableUnit" name="user_dict" kind="local">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="79" endLine="79"/>
+                </source>
+                <attribute tag="value_kind" value="call_result"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="to_dict" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="79" endLine="79"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.11"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="dumps" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="80" endLine="80"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.10/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="79" endLine="79"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.8/@codeElement.2"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5/@codeElement.3"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="80" endLine="80"/>
+                  </source>
+                  <codeElement xsi:type="code:StorableUnit" name="return_expression_json_dumps">
+                    <attribute tag="role" value="returned_expression"/>
+                    <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.8/@codeElement.3/@codeElement.3/@codeElement.1"/>
+                  </codeElement>
+                  <codeElement xsi:type="code:Value" name="value_json_dumps"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.8/@codeElement.3/@codeElement.3/@codeElement.0"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="build_guest_user" stereotype="//@extensionFamily.0/@stereotype.0">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="83" endLine="84"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.services.user_service.UserService.build_guest_user"/>
+              <annotation text="@staticmethod"/>
+              <taggedValue xsi:type="kdm:TaggedValue" tag="//@extensionFamily.0/@stereotype.0/@tag.0" value="staticmethod"/>
+              <taggedValue xsi:type="kdm:TaggedValue" tag="//@extensionFamily.0/@stereotype.0/@tag.1" value="@staticmethod"/>
+              <taggedValue xsi:type="kdm:TaggedValue" tag="//@extensionFamily.0/@stereotype.0/@tag.3" value="python"/>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="User" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="84" endLine="84"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.14"/>
+                  <actionRelation xsi:type="action:Creates" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="84" endLine="84"/>
+                  </source>
+                  <codeElement xsi:type="code:StorableUnit" name="return_expression_User">
+                    <attribute tag="role" value="returned_expression"/>
+                    <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.9/@codeElement.0/@codeElement.1/@codeElement.1"/>
+                  </codeElement>
+                  <codeElement xsi:type="code:Value" name="value_User"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.9/@codeElement.0/@codeElement.1/@codeElement.0"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+            <codeElement xsi:type="code:MethodUnit" name="from_repository" stereotype="//@extensionFamily.0/@stereotype.0">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="87" endLine="90"/>
+              </source>
+              <attribute tag="qualified_name" value="three_layer_system.services.user_service.UserService.from_repository"/>
+              <annotation text="@classmethod"/>
+              <taggedValue xsi:type="kdm:TaggedValue" tag="//@extensionFamily.0/@stereotype.0/@tag.0" value="classmethod"/>
+              <taggedValue xsi:type="kdm:TaggedValue" tag="//@extensionFamily.0/@stereotype.0/@tag.1" value="@classmethod"/>
+              <taggedValue xsi:type="kdm:TaggedValue" tag="//@extensionFamily.0/@stereotype.0/@tag.3" value="python"/>
+              <codeElement xsi:type="code:ParameterUnit" name="cls" kind="byValue" pos="1" type="//@model.1/@codeElement.6">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.6"/>
+              </codeElement>
+              <codeElement xsi:type="code:ParameterUnit" name="repository" kind="byValue" pos="2" type="//@model.1/@codeElement.12">
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.12"/>
+              </codeElement>
+              <codeElement xsi:type="code:StorableUnit" name="service" kind="local" type="//@model.1/@codeElement.6">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="88" endLine="88"/>
+                </source>
+                <attribute tag="value_kind" value="call_result"/>
+                <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.6"/>
+              </codeElement>
+              <codeElement xsi:type="code:StorableUnit" name="service.repository" kind="local">
+                <source language="python">
+                  <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="89" endLine="89"/>
+                </source>
+                <attribute tag="value_kind" value="variable_reference"/>
+              </codeElement>
+              <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+                <attribute tag="role" value="callable_body"/>
+                <codeElement xsi:type="action:ActionElement" name="UserService" kind="call">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="88" endLine="88"/>
+                  </source>
+                  <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.6"/>
+                  <actionRelation xsi:type="action:Creates" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="89" endLine="89"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="90" endLine="90"/>
+                  </source>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="88" endLine="88"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.10/@codeElement.2"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="89" endLine="89"/>
+                  </source>
+                  <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.10/@codeElement.3"/>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.1"/>
+                </codeElement>
+                <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+                  <source language="python">
+                    <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.1" language="python" startLine="90" endLine="90"/>
+                  </source>
+                  <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.10/@codeElement.2"/>
+                </codeElement>
+              </codeElement>
+            </codeElement>
+            <codeRelation xsi:type="code:Extends" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.0"/>
+          </codeElement>
+          <codeRelation xsi:type="code:Imports" to="//@model.2/@codeElement.9/@codeElement.0"/>
+          <codeRelation xsi:type="code:Imports" to="//@model.2/@codeElement.10/@codeElement.0"/>
+          <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.14"/>
+          <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.12"/>
+          <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.11"/>
+          <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.8"/>
+          <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.9"/>
+          <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.10"/>
+          <codeRelation xsi:type="code:Imports" to="//@model.2/@codeElement.4/@codeElement.3">
+            <attribute tag="classification" value="external"/>
+          </codeRelation>
+          <codeRelation xsi:type="code:Imports" to="//@model.2/@codeElement.15/@codeElement.0">
+            <attribute tag="classification" value="external"/>
+          </codeRelation>
+          <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.14">
+            <attribute tag="classification" value="internal"/>
+          </codeRelation>
+          <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.12">
+            <attribute tag="classification" value="internal"/>
+          </codeRelation>
+          <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.11">
+            <attribute tag="classification" value="internal"/>
+          </codeRelation>
+          <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.8">
+            <attribute tag="classification" value="internal"/>
+          </codeRelation>
+          <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.9">
+            <attribute tag="classification" value="internal"/>
+          </codeRelation>
+          <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.10">
+            <attribute tag="classification" value="internal"/>
+          </codeRelation>
+        </codeElement>
+      </codeElement>
+      <codeElement xsi:type="code:CompilationUnit" name="app.py">
+        <source language="python">
+          <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python"/>
+        </source>
+        <attribute tag="qualified_name" value="three_layer_system.app"/>
+        <attribute tag="package" value="three_layer_system"/>
+        <codeElement xsi:type="code:CallableUnit" name="main">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="4" endLine="17"/>
+          </source>
+          <attribute tag="qualified_name" value="three_layer_system.app.main"/>
+          <codeElement xsi:type="code:StorableUnit" name="service" kind="local" type="//@model.1/@codeElement.6">
+            <source language="python">
+              <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="5" endLine="5"/>
+            </source>
+            <attribute tag="value_kind" value="call_result"/>
+            <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.6"/>
+          </codeElement>
+          <codeElement xsi:type="code:StorableUnit" name="user_data" kind="local" type="//@model.1/@codeElement.15/@codeElement.0">
+            <source language="python">
+              <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="7" endLine="7"/>
+            </source>
+            <attribute tag="value_kind" value="collection_literal"/>
+            <attribute tag="value_type" value="dict"/>
+            <codeRelation xsi:type="code:HasType" to="//@model.1/@codeElement.15/@codeElement.0"/>
+            <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.16/@codeElement.0"/>
+          </codeElement>
+          <codeElement xsi:type="code:StorableUnit" name="user" kind="local">
+            <source language="python">
+              <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="12" endLine="12"/>
+            </source>
+            <attribute tag="value_kind" value="call_result"/>
+          </codeElement>
+          <codeElement xsi:type="code:StorableUnit" name="exported" kind="local">
+            <source language="python">
+              <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="16" endLine="16"/>
+            </source>
+            <attribute tag="value_kind" value="call_result"/>
+          </codeElement>
+          <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+            <attribute tag="role" value="callable_body"/>
+            <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="5" endLine="5"/>
+              </source>
+              <actionRelation xsi:type="action:Creates" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1"/>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="7" endLine="7"/>
+              </source>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="12" endLine="12"/>
+              </source>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="13" endLine="13"/>
+              </source>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="14" endLine="14"/>
+              </source>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="writes" kind="writes">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="16" endLine="16"/>
+              </source>
+            </codeElement>
+            <codeElement xsi:type="action:ActionElement" name="reads" kind="reads">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="17" endLine="17"/>
+              </source>
+            </codeElement>
+          </codeElement>
+        </codeElement>
+        <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.6"/>
+        <codeRelation xsi:type="code:Imports" to="//@model.1/@codeElement.6">
+          <attribute tag="classification" value="internal"/>
+        </codeRelation>
+      </codeElement>
+    </codeElement>
+    <codeElement xsi:type="code:Package" name="logging">
+      <attribute tag="qualified_name" value="logging"/>
+    </codeElement>
+    <codeElement xsi:type="code:Package" name="pathlib">
+      <attribute tag="qualified_name" value="pathlib"/>
+    </codeElement>
+    <codeElement xsi:type="code:Package" name="json">
+      <attribute tag="qualified_name" value="json"/>
+    </codeElement>
+    <codeElement xsi:type="code:CallableUnit" name="main" kind="regular" type="//@model.1/@codeElement.4/@codeElement.0">
+      <attribute tag="qualified_name" value="three_layer_system.app.main"/>
+      <attribute tag="package" value="three_layer_system.app"/>
+      <codeElement xsi:type="code:Signature" name="main"/>
+      <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+        <attribute tag="role" value="callable_body"/>
+        <codeElement xsi:type="action:ActionElement" name="UserService" kind="call">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="5" endLine="5"/>
+          </source>
+          <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.6"/>
+          <actionRelation xsi:type="action:Creates" to="//@model.1/@codeElement.6"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="create_user" kind="call">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="12" endLine="12"/>
+          </source>
+          <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.5"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="process_users" kind="call">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="13" endLine="13"/>
+          </source>
+          <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.6"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="retry_save" kind="call">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="14" endLine="14"/>
+          </source>
+          <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.7"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="export_user" kind="call">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="16" endLine="16"/>
+          </source>
+          <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.8"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="builtin:print" kind="call">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="17" endLine="17"/>
+          </source>
+          <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.1/@codeElement.21"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="5" endLine="5"/>
+          </source>
+          <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.4/@codeElement.0/@codeElement.0"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="7" endLine="10"/>
+          </source>
+          <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.4/@codeElement.0/@codeElement.1"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="12" endLine="12"/>
+          </source>
+          <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.4/@codeElement.0/@codeElement.2"/>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.10/@codeElement.2"/>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.4/@codeElement.0/@codeElement.0"/>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.4/@codeElement.0/@codeElement.1"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="13" endLine="13"/>
+          </source>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.4/@codeElement.0/@codeElement.0"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="14" endLine="14"/>
+          </source>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.4/@codeElement.0/@codeElement.0"/>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.4/@codeElement.0/@codeElement.2"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="16" endLine="16"/>
+          </source>
+          <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.4/@codeElement.0/@codeElement.3"/>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.3/@codeElement.1/@codeElement.1/@codeElement.10/@codeElement.2"/>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.4/@codeElement.0/@codeElement.0"/>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.4/@codeElement.0/@codeElement.2"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="call" kind="call">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.0" language="python" startLine="17" endLine="17"/>
+          </source>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.4/@codeElement.0/@codeElement.3"/>
+        </codeElement>
+      </codeElement>
+    </codeElement>
+    <codeElement xsi:type="code:ClassUnit" name="BaseService">
+      <attribute tag="qualified_name" value="three_layer_system.services.user_service.BaseService"/>
+      <attribute tag="package" value="three_layer_system.services.user_service"/>
+    </codeElement>
+    <codeElement xsi:type="code:ClassUnit" name="UserService">
+      <attribute tag="qualified_name" value="three_layer_system.services.user_service.UserService"/>
+      <attribute tag="package" value="three_layer_system.services.user_service"/>
+      <codeRelation xsi:type="code:Extends" to="//@model.1/@codeElement.5"/>
+    </codeElement>
+    <codeElement xsi:type="code:CallableUnit" name="is_valid_name" kind="regular" type="//@model.1/@codeElement.7/@codeElement.0">
+      <attribute tag="qualified_name" value="three_layer_system.utils.validators.is_valid_name"/>
+      <attribute tag="package" value="three_layer_system.utils.validators"/>
+      <codeElement xsi:type="code:Signature" name="is_valid_name">
+        <parameterUnit name="name" kind="byValue" pos="1" type="//@model.2/@codeElement.1/@codeElement.19">
+          <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.19"/>
+        </parameterUnit>
+      </codeElement>
+      <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+        <attribute tag="role" value="callable_body"/>
+        <codeElement xsi:type="action:ActionElement" name="builtin:len" kind="call">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="5" endLine="5"/>
+          </source>
+          <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.1/@codeElement.24"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="strip" kind="call">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="5" endLine="5"/>
+          </source>
+          <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.11/@codeElement.0"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="if" kind="if">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="2" endLine="3"/>
+          </source>
+          <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+            <source language="python">
+              <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="3" endLine="3"/>
+            </source>
+            <codeElement xsi:type="code:StorableUnit" name="return_literal_False">
+              <attribute tag="role" value="returned_literal"/>
+              <attribute tag="literal_value" value="False"/>
+              <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.7/@codeElement.1/@codeElement.2/@codeElement.0/@codeElement.1"/>
+            </codeElement>
+            <codeElement xsi:type="code:Value" name="value_False">
+              <attribute tag="role" value="literal_value"/>
+              <attribute tag="literal_value" value="False"/>
+            </codeElement>
+            <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.7/@codeElement.1/@codeElement.2/@codeElement.0/@codeElement.0"/>
+          </codeElement>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.2"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="if" kind="if">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="5" endLine="6"/>
+          </source>
+          <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+            <source language="python">
+              <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="6" endLine="6"/>
+            </source>
+            <codeElement xsi:type="code:StorableUnit" name="return_literal_False">
+              <attribute tag="role" value="returned_literal"/>
+              <attribute tag="literal_value" value="False"/>
+              <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.7/@codeElement.1/@codeElement.3/@codeElement.0/@codeElement.1"/>
+            </codeElement>
+            <codeElement xsi:type="code:Value" name="value_False">
+              <attribute tag="role" value="literal_value"/>
+              <attribute tag="literal_value" value="False"/>
+            </codeElement>
+            <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.7/@codeElement.1/@codeElement.3/@codeElement.0/@codeElement.0"/>
+          </codeElement>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="8" endLine="8"/>
+          </source>
+          <codeElement xsi:type="code:StorableUnit" name="return_literal_True">
+            <attribute tag="role" value="returned_literal"/>
+            <attribute tag="literal_value" value="True"/>
+            <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.7/@codeElement.1/@codeElement.4/@codeElement.1"/>
+          </codeElement>
+          <codeElement xsi:type="code:Value" name="value_True">
+            <attribute tag="role" value="literal_value"/>
+            <attribute tag="literal_value" value="True"/>
+          </codeElement>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.7/@codeElement.1/@codeElement.4/@codeElement.0"/>
+        </codeElement>
+      </codeElement>
+    </codeElement>
+    <codeElement xsi:type="code:CallableUnit" name="is_valid_user_data" kind="regular" type="//@model.1/@codeElement.8/@codeElement.0">
+      <attribute tag="qualified_name" value="three_layer_system.utils.validators.is_valid_user_data"/>
+      <attribute tag="package" value="three_layer_system.utils.validators"/>
+      <codeElement xsi:type="code:Signature" name="is_valid_user_data">
+        <parameterUnit name="user_data" kind="byValue" pos="1" type="//@model.2/@codeElement.1/@codeElement.13">
+          <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.13"/>
+        </parameterUnit>
+      </codeElement>
+      <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+        <attribute tag="role" value="callable_body"/>
+        <codeElement xsi:type="action:ActionElement" name="is_valid_name" kind="call">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="18" endLine="18"/>
+          </source>
+          <actionRelation xsi:type="action:Calls" to="//@model.1/@codeElement.7"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="get" kind="call">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="18" endLine="18"/>
+          </source>
+          <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.12/@codeElement.0"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="assignment" kind="assignment">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="12" endLine="12"/>
+          </source>
+          <actionRelation xsi:type="action:Writes" to="//@model.1/@codeElement.0/@codeElement.2/@codeElement.1/@codeElement.1/@codeElement.1"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="for" kind="for">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="14" endLine="16"/>
+          </source>
+          <codeElement xsi:type="action:ActionElement" name="if" kind="if">
+            <source language="python">
+              <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="15" endLine="16"/>
+            </source>
+            <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+              <source language="python">
+                <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="16" endLine="16"/>
+              </source>
+              <codeElement xsi:type="code:StorableUnit" name="return_literal_False">
+                <attribute tag="role" value="returned_literal"/>
+                <attribute tag="literal_value" value="False"/>
+                <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.8/@codeElement.1/@codeElement.3/@codeElement.0/@codeElement.0/@codeElement.1"/>
+              </codeElement>
+              <codeElement xsi:type="code:Value" name="value_False">
+                <attribute tag="role" value="literal_value"/>
+                <attribute tag="literal_value" value="False"/>
+              </codeElement>
+              <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.8/@codeElement.1/@codeElement.3/@codeElement.0/@codeElement.0/@codeElement.0"/>
+            </codeElement>
+            <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.4/@codeElement.0/@codeElement.1"/>
+          </codeElement>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.2/@codeElement.1/@codeElement.1/@codeElement.1"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="18" endLine="18"/>
+          </source>
+          <codeElement xsi:type="code:StorableUnit" name="return_expression_is_valid_name">
+            <attribute tag="role" value="returned_expression"/>
+            <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.8/@codeElement.1/@codeElement.4/@codeElement.1"/>
+          </codeElement>
+          <codeElement xsi:type="code:Value" name="value_is_valid_name"/>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.8/@codeElement.1/@codeElement.4/@codeElement.0"/>
+        </codeElement>
+      </codeElement>
+    </codeElement>
+    <codeElement xsi:type="code:CallableUnit" name="normalize_name" kind="regular" type="//@model.1/@codeElement.9/@codeElement.0">
+      <attribute tag="qualified_name" value="three_layer_system.utils.validators.normalize_name"/>
+      <attribute tag="package" value="three_layer_system.utils.validators"/>
+      <codeElement xsi:type="code:Signature" name="normalize_name">
+        <parameterUnit name="name" kind="byValue" pos="1" type="//@model.2/@codeElement.1/@codeElement.19">
+          <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.19"/>
+        </parameterUnit>
+      </codeElement>
+      <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+        <attribute tag="role" value="callable_body"/>
+        <codeElement xsi:type="action:ActionElement" name="title" kind="call">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="22" endLine="22"/>
+          </source>
+          <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.11/@codeElement.1"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="strip" kind="call">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="22" endLine="22"/>
+          </source>
+          <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.11/@codeElement.0"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="22" endLine="22"/>
+          </source>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.2"/>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.9/@codeElement.1/@codeElement.2/@codeElement.0"/>
+          <codeElement xsi:type="code:StorableUnit" name="return_expression_name_strip_title">
+            <attribute tag="role" value="returned_expression"/>
+            <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.9/@codeElement.1/@codeElement.2/@codeElement.1"/>
+          </codeElement>
+          <codeElement xsi:type="code:Value" name="value_name_strip_title"/>
+        </codeElement>
+      </codeElement>
+    </codeElement>
+    <codeElement xsi:type="code:CallableUnit" name="validate_positive_id" kind="regular" type="//@model.1/@codeElement.10/@codeElement.0">
+      <attribute tag="qualified_name" value="three_layer_system.utils.validators.validate_positive_id"/>
+      <attribute tag="package" value="three_layer_system.utils.validators"/>
+      <codeElement xsi:type="code:Signature" name="validate_positive_id">
+        <parameterUnit name="user_id" kind="byValue" pos="1" type="//@model.2/@codeElement.1/@codeElement.15">
+          <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.15"/>
+        </parameterUnit>
+      </codeElement>
+      <codeElement xsi:type="action:BlockUnit" name="body" kind="body">
+        <attribute tag="role" value="callable_body"/>
+        <codeElement xsi:type="action:ActionElement" name="builtin:ValueError" kind="call">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="27" endLine="27"/>
+          </source>
+          <actionRelation xsi:type="action:Calls" to="//@model.2/@codeElement.1/@codeElement.22"/>
+          <actionRelation xsi:type="action:Creates" to="//@model.2/@codeElement.1/@codeElement.10"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="if" kind="if">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="26" endLine="27"/>
+          </source>
+          <codeElement xsi:type="action:ActionElement" name="raise" kind="raise">
+            <source language="python">
+              <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="27" endLine="27"/>
+            </source>
+            <codeElement xsi:type="code:StorableUnit" name="thrown_ValueError">
+              <attribute tag="role" value="thrown_exception"/>
+            </codeElement>
+            <codeElement xsi:type="code:StorableUnit" name="ValueError_exception">
+              <attribute tag="role" value="thrown_exception"/>
+              <attribute tag="exception_type_name" value="ValueError"/>
+              <codeRelation xsi:type="code:HasType" to="//@model.2/@codeElement.1/@codeElement.10"/>
+            </codeElement>
+            <actionRelation xsi:type="action:Throws" to="//@model.1/@codeElement.10/@codeElement.1/@codeElement.1/@codeElement.0/@codeElement.0"/>
+            <actionRelation xsi:type="action:Throws" to="//@model.1/@codeElement.10/@codeElement.1/@codeElement.1/@codeElement.0/@codeElement.1"/>
+          </codeElement>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.0/@codeElement.0/@codeElement.1/@codeElement.1/@codeElement.1"/>
+        </codeElement>
+        <codeElement xsi:type="action:ActionElement" name="return" kind="return">
+          <source language="python">
+            <region xsi:type="source:SourceRegion" file="//@model.0/@inventoryElement.2" language="python" startLine="29" endLine="29"/>
+          </source>
+          <codeElement xsi:type="code:StorableUnit" name="return_literal_True">
+            <attribute tag="role" value="returned_literal"/>
+            <attribute tag="literal_value" value="True"/>
+            <codeRelation xsi:type="code:HasValue" to="//@model.1/@codeElement.10/@codeElement.1/@codeElement.2/@codeElement.1"/>
+          </codeElement>
+          <codeElement xsi:type="code:Value" name="value_True">
+            <attribute tag="role" value="literal_value"/>
+            <attribute tag="literal_value" value="True"/>
+          </codeElement>
+          <actionRelation xsi:type="action:Reads" to="//@model.1/@codeElement.10/@codeElement.1/@codeElement.2/@codeElement.0"/>
+        </codeElement>
+      </codeElement>
+    </codeElement>
+    <codeElement xsi:type="code:ClassUnit" name="RepositoryError">
+      <attribute tag="qualified_name" value="three_layer_system.repository.user_repository.RepositoryError"/>
+      <attribute tag="package" value="three_layer_system.repository.user_repository"/>
+      <codeRelation xsi:type="code:Extends" to="//@model.2/@codeElement.1/@codeElement.29"/>
+    </codeElement>
+    <codeElement xsi:type="code:ClassUnit" name="UserRepository">
+      <attribute tag="qualified_name" value="three_layer_system.repository.user_repository.UserRepository"/>
+      <attribute tag="package" value="three_layer_system.repository.user_repository"/>
+    </codeElement>
+    <codeElement xsi:type="code:ClassUnit" name="BaseEntity">
+      <attribute tag="qualified_name" value="three_layer_system.models.user.BaseEntity"/>
+      <attribute tag="package" value="three_layer_system.models.user"/>
+    </codeElement>
+    <codeElement xsi:type="code:ClassUnit" name="User">
+      <attribute tag="qualified_name" value="three_layer_system.models.user.User"/>
+      <attribute tag="package" value="three_layer_system.models.user"/>
+      <codeRelation xsi:type="code:Extends" to="//@model.1/@codeElement.13"/>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="python_builtins_types">
+      <codeElement xsi:type="code:Datatype" name="dict"/>
+      <codeElement xsi:type="code:StringType" name="str"/>
+      <codeElement xsi:type="code:IntegerType" name="int"/>
+      <codeElement xsi:type="code:Datatype" name="list"/>
+      <codeElement xsi:type="code:BooleanType" name="bool"/>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="python_literal_values">
+      <codeElement xsi:type="code:Value" name="{}"/>
+      <codeElement xsi:type="code:Value" name="'base-service'"/>
+      <codeElement xsi:type="code:Value" name="'user-service'"/>
+      <codeElement xsi:type="code:Value" name="3"/>
+      <codeElement xsi:type="code:Value" name="0"/>
+      <codeElement xsi:type="code:Value" name="[]"/>
+      <codeElement xsi:type="code:Value" name="'users.json'"/>
+      <codeElement xsi:type="code:Value" name="'base'"/>
+      <codeElement xsi:type="code:Value" name="'user'"/>
+      <codeElement xsi:type="code:Value" name="False"/>
+    </codeElement>
+  </model>
+  <model xsi:type="code:CodeModel" name="ExternalLibraries_CodeModel">
+    <codeElement xsi:type="code:CompilationUnit" name="abc">
+      <codeElement xsi:type="code:ClassUnit" name="ABC">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="abc.ABC"/>
+        <attribute tag="package" value="abc"/>
+        <attribute tag="library" value="abc"/>
+      </codeElement>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="builtins">
+      <codeElement xsi:type="code:ClassUnit" name="AttributeError">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.AttributeError"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="Exception">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.Exception"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="FileNotFoundError">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.FileNotFoundError"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="KeyError">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.KeyError"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="KeyboardInterrupt">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.KeyboardInterrupt"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="NotImplementedError">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.NotImplementedError"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="OSError">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.OSError"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="RuntimeError">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.RuntimeError"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="TimeoutError">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.TimeoutError"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="TypeError">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.TypeError"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="ValueError">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.ValueError"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="bool">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.bool"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="bytes">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.bytes"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="dict">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.dict"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="float">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.float"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="int">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.int"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="list">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.list"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="object">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.object"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="set">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.set"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="str">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.str"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="tuple">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="builtins.tuple"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:CallableUnit" name="builtin:print"/>
+      <codeElement xsi:type="code:CallableUnit" name="builtin:ValueError"/>
+      <codeElement xsi:type="code:CallableUnit" name="builtin:str"/>
+      <codeElement xsi:type="code:CallableUnit" name="builtin:len"/>
+      <codeElement xsi:type="code:CallableUnit" name="external:Path"/>
+      <codeElement xsi:type="code:CallableUnit" name="builtin:open"/>
+      <codeElement xsi:type="code:CallableUnit" name="builtin:super"/>
+      <codeElement xsi:type="code:ClassUnit" name="RepositoryError">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="RepositoryError"/>
+        <attribute tag="package" value="builtins"/>
+        <attribute tag="library" value="builtins"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="Exception"/>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="enum">
+      <codeElement xsi:type="code:ClassUnit" name="Enum">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="enum.Enum"/>
+        <attribute tag="package" value="enum"/>
+        <attribute tag="library" value="enum"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="Flag">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="enum.Flag"/>
+        <attribute tag="package" value="enum"/>
+        <attribute tag="library" value="enum"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="IntEnum">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="enum.IntEnum"/>
+        <attribute tag="package" value="enum"/>
+        <attribute tag="library" value="enum"/>
+      </codeElement>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="io">
+      <codeElement xsi:type="code:ClassUnit" name="TextIOWrapper">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="io.TextIOWrapper"/>
+        <attribute tag="package" value="io"/>
+        <attribute tag="library" value="io"/>
+      </codeElement>
+      <codeElement xsi:type="code:CallableUnit" name="write"/>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="logging">
+      <codeElement xsi:type="code:ClassUnit" name="Logger">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="logging.Logger"/>
+        <attribute tag="package" value="logging"/>
+        <attribute tag="library" value="logging"/>
+      </codeElement>
+      <codeElement xsi:type="code:CallableUnit" name="info"/>
+      <codeElement xsi:type="code:CallableUnit" name="warning"/>
+      <codeElement xsi:type="code:CompilationUnit" name="logging">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="import"/>
+        <attribute tag="library" value="logging"/>
+      </codeElement>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="pandas">
+      <codeElement xsi:type="code:ClassUnit" name="DataFrame">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="pandas.DataFrame"/>
+        <attribute tag="package" value="pandas"/>
+        <attribute tag="library" value="pandas"/>
+      </codeElement>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="pathlib">
+      <codeElement xsi:type="code:ClassUnit" name="Path">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="pathlib.Path"/>
+        <attribute tag="package" value="pathlib"/>
+        <attribute tag="library" value="pathlib"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="Path">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="import"/>
+        <attribute tag="library" value="pathlib"/>
+        <attribute tag="relative_import_level" value="0"/>
+      </codeElement>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="requests">
+      <codeElement xsi:type="code:ClassUnit" name="Response">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="requests.Response"/>
+        <attribute tag="package" value="requests"/>
+        <attribute tag="library" value="requests"/>
+      </codeElement>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="typing">
+      <codeElement xsi:type="code:ClassUnit" name="Any">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="typing.Any"/>
+        <attribute tag="package" value="typing"/>
+        <attribute tag="library" value="typing"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="Callable">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="typing.Callable"/>
+        <attribute tag="package" value="typing"/>
+        <attribute tag="library" value="typing"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="Dict">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="typing.Dict"/>
+        <attribute tag="package" value="typing"/>
+        <attribute tag="library" value="typing"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="Final">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="typing.Final"/>
+        <attribute tag="package" value="typing"/>
+        <attribute tag="library" value="typing"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="List">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="typing.List"/>
+        <attribute tag="package" value="typing"/>
+        <attribute tag="library" value="typing"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="Optional">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="typing.Optional"/>
+        <attribute tag="package" value="typing"/>
+        <attribute tag="library" value="typing"/>
+      </codeElement>
+      <codeElement xsi:type="code:InterfaceUnit" name="Protocol">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="interface"/>
+        <attribute tag="qualified_name" value="typing.Protocol"/>
+        <attribute tag="package" value="typing"/>
+        <attribute tag="library" value="typing"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="Set">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="typing.Set"/>
+        <attribute tag="package" value="typing"/>
+        <attribute tag="library" value="typing"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="Tuple">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="typing.Tuple"/>
+        <attribute tag="package" value="typing"/>
+        <attribute tag="library" value="typing"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="Type">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="typing.Type"/>
+        <attribute tag="package" value="typing"/>
+        <attribute tag="library" value="typing"/>
+      </codeElement>
+      <codeElement xsi:type="code:ClassUnit" name="Union">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="class"/>
+        <attribute tag="qualified_name" value="typing.Union"/>
+        <attribute tag="package" value="typing"/>
+        <attribute tag="library" value="typing"/>
+      </codeElement>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="external:logging">
+      <codeElement xsi:type="code:CompilationUnit" name="external:logging">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="import"/>
+        <attribute tag="library" value="external:logging"/>
+      </codeElement>
+      <codeElement xsi:type="code:CallableUnit" name="getLogger"/>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="external:json">
+      <codeElement xsi:type="code:CompilationUnit" name="external:json">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="import"/>
+        <attribute tag="library" value="external:json"/>
+      </codeElement>
+      <codeElement xsi:type="code:CallableUnit" name="dumps"/>
+      <codeElement xsi:type="code:CallableUnit" name="dump"/>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="builtin_type:str">
+      <codeElement xsi:type="code:CallableUnit" name="strip"/>
+      <codeElement xsi:type="code:CallableUnit" name="title"/>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="builtin_type:dict">
+      <codeElement xsi:type="code:CallableUnit" name="get"/>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="external:pathlib">
+      <codeElement xsi:type="code:ClassUnit" name="Path">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="import"/>
+        <attribute tag="library" value="external:pathlib"/>
+      </codeElement>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="builtin_type:list">
+      <codeElement xsi:type="code:CallableUnit" name="append"/>
+    </codeElement>
+    <codeElement xsi:type="code:CompilationUnit" name="json">
+      <codeElement xsi:type="code:CompilationUnit" name="json">
+        <attribute tag="external" value="true"/>
+        <attribute tag="external_kind" value="import"/>
+        <attribute tag="library" value="json"/>
+      </codeElement>
+    </codeElement>
+  </model>
+  <model xsi:type="code:CodeModel" name="PythonBuiltins"/>
+  <extensionFamily name="LanguageAnnotations">
+    <stereotype name="PythonDecoratorUsage" type="code:CodeItem">
+      <tag tag="annotation_name" type="String"/>
+      <tag tag="annotation_text" type="String"/>
+      <tag tag="annotation_value" type="String"/>
+      <tag tag="annotation_language" type="String"/>
+    </stereotype>
+  </extensionFamily>
+</kdm:Segment>

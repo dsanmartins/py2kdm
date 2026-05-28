@@ -11,6 +11,7 @@ class JsonToKDMMapper:
 
         # Project language.
         self.language = "unknown"
+        self.project_name = "UnknownProject"
 
         # Elements that can receive code::HasType.
         self.typable_elements = []
@@ -23,6 +24,8 @@ class JsonToKDMMapper:
 
         # Generic model support.
         self.compilation_unit_by_path = {}
+        self.package_index = {}
+        self.package_qualified_name_index = {}
 
         # Formal KDM extension support for Java annotations and Python decorators.
         self.segment = None
@@ -66,18 +69,26 @@ class JsonToKDMMapper:
         """
         project_name = data.get("projectName", "UnknownProject")
         self.language = data.get("language", "unknown")
+        self.project_name = project_name
         self.segment = segment
 
         code_model = self.factory.create_code_model(f"{project_name}_CodeModel")
         segment.model.append(code_model)
 
-        # First create CompilationUnit elements for every source file.
+        # First create Package elements from the common schema.
+        self._map_common_packages(code_model, data)
+
+        # Then create CompilationUnit elements for every source file.
         for file_model in data.get("files", []):
             self._map_file(code_model, file_model)
 
         # Then map language-independent structural elements.
         for element in data.get("elements", []):
             self._map_generic_element(code_model, element)
+
+        # Register external types before generic relationships so imports,
+        # creates, throws and uses_type can resolve their targets.
+        self._map_common_external_types(data)
 
         # Finally map generic relationships when possible.
         self._map_generic_relationships(data)
@@ -102,6 +113,8 @@ class JsonToKDMMapper:
             or model_element.get("qualified_signature")
         )
 
+        safe_qualified_name = model_element.get("safeQualifiedName")
+
         name = model_element.get("name")
 
         element_type = (
@@ -112,6 +125,10 @@ class JsonToKDMMapper:
         if qualified_name:
             self.qualified_name_index[qualified_name] = kdm_element
             self.id_index.setdefault(qualified_name, kdm_element)
+
+        if safe_qualified_name:
+            self.qualified_name_index[safe_qualified_name] = kdm_element
+            self.id_index.setdefault(safe_qualified_name, kdm_element)
 
         if element_type in {"class", "interface", "enum", "annotation", "annotation_type"} and name:
             self.class_name_index.setdefault(name, []).append(kdm_element)
@@ -162,11 +179,541 @@ class JsonToKDMMapper:
 
         return False
 
+    def _strip_generic_arguments(self, value):
+        if value is None:
+            return None
+        value = str(value).strip()
+        for marker in ("<", "["):
+            if marker in value:
+                value = value.split(marker, 1)[0]
+        return value.strip() or None
+
     def _safe_join(self, values):
         if not values:
             return None
 
         return ", ".join(str(value) for value in values)
+
+    # ------------------------------------------------------------------
+    # Common schema packages and external types
+    # ------------------------------------------------------------------
+
+    def _map_common_packages(self, code_model, data: dict):
+        """Create the project package hierarchy in the main CodeModel.
+
+        Only packages that belong to source files/elements are materialized in
+        the project CodeModel. Packages that come only from imports or
+        externalTypes are delegated to ExternalLibraries_CodeModel. This keeps
+        the recovered project architecture clean:
+
+            <project>_CodeModel          -> internal packages only
+            ExternalLibraries_CodeModel -> external packages/libraries
+        """
+
+        source_package_names = self._collect_source_package_names(data)
+        if self.external_builder is not None and hasattr(self.external_builder, "set_internal_package_prefixes"):
+            self.external_builder.set_internal_package_prefixes(source_package_names)
+        if self.external_builder is not None and hasattr(self.external_builder, "set_internal_type_names"):
+            self.external_builder.set_internal_type_names(self._collect_internal_type_names(data))
+        if self.external_builder is not None and hasattr(self.external_builder, "set_internal_module_names"):
+            self.external_builder.set_internal_module_names(self._collect_internal_module_names(data))
+        packages = self._collect_package_models(
+            data,
+            source_package_names=source_package_names,
+            include_external=False,
+        )
+
+        if packages:
+            self._create_package_hierarchy(code_model, packages)
+
+        external_packages = self._collect_package_models(
+            data,
+            source_package_names=source_package_names,
+            include_external=True,
+        )
+        self._map_common_external_packages(external_packages)
+
+    def _collect_internal_type_names(self, data: dict):
+        names = set()
+        for element in data.get("elements", []) or []:
+            kind = element.get("kind") or element.get("type")
+            if kind in {"class", "interface", "enum", "annotation", "annotation_type"}:
+                name = element.get("name")
+                if name:
+                    names.add(str(name).strip())
+        for file_model in data.get("files", []) or []:
+            for cls in file_model.get("classes", []) or []:
+                name = cls.get("name")
+                if name:
+                    names.add(str(name).strip())
+            # Java extractor may expose declarations directly as elements, but
+            # keep this defensive for future schemas.
+            for declaration in file_model.get("declarations", []) or []:
+                kind = declaration.get("kind") or declaration.get("type")
+                if kind in {"class", "interface", "enum", "annotation", "annotation_type"}:
+                    name = declaration.get("name")
+                    if name:
+                        names.add(str(name).strip())
+        return names
+
+    def _collect_internal_module_names(self, data: dict):
+        """Return simple names of modules/packages declared by the project.
+
+        Python imports sometimes reach the external builder only as a short
+        unresolved name, for example ``_scenario_common`` or ``rx_utils``, even
+        though the fully-qualified internal module exists in the model.  Keeping
+        these simple names prevents the external model from being polluted by
+        internal relative-import fragments.
+        """
+        names = set()
+
+        def add_qn(value):
+            if not value:
+                return
+            text = str(value).strip()
+            if not text:
+                return
+            simple = text.rsplit(".", 1)[-1]
+            if simple:
+                names.add(simple)
+
+        for file_model in data.get("files", []) or []:
+            add_qn(file_model.get("name"))
+            add_qn(file_model.get("packageName") or file_model.get("package_name"))
+            add_qn(file_model.get("qualifiedName") or file_model.get("qualified_name"))
+
+        for element in data.get("elements", []) or []:
+            kind = element.get("kind") or element.get("type")
+            if kind in {"project", "module"}:
+                add_qn(element.get("name"))
+                add_qn(element.get("packageName") or element.get("package_name"))
+                add_qn(element.get("qualifiedName") or element.get("qualified_name"))
+
+        for package in data.get("packages", []) or []:
+            add_qn(package.get("name"))
+            add_qn(package.get("qualifiedName") or package.get("qualified_name"))
+
+        return names
+
+    def _is_already_mapped_element(self, element: dict) -> bool:
+        """True when an element was already created by the nested file mapper.
+
+        Python keeps backward-compatible nested structures in files[] and also
+        provides a flat common ``elements`` list.  Mapping both creates duplicate
+        ClassUnit/CallableUnit objects directly under the CodeModel.  Java, in
+        contrast, usually relies on the flat elements list, so we only skip when
+        the exact id or qualified name is already registered.
+        """
+        keys = [
+            element.get("id"),
+            element.get("qualifiedName"),
+            element.get("qualified_name"),
+            element.get("safeQualifiedName"),
+            element.get("qualifiedSignature"),
+            element.get("qualified_signature"),
+        ]
+        return any(key and (key in self.id_index or key in self.qualified_name_index) for key in keys)
+
+    def _collect_source_package_names(self, data: dict):
+        """Packages that are actually owned by source files/elements."""
+
+        source_packages = set()
+
+        for file_model in data.get("files", []) or []:
+            package_qn = file_model.get("packageName") or file_model.get("package_name")
+            if package_qn:
+                source_packages.add(str(package_qn).strip())
+            path = str(file_model.get("path") or "")
+            qualified_qn = file_model.get("qualifiedName") or file_model.get("qualified_name")
+            # __init__.py denotes a real Python package; ordinary .py modules
+            # should be CompilationUnit only, not Package.
+            if qualified_qn and path.endswith("__init__.py"):
+                source_packages.add(str(qualified_qn).strip())
+
+        for element in data.get("elements", []) or []:
+            # Only project/module elements define source packages. Class,
+            # function or method packageName values may include declaration
+            # names in some extractor outputs and must not become packages.
+            kind = element.get("kind") or element.get("type")
+            if kind in {"project", "module"}:
+                package_qn = element.get("packageName") or element.get("package_name")
+                if package_qn:
+                    source_packages.add(str(package_qn).strip())
+                if kind == "project":
+                    qn = element.get("qualifiedName") or element.get("qualified_name")
+                    if qn:
+                        source_packages.add(str(qn).strip())
+
+        return {qn for qn in source_packages if qn}
+
+    def _is_project_package(self, qn: str, source_package_names: set) -> bool:
+        """Return True when qn is internal to the analyzed project.
+
+        A package is internal when it is a source package, a parent of a source
+        package, or a child of a source package. This handles Java packages
+        such as com.example.service and Python packages such as
+        pymape_hierarchical.mape.utils without assuming that the project name
+        is a valid package prefix.
+        """
+
+        if not qn:
+            return False
+        qn = str(qn).strip()
+        for source_qn in source_package_names or set():
+            if not source_qn:
+                continue
+            if qn == source_qn:
+                return True
+            if source_qn.startswith(qn + "."):
+                return True
+        return False
+
+    def _is_descendant_of_source_package(self, qn: str, source_package_names: set) -> bool:
+        if not qn:
+            return False
+        qn = str(qn).strip()
+        for source_qn in source_package_names or set():
+            if source_qn and qn.startswith(source_qn + "."):
+                return True
+        return False
+
+    def _create_package_hierarchy(self, code_model, packages):
+        by_qn = {}
+        for package in packages:
+            qn = package.get("qualifiedName") or package.get("qualified_name")
+            if qn:
+                by_qn[qn] = package
+
+        remaining = set(by_qn.keys())
+        while remaining:
+            progressed = False
+            for qn in list(remaining):
+                package = by_qn[qn]
+                parent_qn = package.get("parent") or package.get("parentQualifiedName")
+                if parent_qn and parent_qn in by_qn and parent_qn not in self.package_qualified_name_index:
+                    continue
+                self._create_package_from_model(code_model, package)
+                remaining.remove(qn)
+                progressed = True
+            if not progressed:
+                # Cycle or missing parent. Create the remaining nodes at the
+                # CodeModel level rather than dropping them.
+                for qn in list(remaining):
+                    self._create_package_from_model(code_model, by_qn[qn])
+                    remaining.remove(qn)
+
+    def _map_common_external_packages(self, packages):
+        if self.external_builder is None:
+            return
+        for package in packages or []:
+            qn = package.get("qualifiedName") or package.get("qualified_name")
+            if not qn:
+                continue
+            self.external_builder.get_or_create_external_package(qn)
+
+    def _collect_package_models(
+        self,
+        data: dict,
+        source_package_names: set = None,
+        include_external: bool = False,
+    ):
+        """Return a parent-complete list of package models.
+
+        Input packages are merged with packages inferred from files, elements
+        and externalTypes. The include_external flag controls whether the
+        returned set is the project-internal package tree or the external
+        package tree.
+        """
+
+        source_package_names = source_package_names or set()
+        by_qn = {}
+
+        # Python modules (.py files) are represented as CompilationUnit, not as
+        # Package.  Keep only directory/package names as Package nodes.
+        file_module_qns = set()
+        for file_model in data.get("files", []) or []:
+            path = str(file_model.get("path") or "")
+            qn = file_model.get("qualifiedName") or file_model.get("qualified_name")
+            if qn and not path.endswith("__init__.py"):
+                file_module_qns.add(str(qn).strip())
+
+        def add_package_qn(qn, explicit_model=None):
+            if not qn:
+                return
+            qn = self._strip_generic_arguments(qn)
+            if not qn:
+                return
+            if qn in file_module_qns:
+                return
+
+            is_internal = self._is_project_package(qn, source_package_names)
+            is_source_descendant = self._is_descendant_of_source_package(qn, source_package_names)
+            if include_external and (is_internal or is_source_descendant):
+                return
+            if not include_external and not is_internal:
+                return
+
+            parts = [part for part in qn.split(".") if part]
+            current = []
+            parent = None
+            for part in parts:
+                current.append(part)
+                current_qn = ".".join(current)
+
+                # Recompute internal/external status for parent packages.
+                parent_is_internal = self._is_project_package(current_qn, source_package_names)
+                parent_is_source_descendant = self._is_descendant_of_source_package(current_qn, source_package_names)
+                if include_external and (parent_is_internal or parent_is_source_descendant):
+                    parent = current_qn
+                    continue
+                if not include_external and not parent_is_internal:
+                    parent = current_qn
+                    continue
+
+                by_qn.setdefault(
+                    current_qn,
+                    {
+                        "name": part,
+                        "qualifiedName": current_qn,
+                        "parent": parent if parent in by_qn else None,
+                    },
+                )
+                parent = current_qn
+
+            if explicit_model and qn in by_qn:
+                normalized = by_qn[qn]
+                normalized.update(
+                    {
+                        "name": explicit_model.get("name") or normalized.get("name"),
+                        "qualifiedName": qn,
+                        "parent": explicit_model.get("parent")
+                        or explicit_model.get("parentQualifiedName")
+                        or normalized.get("parent"),
+                        "safeQualifiedName": explicit_model.get("safeQualifiedName")
+                        or explicit_model.get("safe_qualified_name"),
+                    }
+                )
+
+        for package in data.get("packages", []) or []:
+            qn = package.get("qualifiedName") or package.get("qualified_name")
+            add_package_qn(qn, package)
+
+        for file_model in data.get("files", []) or []:
+            add_package_qn(file_model.get("packageName") or file_model.get("package_name"))
+            path = str(file_model.get("path") or "")
+            if path.endswith("__init__.py"):
+                add_package_qn(file_model.get("qualifiedName") or file_model.get("qualified_name"))
+
+        for element in data.get("elements", []) or []:
+            kind = element.get("kind") or element.get("type")
+            if kind in {"project", "module"}:
+                add_package_qn(element.get("packageName") or element.get("package_name"))
+                if kind == "project":
+                    add_package_qn(element.get("qualifiedName") or element.get("qualified_name"))
+
+        if include_external:
+            for type_model in data.get("externalTypes", []) or []:
+                # Prefer the package inferred from the raw qualified name.
+                # Some extractor outputs may carry a generic full type in
+                # packageName; using it would create packages such as
+                # java.util.Map.java.lang.
+                add_package_qn(
+                    self._package_from_qualified_name(
+                        type_model.get("qualifiedName") or type_model.get("qualified_name")
+                    )
+                    or type_model.get("packageName")
+                    or type_model.get("package_name")
+                )
+
+        return sorted(by_qn.values(), key=lambda item: item.get("qualifiedName", "").count("."))
+
+    def _package_from_qualified_name(self, qualified_name):
+        qualified_name = self._strip_generic_arguments(qualified_name)
+        if not qualified_name or "." not in str(qualified_name):
+            return None
+        return str(qualified_name).rsplit(".", 1)[0]
+
+    def _create_package_from_model(self, code_model, package: dict):
+        qn = package.get("qualifiedName") or package.get("qualified_name")
+        if not qn or qn in self.package_qualified_name_index:
+            return self.package_qualified_name_index.get(qn)
+
+        name = package.get("name") or str(qn).rsplit(".", 1)[-1]
+        package_unit = self.factory.create_package_unit(name)
+
+        parent_qn = package.get("parent") or package.get("parentQualifiedName")
+        parent = self.package_qualified_name_index.get(parent_qn)
+        if parent is not None:
+            self._append_code_element(parent, package_unit)
+        else:
+            code_model.codeElement.append(package_unit)
+
+        self._add_common_metadata(package_unit, package)
+        self.package_qualified_name_index[qn] = package_unit
+        self.package_index[qn] = package_unit
+        self.qualified_name_index[qn] = package_unit
+        self.id_index.setdefault(qn, package_unit)
+        if package.get("safeQualifiedName"):
+            self.id_index.setdefault(package.get("safeQualifiedName"), package_unit)
+            self.qualified_name_index[package.get("safeQualifiedName")] = package_unit
+        return package_unit
+
+    def _find_parent_package_for_file(self, file_model: dict):
+        package_name = (
+            file_model.get("packageName")
+            or file_model.get("package_name")
+        )
+        if not package_name:
+            return None
+        return self.package_qualified_name_index.get(package_name)
+
+    def _map_common_external_types(self, data: dict):
+        if self.external_builder is None:
+            return
+        for type_model in data.get("externalTypes", []) or []:
+            target = self.external_builder.get_or_create_external_type(type_model)
+            if target is None:
+                continue
+            self._register_external_type(target, type_model)
+
+    def _register_external_type(self, kdm_element, type_model: dict):
+        qn = type_model.get("qualifiedName") or type_model.get("qualified_name")
+        safe_qn = type_model.get("safeQualifiedName")
+        if qn:
+            self.qualified_name_index[qn] = kdm_element
+            self.id_index.setdefault(qn, kdm_element)
+            self.id_index.setdefault(f"external_type:{qn}", kdm_element)
+        if safe_qn:
+            self.qualified_name_index[safe_qn] = kdm_element
+            self.id_index.setdefault(safe_qn, kdm_element)
+
+    def _create_class_like_unit(self, name: str, kind: str):
+        if kind in {"interface", "annotation", "annotation_type"}:
+            return self.factory.create_interface_unit(name)
+        return self.factory.create_class_unit(name)
+
+    def _is_kdm_datatype(self, element) -> bool:
+        """Return True if a PyEcore KDM element is a code::Datatype.
+
+        The generated KDM metamodel makes ClassUnit and InterfaceUnit inherit
+        from Datatype, while CallableUnit inherits from ControlElement.  This
+        helper keeps relationship mappers defensive without depending on a
+        concrete Python class hierarchy.
+        """
+        if element is None or not hasattr(element, "eClass"):
+            return False
+
+        eclass = element.eClass
+        names = {getattr(eclass, "name", None)}
+
+        for attr in ("eAllSuperTypes", "eSuperTypes"):
+            try:
+                for super_type in getattr(eclass, attr, []) or []:
+                    names.add(getattr(super_type, "name", None))
+            except Exception:
+                pass
+
+        return "Datatype" in names
+
+
+    def _is_kdm_data_element(self, element) -> bool:
+        """Return True if a PyEcore KDM element is a code::DataElement.
+
+        action::Throws.to is typed as code::DataElement in the KDM Ecore
+        model used by this project.  Exception classes are Datatype
+        specializations (ClassUnit/InterfaceUnit), so they cannot be used as
+        the direct target of Throws.  A StorableUnit representing the thrown
+        exception object must be used instead.
+        """
+        if element is None or not hasattr(element, "eClass"):
+            return False
+
+        eclass = element.eClass
+        names = {getattr(eclass, "name", None)}
+
+        for attr in ("eAllSuperTypes", "eSuperTypes"):
+            try:
+                for super_type in getattr(eclass, attr, []) or []:
+                    names.add(getattr(super_type, "name", None))
+            except Exception:
+                pass
+
+        return "DataElement" in names
+
+    def _safe_kdm_name(self, value) -> str:
+        text = str(value or "element")
+        safe = []
+        for char in text:
+            if char.isalnum() or char == "_":
+                safe.append(char)
+            else:
+                safe.append("_")
+        result = "".join(safe).strip("_")
+        return result or "element"
+
+    def _get_or_create_thrown_exception_data(self, action, target_key, target_element=None):
+        """Create/reuse a StorableUnit that represents the thrown exception.
+
+        The common JSON schema stores the exception *type* as the target of a
+        throws relation (e.g. ValueError or java.lang.IllegalArgumentException).
+        In this KDM Ecore metamodel, Throws.to expects a DataElement, not the
+        exception ClassUnit itself.  We therefore create a small StorableUnit
+        below the throw ActionElement and optionally attach HasType to the
+        exception class when the target is a Datatype.
+        """
+        if action is None or not self.factory.has_feature(action, "codeElement"):
+            return None
+
+        target_text = str(target_key or getattr(target_element, "name", None) or "exception")
+        short_name = target_text.replace(".<init>", "").split(".")[-1]
+        storable_name = f"thrown_{self._safe_kdm_name(short_name)}"
+
+        for child in getattr(action, "codeElement", []) or []:
+            if getattr(child.eClass, "name", None) == "StorableUnit" and getattr(child, "name", None) == storable_name:
+                return child
+
+        exception_data = self.factory.create_storable_unit(storable_name)
+        self.factory.add_attributes_from_dict(
+            exception_data,
+            {
+                "role": "thrown_exception",
+                "exception_type": target_text,
+            },
+        )
+
+        # Preserve type information when the exception type is represented as a
+        # ClassUnit/InterfaceUnit. HasType is a code relation on DataElement and
+        # its target must be a Datatype.
+        if target_element is not None and self._is_kdm_datatype(target_element):
+            try:
+                has_type = self.factory.create_has_type_relation(target_element)
+                self._append_code_relation(exception_data, has_type)
+            except Exception:
+                # Keep generation robust; the Throws relation itself is more
+                # important than a secondary HasType annotation.
+                pass
+
+        action.codeElement.append(exception_data)
+        return exception_data
+
+    def _resolve_or_create_external_type(self, target_key):
+        if not target_key or self.external_builder is None:
+            return None
+        existing = self._resolve_indexed_element(target_key)
+        if existing is not None:
+            return existing
+        target_text = str(target_key)
+        type_model = {
+            "qualifiedName": target_text,
+            "name": target_text.split(".")[-1],
+            "packageName": target_text.rsplit(".", 1)[0] if "." in target_text else "builtins",
+            "kind": "class" if target_text.split(".")[-1][:1].isupper() else "callable",
+            "external": True,
+        }
+        target = self.external_builder.get_or_create_external_type(type_model)
+        if target is not None:
+            self._register_external_type(target, type_model)
+        return target
 
     # ------------------------------------------------------------------
     # File mapping
@@ -176,7 +723,11 @@ class JsonToKDMMapper:
         unit_name = file_model.get("path", file_model.get("name", "unknown.py"))
 
         compilation_unit = self.factory.create_compilation_unit(unit_name)
-        code_model.codeElement.append(compilation_unit)
+        package_parent = self._find_parent_package_for_file(file_model)
+        if package_parent is not None:
+            self._append_code_element(package_parent, compilation_unit)
+        else:
+            code_model.codeElement.append(compilation_unit)
 
         path = file_model.get("path")
         if path:
@@ -331,6 +882,61 @@ class JsonToKDMMapper:
 
         self.factory.add_attributes_from_dict(parameter_unit, metadata)
 
+
+    def _storable_identity_keys(self, var: dict, owner_model: dict = None):
+        keys = []
+        if not var:
+            return keys
+        for key_name in (
+            "id",
+            "qualifiedName",
+            "qualified_name",
+            "safeQualifiedName",
+            "safe_qualified_name",
+            "fullName",
+            "full_name",
+        ):
+            value = var.get(key_name)
+            if value:
+                keys.append(str(value))
+        owner_qn = None
+        if owner_model:
+            owner_qn = (
+                owner_model.get("qualifiedName")
+                or owner_model.get("qualified_name")
+                or owner_model.get("safeQualifiedName")
+                or owner_model.get("name")
+            )
+        name = var.get("name")
+        if owner_qn and name:
+            keys.append(f"{owner_qn}.{name}")
+            keys.append(f"{owner_qn}:field:{name}")
+        return [key for key in keys if key]
+
+    def _find_existing_storable(self, var: dict, owner_model: dict = None):
+        for key in self._storable_identity_keys(var, owner_model):
+            existing = (
+                self.storable_index.get(key)
+                or self.id_index.get(key)
+                or self.qualified_name_index.get(key)
+            )
+            if existing is not None:
+                return existing
+        return None
+
+    def _register_storable_aliases(self, storable_unit, var: dict, owner_model: dict = None):
+        for key in self._storable_identity_keys(var, owner_model):
+            self.storable_index.setdefault(key, storable_unit)
+            self.id_index.setdefault(key, storable_unit)
+            self.qualified_name_index.setdefault(key, storable_unit)
+
+    def _extend_source_region_if_needed(self, kdm_element, line_start=None, line_end=None):
+        # SourceRegion ranges are not merged in-place because the generated
+        # Ecore model may represent regions in a tool-specific way.  We keep
+        # the first structural region and rely on Reads/Writes to capture all
+        # concrete assignments.  This helper exists as a safe extension point.
+        return kdm_element
+
     def _map_storable(
         self,
         parent,
@@ -338,6 +944,19 @@ class JsonToKDMMapper:
         file_model: dict,
         owner_model: dict = None,
     ):
+        existing = self._find_existing_storable(var, owner_model)
+        if existing is not None:
+            self._register_typable(existing, var)
+            self._register_value_element(existing, var, owner_model)
+            self._register_storable(existing, var, owner_model)
+            self._register_storable_aliases(existing, var, owner_model)
+            self._extend_source_region_if_needed(
+                existing,
+                line_start=var.get("line") or var.get("lineStart") or var.get("line_start"),
+                line_end=var.get("line") or var.get("lineEnd") or var.get("line_end"),
+            )
+            return existing
+
         storable_unit = self.factory.create_storable_unit(
             var.get("name", "variable")
         )
@@ -346,6 +965,7 @@ class JsonToKDMMapper:
         self._register_typable(storable_unit, var)
         self._register_value_element(storable_unit, var, owner_model)
         self._register_storable(storable_unit, var, owner_model)
+        self._register_storable_aliases(storable_unit, var, owner_model)
 
         source_file = self._get_source_file(file_model)
 
@@ -392,6 +1012,9 @@ class JsonToKDMMapper:
         """
         kind = element.get("kind") or element.get("type")
 
+        if self._is_already_mapped_element(element):
+            return
+
         if kind in {"class", "interface", "enum", "annotation", "annotation_type"}:
             parent = self._find_parent_compilation_unit(code_model, element)
             self._map_generic_class_like(parent, element)
@@ -425,7 +1048,7 @@ class JsonToKDMMapper:
         kind = element.get("kind") or element.get("type")
         name = element.get("name", "AnonymousClass")
 
-        class_unit = self.factory.create_class_unit(name)
+        class_unit = self._create_class_like_unit(name, kind)
         self._append_code_element(parent, class_unit)
 
         file_model = self._generic_file_model(element)
@@ -442,6 +1065,8 @@ class JsonToKDMMapper:
 
         self._apply_class_native_properties(class_unit, element)
         self._add_common_metadata(class_unit, element)
+        if kind in {"interface", "annotation", "annotation_type", "enum"}:
+            self.factory.add_attribute(class_unit, "element_kind", kind)
         self._add_native_annotations(class_unit, element)
 
         self._register(
@@ -503,6 +1128,17 @@ class JsonToKDMMapper:
         self._map_return_parameter(signature, element)
 
     def _map_generic_field(self, parent, field: dict, owner_element: dict):
+        existing = self._find_existing_storable(field, owner_element)
+        if existing is not None:
+            resolved_type_existing = field.get("resolvedType") or field.get("resolved_type")
+            normalized_existing = dict(field)
+            normalized_existing["resolved_type_id"] = self._infer_type_id(resolved_type_existing)
+            normalized_existing["resolved_type_qualified_name"] = resolved_type_existing
+            self._register_typable(existing, normalized_existing)
+            self._register_storable(existing, normalized_existing, owner_element)
+            self._register_storable_aliases(existing, normalized_existing, owner_element)
+            return existing
+
         storable_unit = self.factory.create_storable_unit(
             field.get("name", "field")
         )
@@ -523,6 +1159,7 @@ class JsonToKDMMapper:
 
         self._register_typable(storable_unit, normalized_field)
         self._register_storable(storable_unit, normalized_field, owner_element)
+        self._register_storable_aliases(storable_unit, normalized_field, owner_element)
 
         owner_qn = (
             owner_element.get("qualifiedName")
@@ -1356,6 +1993,25 @@ class JsonToKDMMapper:
 
         return self.external_builder.get_or_create_external_target(call_model)
 
+    def _get_or_create_external_import_relationship_target(self, relationship: dict):
+        if self.external_builder is None:
+            return None
+        target_key = relationship.get("target")
+        if not target_key:
+            return None
+        target_text = str(target_key)
+        import_model = {
+            "module": target_text.rsplit(".", 1)[0] if "." in target_text else target_text,
+            "name": target_text.rsplit(".", 1)[-1] if "." in target_text else None,
+            "target_type": relationship.get("targetType") or relationship.get("target_type"),
+            "classification": "external",
+        }
+        target = self.external_builder.get_or_create_external_import_target(import_model)
+        if target is not None:
+            self.id_index.setdefault(target_text, target)
+            self.qualified_name_index.setdefault(target_text, target)
+        return target
+
     def _map_generic_imports_relationship(self, relationship: dict):
         source_key = relationship.get("source")
         target_key = relationship.get("target")
@@ -1363,7 +2019,13 @@ class JsonToKDMMapper:
         source = self._resolve_indexed_element(source_key)
         target = self._resolve_indexed_element(target_key)
 
-        if source is None or target is None:
+        if source is None:
+            return
+
+        if target is None:
+            target = self._get_or_create_external_import_relationship_target(relationship)
+
+        if target is None:
             return
 
         imports_relation = self.factory.create_imports_relation(target)
@@ -1386,7 +2048,22 @@ class JsonToKDMMapper:
         source = self._resolve_indexed_element(relationship.get("source"))
         target = self._resolve_indexed_element(relationship.get("target"))
 
-        if source is None or target is None:
+        if source is None:
+            return
+
+        if target is None:
+            target = self._resolve_or_create_external_type(relationship.get("target"))
+
+        if target is None:
+            return
+
+        # KDM code::Extends.to is typed as code::Datatype.  In dynamic
+        # Python models, some inferred extends-like relations may point to
+        # callables, functions, modules, or decorators.  Those are useful for
+        # analysis, but they are not valid KDM inheritance targets.  Only
+        # emit Extends when both endpoints can legally participate as KDM
+        # datatype/class-like elements.
+        if not self._is_kdm_datatype(source) or not self._is_kdm_datatype(target):
             return
 
         extends_relation = self.factory.create_extends_relation(target)
@@ -1399,26 +2076,56 @@ class JsonToKDMMapper:
         if source is None:
             return
 
-        self.factory.add_attributes_from_dict(
-            source,
-            {
-                "implements_type": relationship.get("target"),
-            },
-        )
+        if target is None:
+            target = self._resolve_or_create_external_type(relationship.get("target"))
 
-        if target is not None:
-            imports_relation = self.factory.create_imports_relation(target)
-            self._append_code_relation(source, imports_relation)
+        if target is None:
+            return
+
+        # code::Implements also targets interface/class-like datatypes in this
+        # KDM Ecore.  Skip relations that resolved to CallableUnit, MethodUnit,
+        # Package, CompilationUnit, etc.
+        if not self._is_kdm_datatype(source) or not self._is_kdm_datatype(target):
+            return
+
+        implements_relation = self.factory.create_implements_relation(target)
+        self._append_code_relation(source, implements_relation)
 
     def _map_generic_uses_type_relationship(self, relationship: dict):
-        """
-        uses_type relations are represented mainly through HasType by the
-        TypeRelationResolver, based on typable_elements collected while mapping
-        fields, parameters and return types.
+        """Map explicit common-schema uses_type relations to code::HasType."""
+        source = self._resolve_indexed_element(relationship.get("source"))
+        if source is None:
+            return
 
-        This method intentionally avoids registering duplicated typable entries.
-        """
-        return
+        target = self._resolve_indexed_element(relationship.get("target"))
+        if target is None:
+            target = self._resolve_or_create_external_type(relationship.get("target"))
+
+        if target is None:
+            return
+
+        # KDM code::HasType.to is typed as code::Datatype.
+        # The common JSON schema may contain uses_type relations whose target
+        # is a function, method, package, module, or another non-datatype
+        # element, especially in dynamic Python projects.  Creating HasType to
+        # those elements is invalid in the KDM metamodel and raises a PyEcore
+        # BadValueError.  Therefore, only emit HasType when the resolved target
+        # is a Datatype, e.g. ClassUnit, InterfaceUnit, or another Datatype
+        # specialization. Calls to functions remain represented by Calls/Writes,
+        # not by HasType.
+        if not self._is_kdm_datatype(target):
+            return
+
+        if not self.factory.has_feature(source, "codeRelation"):
+            return
+
+        # Avoid obvious duplicates.
+        for existing in getattr(source, "codeRelation", []):
+            if getattr(existing.eClass, "name", None) == "HasType" and getattr(existing, "to", None) is target:
+                return
+
+        has_type_relation = self.factory.create_has_type_relation(target)
+        self._append_code_relation(source, has_type_relation)
 
     def _map_generic_access_relationship(self, relationship: dict, access_kind: str):
         source = self._resolve_indexed_element(relationship.get("source"))
@@ -1432,6 +2139,9 @@ class JsonToKDMMapper:
             default_name=access_kind,
             default_kind=access_kind,
         )
+
+        if action is None:
+            return
 
         target = self._resolve_access_target(
             relationship.get("target"),
@@ -1485,11 +2195,15 @@ class JsonToKDMMapper:
             default_kind="constructor",
         )
 
+        if action is None:
+            return
+
         target = self._resolve_indexed_element(relationship.get("target"))
 
         if target is None:
-            # No reliable create target could be resolved. Do not emit
-            # temporary resolution attributes.
+            target = self._resolve_or_create_external_type(relationship.get("target"))
+
+        if target is None:
             return
 
         creates_relation = self.factory.create_creates_relation(target)
@@ -1508,18 +2222,38 @@ class JsonToKDMMapper:
             default_kind="throw",
         )
 
-        target = self._resolve_indexed_element(relationship.get("target"))
+        if action is None:
+            return
+
+        target_key = relationship.get("target")
+        target = self._resolve_indexed_element(target_key)
 
         if target is None:
+            target = self._resolve_or_create_external_type(target_key)
+
+        # KDM action::Throws.to is typed as DataElement. The normalized JSON
+        # usually points to an exception *type* (ClassUnit/InterfaceUnit), which
+        # cannot be assigned directly. Create a StorableUnit that represents the
+        # thrown exception object and, when possible, type it with HasType.
+        if target is not None and self._is_kdm_data_element(target):
+            exception_data = target
+        else:
+            exception_data = self._get_or_create_thrown_exception_data(
+                action=action,
+                target_key=target_key,
+                target_element=target,
+            )
+
+        if exception_data is None:
             self.factory.add_attributes_from_dict(
                 action,
                 {
-                    "unresolved_throw_target": relationship.get("target"),
+                    "unresolved_throw_target": target_key,
                 },
             )
             return
 
-        throws_relation = self.factory.create_throws_relation(target)
+        throws_relation = self.factory.create_throws_relation(exception_data)
         self._append_action_relation(action, throws_relation)
 
     # ------------------------------------------------------------------
@@ -1533,7 +2267,21 @@ class JsonToKDMMapper:
         default_name: str,
         default_kind: str,
     ):
+        # Only ControlElement-like callables can contain executable BlockUnit
+        # bodies. Some generic reads/writes relationships in the common schema
+        # may have a StorableUnit/DataElement as source (for example an attribute
+        # reading another value). DataElement also has a codeElement feature in
+        # KDM, but that feature is typed to Datatype, so appending BlockUnit to
+        # it raises a PyEcore BadValueError. In those cases we simply skip the
+        # synthetic action; field-level access relations are not executable
+        # actions in KDM.
+        if not self._can_own_action_body(source):
+            return None
+
         body_block = self._get_or_create_callable_body(source)
+        if body_block is None:
+            return None
+
         line = (
             relationship.get("line")
             or relationship.get("lineStart")
@@ -1627,6 +2375,23 @@ class JsonToKDMMapper:
 
         return before_args.rsplit(".", 1)[0]
 
+
+    def _can_own_action_body(self, element) -> bool:
+        """Return True if element can legally contain BlockUnit/ActionElement.
+
+        MethodUnit and CallableUnit are ControlElement specializations and can
+        contain BlockUnit in their codeElement containment. DataElement
+        specializations such as StorableUnit also expose a codeElement feature
+        in the KDM Ecore model, but that feature expects Datatype children and
+        cannot contain BlockUnit.
+        """
+        if element is None:
+            return False
+        try:
+            return element.eClass.name in {"MethodUnit", "CallableUnit"}
+        except AttributeError:
+            return False
+
     def _get_or_create_callable_body(self, callable_unit):
         """
         Returns the body BlockUnit of a MethodUnit or CallableUnit.
@@ -1694,6 +2459,14 @@ class JsonToKDMMapper:
 
         if key in self.qualified_name_index:
             return self.qualified_name_index[key]
+
+        if self.external_builder is not None:
+            external = self.external_builder.external_targets.get(key)
+            if external is not None:
+                return external
+            external = self.external_builder.external_targets.get(f"external_type:{key}")
+            if external is not None:
+                return external
 
         simple_name = key.split(".")[-1]
         candidates = self.class_name_index.get(simple_name, [])
