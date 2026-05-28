@@ -52,6 +52,7 @@ GENERATOR_ROOT = Path(__file__).resolve().parent
 DEFAULT_KDM_ECORE_PATH = GENERATOR_ROOT / "metamodels" / "kdm_1_4.ecore"
 DEFAULT_JSON_INPUT_PATH = "input/python_model.json"
 DEFAULT_OUTPUT_PATH = "output/example_project.kdm.xmi"
+GENERATOR_VERSION = "v2.23-fix-java-external-roots"
 
 
 def generate_kdm(
@@ -82,6 +83,8 @@ def generate_kdm(
     dict
         Summary information about the generated model.
     """
+
+    print(f"[kdm_pyecore_generator] version: {GENERATOR_VERSION}")
 
     # Resolve paths from the project root. This makes the generator robust
     # when called from the project root, a subdirectory, or a GUI process.

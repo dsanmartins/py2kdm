@@ -16,6 +16,11 @@ class ExternalModelBuilder:
         self.internal_package_roots = set()
         self.internal_type_names = set()
         self.internal_module_names = set()
+        # Roots that are always external platform/library namespaces even if
+        # they appear in the JSON packages list. Java extractors may include
+        # java/java.lang/java.util as package metadata for imports; those must
+        # not be classified as internal project modules.
+        self.always_external_roots = {"java", "javax"}
         self.external_aliases = {
             "np": "numpy",
             "pd": "pandas",
@@ -118,6 +123,8 @@ class ExternalModelBuilder:
             return False
         simple = qn.split(".")[-1]
         root = qn.split(".")[0]
+        if root in self.always_external_roots:
+            return False
         if simple in self.internal_module_names:
             return True
         for prefix in self.internal_package_prefixes:
@@ -135,7 +142,14 @@ class ExternalModelBuilder:
         return bool(name and str(name).split(".")[-1] in self.internal_type_names)
 
     def _is_internal_module_simple_name(self, name: str) -> bool:
-        return bool(name and str(name).split(".")[-1] in self.internal_module_names)
+        if not name:
+            return False
+        text = str(name).strip()
+        root = text.split(".")[0]
+        simple = text.split(".")[-1]
+        if root in self.always_external_roots or simple in self.always_external_roots:
+            return False
+        return bool(simple in self.internal_module_names)
 
     def _is_valid_builtin_reference(self, value: str) -> bool:
         """Return True only for real Python builtins or builtin exceptions.
@@ -186,6 +200,8 @@ class ExternalModelBuilder:
             return True
         root = qn.split(".")[0]
         simple = qn.split(".")[-1]
+        if root in self.always_external_roots:
+            return False
         if root in self.internal_type_names or root in self.internal_module_names:
             return True
         if root in self.diagnostic_external_names:

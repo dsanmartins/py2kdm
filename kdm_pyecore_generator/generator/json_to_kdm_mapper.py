@@ -32,6 +32,10 @@ class JsonToKDMMapper:
         self.annotation_extension_family = None
         self.annotation_stereotypes = {}
 
+        # De-duplication for generic code/action relations.
+        self._mapped_import_keys = set()
+        self._mapped_call_keys = set()
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -89,6 +93,10 @@ class JsonToKDMMapper:
         # Register external types before generic relationships so imports,
         # creates, throws and uses_type can resolve their targets.
         self._map_common_external_types(data)
+
+        # Map imports declared directly on files. Some extractors provide imports
+        # both as file metadata and relationships; the mapper de-duplicates them.
+        self._map_file_level_imports(data)
 
         # Finally map generic relationships when possible.
         self._map_generic_relationships(data)
@@ -815,6 +823,7 @@ class JsonToKDMMapper:
         self._add_native_annotations(method_unit, method)
 
         self._register(method.get("id"), method_unit, method)
+        self._register_callable_aliases(method_unit, method, None)
 
         for param in method.get("parameters", []):
             self._map_parameter(method_unit, param)
@@ -847,6 +856,7 @@ class JsonToKDMMapper:
         self._add_native_annotations(callable_unit, func)
 
         self._register(func.get("id"), callable_unit, func)
+        self._register_callable_aliases(callable_unit, func, None)
 
         for param in func.get("parameters", []):
             self._map_parameter(callable_unit, param)
@@ -1116,6 +1126,7 @@ class JsonToKDMMapper:
             callable_unit,
             element,
         )
+        self._register_callable_aliases(callable_unit, element, None)
 
         signature = self._create_callable_signature(
             owner=callable_unit,
@@ -1172,6 +1183,130 @@ class JsonToKDMMapper:
             self.storable_index[field_key] = storable_unit
             self.id_index.setdefault(field_key, storable_unit)
 
+
+    def _normalize_type_name_for_signature(self, type_name):
+        """Normalize Java/Python type text for signature-based lookup."""
+        if not type_name:
+            return None
+        text = self._strip_generic_arguments(type_name)
+        if not text:
+            return None
+        text = str(text).strip()
+        java_lang = {
+            "String": "java.lang.String",
+            "Long": "java.lang.Long",
+            "Integer": "java.lang.Integer",
+            "Boolean": "java.lang.Boolean",
+            "Double": "java.lang.Double",
+            "Float": "java.lang.Float",
+            "Short": "java.lang.Short",
+            "Byte": "java.lang.Byte",
+            "Character": "java.lang.Character",
+            "Object": "java.lang.Object",
+            "RuntimeException": "java.lang.RuntimeException",
+            "IllegalArgumentException": "java.lang.IllegalArgumentException",
+            "IllegalStateException": "java.lang.IllegalStateException",
+        }
+        primitives = {
+            "int": "int",
+            "long": "long",
+            "boolean": "boolean",
+            "double": "double",
+            "float": "float",
+            "short": "short",
+            "byte": "byte",
+            "char": "char",
+            "void": "void",
+        }
+        if self.language == "java":
+            return java_lang.get(text) or primitives.get(text) or text
+        if text.startswith("builtins."):
+            return text.replace("builtins.", "")
+        return text
+
+    def _parameter_type_for_signature(self, param: dict):
+        return self._normalize_type_name_for_signature(
+            param.get("resolvedType")
+            or param.get("resolved_type")
+            or param.get("type")
+            or param.get("annotation")
+        )
+
+    def _short_parameter_type_for_signature(self, type_name):
+        if not type_name:
+            return None
+        text = self._strip_generic_arguments(type_name)
+        if not text:
+            return None
+        text = str(text)
+        return text.rsplit(".", 1)[-1]
+
+    def _method_resolution_aliases(self, method: dict, owner_element: dict):
+        """Return all useful lookup aliases for a MethodUnit/CallableUnit.
+
+        Java relationships often use fully qualified signatures such as
+        com.example.Service.find(java.lang.Long), whereas the Java extractor's
+        method objects may only contain name + parameters or a short signature.
+        Registering these aliases prevents calls from being dropped because the
+        source/target cannot be found.
+        """
+        aliases = []
+
+        def add(value):
+            if value:
+                text = str(value).strip()
+                if text and text not in aliases:
+                    aliases.append(text)
+
+        owner_qn = None
+        if owner_element:
+            owner_qn = (
+                owner_element.get("qualifiedName")
+                or owner_element.get("qualified_name")
+                or owner_element.get("safeQualifiedName")
+                or owner_element.get("name")
+            )
+
+        name = method.get("name")
+        add(method.get("id"))
+        add(method.get("qualifiedName"))
+        add(method.get("qualified_name"))
+        add(method.get("qualifiedSignature"))
+        add(method.get("qualified_signature"))
+
+        params = method.get("parameters", []) or []
+        full_types = []
+        short_types = []
+        for param in params:
+            full_t = self._parameter_type_for_signature(param)
+            short_t = self._short_parameter_type_for_signature(full_t)
+            if full_t:
+                full_types.append(full_t)
+            if short_t:
+                short_types.append(short_t)
+
+        if owner_qn and name:
+            add(f"{owner_qn}.{name}")
+            add(f"{owner_qn}.{name}({','.join(full_types)})")
+            add(f"{owner_qn}.{name}({','.join(short_types)})")
+            # Java constructor signatures in relationships use <init>().
+            if name in {"<init>", owner_qn.rsplit('.', 1)[-1]} or method.get("method_kind") == "constructor" or method.get("kind") == "constructor":
+                add(f"{owner_qn}.<init>({','.join(full_types)})")
+                add(f"{owner_qn}.<init>({','.join(short_types)})")
+
+        signature = method.get("signature") or method.get("signatureText") or method.get("signature_text")
+        if owner_qn and signature:
+            sig = str(signature).strip()
+            if sig:
+                add(f"{owner_qn}.{sig}")
+
+        return aliases
+
+    def _register_callable_aliases(self, kdm_element, callable_model: dict, owner_element: dict = None):
+        for alias in self._method_resolution_aliases(callable_model, owner_element):
+            self.id_index.setdefault(alias, kdm_element)
+            self.qualified_name_index.setdefault(alias, kdm_element)
+
     def _map_generic_method(self, parent, method: dict, owner_element: dict):
         method_unit = self.factory.create_method_unit(
             method.get("name", "anonymous_method")
@@ -1193,6 +1328,7 @@ class JsonToKDMMapper:
             method_unit,
             method,
         )
+        self._register_callable_aliases(method_unit, method, owner_element)
 
         signature = self._create_callable_signature(
             owner=method_unit,
@@ -1922,14 +2058,32 @@ class JsonToKDMMapper:
             elif relation_type == "throws":
                 self._map_generic_throws_relationship(relationship)
 
+    def _call_relation_key(self, source_key, target_key, line=None):
+        return (str(source_key or ""), str(target_key or ""), str(line or ""))
+
     def _map_generic_calls_relationship(self, relationship: dict):
         source_key = relationship.get("source")
         target_key = relationship.get("target")
+        line = (
+            relationship.get("line")
+            or relationship.get("lineStart")
+            or relationship.get("line_start")
+        )
+        relation_key = self._call_relation_key(source_key, target_key, line)
+        if relation_key in self._mapped_call_keys:
+            return
 
         source = self._resolve_indexed_element(source_key)
         target = self._resolve_indexed_element(target_key)
 
         if source is None:
+            return
+
+        # KDM action::Calls must originate from an ActionElement contained in
+        # an executable body.  If a relationship source resolves to a data,
+        # package or compilation unit, keep the model valid by omitting only
+        # that invalid relationship.
+        if not self._can_own_action_body(source):
             return
 
         body_block = self._get_or_create_callable_body(source)
@@ -1941,12 +2095,6 @@ class JsonToKDMMapper:
 
         file_model = self._generic_file_model(relationship)
         source_file = self._get_source_file(file_model)
-
-        line = (
-            relationship.get("line")
-            or relationship.get("lineStart")
-            or relationship.get("line_start")
-        )
 
         self.factory.add_source_region(
             action,
@@ -1968,6 +2116,7 @@ class JsonToKDMMapper:
         if target is not None:
             calls_relation = self.factory.create_calls_relation(target)
             self._append_action_relation(action, calls_relation)
+            self._mapped_call_keys.add(relation_key)
 
     def _get_or_create_external_call_target(self, target_key, relationship: dict):
         """
@@ -2000,28 +2149,127 @@ class JsonToKDMMapper:
         if not target_key:
             return None
         target_text = str(target_key)
-        import_model = {
-            "module": target_text.rsplit(".", 1)[0] if "." in target_text else target_text,
-            "name": target_text.rsplit(".", 1)[-1] if "." in target_text else None,
-            "target_type": relationship.get("targetType") or relationship.get("target_type"),
-            "classification": "external",
-        }
-        target = self.external_builder.get_or_create_external_import_target(import_model)
+
+        # Java imports usually point to a type (java.util.List,
+        # java.lang.annotation.Retention, com.example.Foo).  Represent such
+        # targets as external Datatype/ClassUnit/InterfaceUnit elements rather
+        # than as loose imported callables.  This is also safe for other
+        # languages when the target is a qualified type-like name.
+        simple_name = target_text.rsplit(".", 1)[-1] if "." in target_text else target_text
+        target_type = relationship.get("targetType") or relationship.get("target_type")
+        looks_like_type = bool(simple_name[:1].isupper()) or target_type in {"class", "interface", "annotation", "enum"}
+        if looks_like_type or target_text.startswith(("java.", "javax.")):
+            kind = target_type or "class"
+            type_model = {
+                "qualifiedName": target_text,
+                "packageName": target_text.rsplit(".", 1)[0] if "." in target_text else "ExternalUnresolved",
+                "name": simple_name,
+                "kind": kind,
+                "external": True,
+            }
+            target = self.external_builder.get_or_create_external_type(type_model)
+        else:
+            import_model = {
+                "module": target_text.rsplit(".", 1)[0] if "." in target_text else target_text,
+                "name": target_text.rsplit(".", 1)[-1] if "." in target_text else None,
+                "target_type": target_type,
+                "classification": "external",
+            }
+            target = self.external_builder.get_or_create_external_import_target(import_model)
+
         if target is not None:
             self.id_index.setdefault(target_text, target)
             self.qualified_name_index.setdefault(target_text, target)
         return target
 
+
+    def _import_relation_key(self, source_key, target_key, line=None):
+        # One KDM Imports relation per source artifact and imported target.
+        # Ignore line to de-duplicate the same import when it is provided both
+        # by files[].imports and relationships[type=imports].
+        return (str(source_key or ""), str(target_key or ""))
+
+    def _map_file_level_imports(self, data: dict):
+        for file_model in data.get("files", []) or []:
+            source_key = file_model.get("path") or file_model.get("id") or file_model.get("qualifiedName") or file_model.get("qualified_name")
+            imports = file_model.get("imports", []) or []
+            for imported in imports:
+                if isinstance(imported, dict):
+                    target_key = (
+                        imported.get("target_qualified_name")
+                        or imported.get("targetQualifiedName")
+                        or imported.get("resolved_module_qualified_name")
+                        or imported.get("resolvedModuleQualifiedName")
+                    )
+                    if not target_key:
+                        module = imported.get("module") or imported.get("imported_module") or imported.get("importedModule")
+                        name = imported.get("name") or imported.get("imported_name") or imported.get("importedName")
+                        if module and name:
+                            target_key = f"{module}.{name}"
+                        else:
+                            target_key = module or name
+                    line = imported.get("line")
+                    target_type = imported.get("target_type") or imported.get("targetType")
+                else:
+                    target_key = str(imported)
+                    line = None
+                    target_type = None
+
+                if not source_key or not target_key:
+                    continue
+
+                self._map_generic_imports_relationship(
+                    {
+                        "type": "imports",
+                        "source": source_key,
+                        "target": target_key,
+                        "sourceFile": file_model.get("path"),
+                        "line": line,
+                        "targetType": target_type,
+                    }
+                )
+
     def _map_generic_imports_relationship(self, relationship: dict):
         source_key = relationship.get("source")
         target_key = relationship.get("target")
-
-        source = self._resolve_indexed_element(source_key)
-        target = self._resolve_indexed_element(target_key)
-
-        if source is None:
+        line = relationship.get("line") or relationship.get("lineStart") or relationship.get("line_start")
+        relation_key = self._import_relation_key(source_key, target_key, line)
+        if relation_key in self._mapped_import_keys:
             return
 
+        # Imports in the common schema are usually declared by source-file path.
+        # Prefer the CompilationUnit associated with that path instead of any
+        # previously indexed artifact with the same string.  This avoids losing
+        # file-level Java imports if the path is also represented elsewhere
+        # (for example in inventory/source references).
+        source = None
+        source_text = str(source_key or "")
+        if source_text:
+            source = self.compilation_unit_by_path.get(source_text)
+            if source is None:
+                source_norm = source_text.replace("\\", "/")
+                for known_path, compilation_unit in self.compilation_unit_by_path.items():
+                    known_norm = str(known_path).replace("\\", "/")
+                    if known_norm == source_norm or known_norm.endswith("/" + source_norm.split("/")[-1]):
+                        source = compilation_unit
+                        break
+
+        if source is None:
+            source = self._resolve_indexed_element(source_key)
+
+        # A valid KDM Imports relation must be contained by an element with
+        # codeRelation.  If the resolved source is not a CodeItem capable of
+        # owning codeRelation, fall back to the sourceFile path.
+        if source is not None and not self.factory.has_feature(source, "codeRelation"):
+            file_model_for_source = self._generic_file_model(relationship)
+            file_path = file_model_for_source.get("path")
+            if file_path:
+                source = self.compilation_unit_by_path.get(str(file_path), source)
+
+        if source is None or not self.factory.has_feature(source, "codeRelation"):
+            return
+
+        target = self._resolve_indexed_element(target_key)
         if target is None:
             target = self._get_or_create_external_import_relationship_target(relationship)
 
@@ -2037,12 +2285,13 @@ class JsonToKDMMapper:
             imports_relation,
             path=file_model.get("path"),
             language=self.language,
-            start_line=relationship.get("line"),
-            end_line=relationship.get("line"),
+            start_line=line,
+            end_line=line,
             file_item=source_file,
         )
 
-        self._append_code_relation(source, imports_relation)
+        if self._append_code_relation(source, imports_relation):
+            self._mapped_import_keys.add(relation_key)
 
     def _map_generic_extends_relationship(self, relationship: dict):
         source = self._resolve_indexed_element(relationship.get("source"))
