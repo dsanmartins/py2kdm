@@ -154,6 +154,9 @@ class JsonToKDMMapper:
         self.factory.add_attributes_from_dict(kdm_element, metadata)
 
     def _append_code_element(self, parent, child):
+        if parent is None or child is None:
+            return False
+
         if self.factory.has_feature(parent, "codeElement"):
             parent.codeElement.append(child)
             return True
@@ -161,6 +164,9 @@ class JsonToKDMMapper:
         return False
 
     def _append_code_relation(self, source, relation):
+        if source is None or relation is None:
+            return False
+
         if self.factory.has_feature(source, "codeRelation"):
             source.codeRelation.append(relation)
             return True
@@ -168,6 +174,9 @@ class JsonToKDMMapper:
         return False
 
     def _append_action_relation(self, source, relation):
+        if source is None or relation is None:
+            return False
+
         if self.factory.has_feature(source, "actionRelation"):
             source.actionRelation.append(relation)
             return True
@@ -1433,8 +1442,6 @@ class JsonToKDMMapper:
             return
 
         body_block = self._get_or_create_callable_body(source)
-        if body_block is None:
-            return
 
         action = self.factory.create_action_element(
             name=self._call_action_name(target_key),
@@ -1948,20 +1955,6 @@ class JsonToKDMMapper:
     # Callable bodies and calls
     # ------------------------------------------------------------------
 
-
-    def _is_action_element(self, element) -> bool:
-        try:
-            return element.eClass.name == "ActionElement"
-        except AttributeError:
-            return False
-
-    def _is_callable_body_container(self, element) -> bool:
-        """Return True when a KDM element can legally contain a BlockUnit body."""
-        try:
-            return element.eClass.name in {"MethodUnit", "CallableUnit"}
-        except AttributeError:
-            return False
-
     def _get_or_create_relationship_action(
         self,
         source,
@@ -1972,8 +1965,11 @@ class JsonToKDMMapper:
         if source is None:
             return None
 
-        if self._is_action_element(source):
-            return source
+        try:
+            if source.eClass.name == "ActionElement":
+                return source
+        except AttributeError:
+            return None
 
         body_block = self._get_or_create_callable_body(source)
         if body_block is None:
@@ -2077,20 +2073,28 @@ class JsonToKDMMapper:
         Returns the body BlockUnit of a MethodUnit or CallableUnit.
 
         KDM validation requires executable ActionElement nodes to be contained
-        in a BlockUnit, not directly inside MethodUnit or CallableUnit.  Some
-        Python relationship sources may resolve to DataElement/StorableUnit
-        instances; those elements also expose a codeElement feature, but it is
-        typed for Datatype children and cannot contain BlockUnit.  Therefore we
-        must check the actual KDM kind, not only the presence of codeElement.
+        in a BlockUnit, not directly inside MethodUnit or CallableUnit.
+        Only MethodUnit and CallableUnit can own executable bodies here.
+        DataElement/StorableUnit/ParameterUnit may also expose a ``codeElement``
+        feature in the KDM metamodel, but their feature is typed for Datatype
+        containment and cannot accept BlockUnit.
         """
-        if not self._is_callable_body_container(callable_unit):
+        if callable_unit is None:
+            return None
+
+        try:
+            eclass_name = callable_unit.eClass.name
+        except AttributeError:
+            return None
+
+        if eclass_name not in {"MethodUnit", "CallableUnit"}:
             return None
 
         if not self.factory.has_feature(callable_unit, "codeElement"):
             return None
 
         for child in callable_unit.codeElement:
-            if child.eClass.name == "BlockUnit":
+            if getattr(child.eClass, "name", None) == "BlockUnit":
                 return child
 
         block = self.factory.create_block_unit(name="body", kind="body")

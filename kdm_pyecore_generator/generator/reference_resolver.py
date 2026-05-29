@@ -39,6 +39,31 @@ class ReferenceResolver:
 
         return [value]
 
+    def _normalize_path_key(self, path):
+        if not path:
+            return None
+        text = str(path).replace("\\", "/")
+        while "//" in text:
+            text = text.replace("//", "/")
+        return text.rstrip("/")
+
+    def _basename_key(self, path):
+        normalized = self._normalize_path_key(path)
+        if not normalized:
+            return None
+        return normalized.rsplit("/", 1)[-1]
+
+    def _iter_import_entries(self, owner_model: dict):
+        for key in (
+            "imports",
+            "importDeclarations",
+            "import_declarations",
+            "importedTypes",
+            "imported_types",
+        ):
+            for item in self._get_list(owner_model, key):
+                yield item
+
     def _has_rich_body(self, callable_model: dict):
         body = callable_model.get("body") or callable_model.get("statements") or []
         return isinstance(body, list) and len(body) > 0
@@ -270,16 +295,46 @@ class ReferenceResolver:
     # ------------------------------------------------------------
 
     def add_import_relations(self, data: dict):
-        for file_model in data.get("files", []):
+        for file_model in data.get("files", []) or []:
             self._add_file_imports(file_model)
+
+        # Some extractors attach imports to top-level elements instead of
+        # files.  This is common after Java classes are moved to a
+        # MoDisco-like Package hierarchy.  Treat the owning element as the
+        # import source, preserving file traceability when possible.
+        for element in data.get("elements", []) or []:
+            if not any(True for _ in self._iter_import_entries(element)):
+                continue
+
+            file_model = {
+                "id": element.get("fileId") or element.get("file_id"),
+                "path": (
+                    element.get("filePath")
+                    or element.get("file_path")
+                    or element.get("sourceFile")
+                    or element.get("source_file")
+                    or element.get("path")
+                ),
+            }
+            source_unit = self._resolve_import_source(file_model)
+            if source_unit is None:
+                source_unit = self._resolve_callable_source(element) or self.id_index.get(
+                    element.get("id")
+                    or element.get("qualifiedName")
+                    or element.get("qualified_name")
+                )
+
+            self._add_imports_to_source(source_unit, element, file_model)
 
     def _add_file_imports(self, file_model: dict):
         source_unit = self._resolve_import_source(file_model)
+        self._add_imports_to_source(source_unit, file_model, file_model)
 
+    def _add_imports_to_source(self, source_unit, import_owner: dict, file_model: dict):
         if source_unit is None or not self.factory.has_feature(source_unit, "codeRelation"):
             return
 
-        for import_model in file_model.get("imports", []):
+        for import_model in self._iter_import_entries(import_owner):
             normalized_import = self._normalize_import_model(import_model)
             if normalized_import is None:
                 continue
@@ -317,16 +372,36 @@ class ReferenceResolver:
         in each file under the synthetic key file_import_source:<path>.
         """
 
-        source_unit = self.id_index.get(file_model.get("id"))
+        for key in (
+            file_model.get("id"),
+            file_model.get("fileId"),
+            file_model.get("file_id"),
+        ):
+            if key:
+                source_unit = self.id_index.get(key)
+                if source_unit is not None and self.factory.has_feature(source_unit, "codeRelation"):
+                    return source_unit
 
-        if source_unit is not None and self.factory.has_feature(source_unit, "codeRelation"):
-            return source_unit
+                source_unit = self.id_index.get(f"file_import_source_id:{key}")
+                if source_unit is not None:
+                    return source_unit
 
-        path = file_model.get("path")
+        path = (
+            file_model.get("path")
+            or file_model.get("filePath")
+            or file_model.get("file_path")
+            or file_model.get("sourceFile")
+            or file_model.get("source_file")
+        )
+
         if path:
-            source_unit = self.id_index.get(f"file_import_source:{path}")
-            if source_unit is not None:
-                return source_unit
+            for candidate in (
+                f"file_import_source:{path}",
+                f"file_import_source_norm:{self._normalize_path_key(path)}",
+                f"file_import_source_basename:{self._basename_key(path)}",
+            ):
+                if candidate in self.id_index:
+                    return self.id_index[candidate]
 
         return None
 
@@ -366,6 +441,14 @@ class ReferenceResolver:
             return None
 
         normalized = dict(import_model)
+
+        # If module/name are already split, keep both and synthesize a
+        # qualifiedName for internal lookup and external creation.
+        if normalized.get("module") and normalized.get("name") and not (
+            normalized.get("qualifiedName") or normalized.get("qualified_name")
+        ):
+            normalized["qualifiedName"] = f"{normalized.get('module')}.{normalized.get('name')}"
+
         import_name = (
             normalized.get("qualifiedName")
             or normalized.get("qualified_name")
@@ -386,6 +469,10 @@ class ReferenceResolver:
                 normalized.setdefault("name", name)
                 normalized.setdefault("target_type", "class" if name[:1].isupper() else "module")
                 normalized.setdefault("classification", "external")
+            elif text and not normalized.get("name"):
+                normalized.setdefault("name", text)
+
+        normalized.setdefault("classification", "external")
 
         return normalized
 

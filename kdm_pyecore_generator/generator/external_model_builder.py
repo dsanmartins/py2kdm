@@ -168,13 +168,18 @@ class ExternalModelBuilder:
         if isinstance(import_model, str):
             import_name = import_model.strip()
         elif isinstance(import_model, dict):
-            import_name = (
-                import_model.get("qualifiedName")
-                or import_model.get("qualified_name")
-                or import_model.get("module")
-                or import_model.get("name")
-                or ""
-            )
+            if import_model.get("module") and import_model.get("name"):
+                import_name = f"{import_model.get('module')}.{import_model.get('name')}"
+            else:
+                import_name = (
+                    import_model.get("qualifiedName")
+                    or import_model.get("qualified_name")
+                    or import_model.get("imported")
+                    or import_model.get("import")
+                    or import_model.get("module")
+                    or import_model.get("name")
+                    or ""
+                )
             import_name = str(import_name).strip()
         else:
             return
@@ -439,9 +444,8 @@ class ExternalModelBuilder:
         target_name = (
             import_model.get("name")
             or import_model.get("effective_name")
-            or "unknown_external_import"
         )
-        target_name = str(target_name).strip()
+        target_name = str(target_name).strip() if target_name is not None else ""
 
         # Java explicit imports are usually represented as module=<package>,
         # name=<Type>.  If a fully qualified name slipped into module_name,
@@ -449,8 +453,12 @@ class ExternalModelBuilder:
         if self.language == "java" and module_name and not target_name:
             if module_name.endswith(".*"):
                 module_name = module_name[:-2]
+                target_name = module_name
             elif "." in module_name:
                 module_name, target_name = module_name.rsplit(".", 1)
+
+        if not target_name:
+            target_name = "unknown_external_import"
 
         target_kind = self._infer_import_target_kind(import_model)
 
