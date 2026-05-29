@@ -118,6 +118,35 @@ class ExceptionRelationResolver:
         except Exception:
             return None
 
+
+    def _copy_source_region_from(self, source_element, target_element):
+        """Copy the first SourceRegion from a handler/raise action to a synthetic node."""
+        if source_element is None or target_element is None:
+            return False
+
+        if not self.factory.has_feature(target_element, "source"):
+            return False
+
+        if list(getattr(target_element, "source", []) or []):
+            return False
+
+        for source_ref in list(getattr(source_element, "source", []) or []):
+            source_language = getattr(source_ref, "language", None)
+            for region in list(getattr(source_ref, "region", []) or []):
+                self.factory.add_source_region(
+                    target_element,
+                    path=getattr(region, "path", None),
+                    language=getattr(region, "language", None) or source_language,
+                    start_line=getattr(region, "startLine", None),
+                    end_line=getattr(region, "endLine", None),
+                    start_position=getattr(region, "startPosition", None),
+                    end_position=getattr(region, "endPosition", None),
+                    file_item=getattr(region, "file", None),
+                )
+                return True
+
+        return False
+
     def resolve(self, data: dict):
         """
         Resolves exception semantics for all functions and methods contained
@@ -426,17 +455,56 @@ class ExceptionRelationResolver:
             exception_name,
         )
 
+        self._copy_source_region_from(catch_action, parameter)
         catch_action.codeElement.append(parameter)
 
-        has_type = self.factory.create_has_type_relation(exception_type)
+        # KDM code::HasType.to must point to a Datatype.
+        # Some Python exception references may resolve to CallableUnit or other
+        # non-datatype placeholders when the target is external or ambiguous.
+        # In those cases, keep the caught-exception ParameterUnit and its
+        # attributes/source region, but do not create an invalid HasType relation.
+        if self._is_kdm_datatype(exception_type):
+            has_type = self.factory.create_has_type_relation(exception_type)
 
-        if (
-            has_type is not None
-            and self.factory.has_feature(parameter, "codeRelation")
-        ):
-            parameter.codeRelation.append(has_type)
+            if (
+                has_type is not None
+                and self.factory.has_feature(parameter, "codeRelation")
+            ):
+                parameter.codeRelation.append(has_type)
 
         return parameter
+
+
+    def _is_kdm_datatype(self, element) -> bool:
+        """
+        Returns True when the given KDM element conforms to code::Datatype.
+
+        PyEcore enforces this for code::HasType.to. This guard prevents
+        invalid relations such as HasType -> CallableUnit.
+        """
+        if element is None:
+            return False
+
+        try:
+            current = element.eClass
+        except Exception:
+            current = getattr(element, "eclass", None)
+
+        visited = set()
+        while current is not None and id(current) not in visited:
+            visited.add(id(current))
+
+            if getattr(current, "name", None) == "Datatype":
+                return True
+
+            for super_type in list(getattr(current, "eSuperTypes", []) or []):
+                if getattr(super_type, "name", None) == "Datatype":
+                    return True
+
+            super_types = list(getattr(current, "eSuperTypes", []) or [])
+            current = super_types[0] if super_types else None
+
+        return False
 
     # ------------------------------------------------------------
     # Raise resolution
@@ -734,6 +802,8 @@ class ExceptionRelationResolver:
             "exception_type_name",
             exception_type_name,
         )
+
+        self._copy_source_region_from(source, exception_data)
 
         if self.factory.has_feature(source, "codeElement"):
             source.codeElement.append(exception_data)

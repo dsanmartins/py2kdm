@@ -132,6 +132,17 @@ class BodyActionMapper:
         # external ClassUnit.
         self._resolve_unresolved_constructor_creates(body_block)
 
+        # Python callable-level constructor recovery:
+        # Some constructor calls are present in callable_model["calls"] but are
+        # not represented as direct body nodes, for example nested calls used as
+        # arguments. Preserve action::Creates for those calls without recreating
+        # noisy external libraries.
+        self._add_callable_level_constructor_creates(
+            callable_model=callable_model,
+            file_model=file_model,
+            body_block=body_block,
+        )
+
         # Constructor fallback may add semantic relations after the first
         # normalization pass. Run the duplicate-action sanitizer again so
         # Java calls discovered through both statement and expression
@@ -1123,7 +1134,15 @@ class BodyActionMapper:
         # ActionElement nodes.
         self._add_calls_for_body_item(action, item)
 
-        if value_kind == "object_creation":
+        # A constructor can appear in Python either as an explicit
+        # object_creation statement or as a regular call expression whose
+        # extractor metadata says kind=constructor_call/classification=constructor.
+        # Examples:
+        #   x = VirtualCarSpeed(...)   -> value_kind=call_result, value_call.kind=constructor_call
+        #   Loop(...)                  -> call.kind=constructor_call
+        # The previous logic only handled value_kind == object_creation, so many
+        # valid action::Creates relations were lost after external-library cleanup.
+        if value_kind == "object_creation" or self._has_constructor_call_model(item):
             self._add_creates_for_body_item(action, item)
 
         if statement_type in {"throw", "raise"}:
@@ -1272,13 +1291,216 @@ class BodyActionMapper:
 
         return None
 
+    def _add_callable_level_constructor_creates(
+        self,
+        callable_model: dict,
+        file_model: dict,
+        body_block,
+    ):
+        """
+        Adds action::Creates for constructor calls that are available at the
+        callable level but were not materialized as Creates during body mapping.
+
+        The Python extractor keeps a rich callable_model["calls"] list. Some
+        constructor calls, especially nested constructors, may not be the primary
+        body statement and therefore can miss action::Creates. This pass recovers
+        those relations conservatively.
+        """
+
+        if not isinstance(callable_model, dict):
+            return
+
+        for call in callable_model.get("calls", []) or []:
+            if not isinstance(call, dict):
+                continue
+
+            if not self._is_constructor_call_model(call):
+                continue
+
+            target = self._resolve_constructor_target_from_call(call)
+
+            if target is None or not self._is_class_like(target):
+                continue
+
+            action = self._find_action_for_call_model(callable_model, call)
+
+            if action is None:
+                action = self._create_constructor_action_for_call(
+                    call=call,
+                    callable_model=callable_model,
+                    file_model=file_model,
+                    body_block=body_block,
+                )
+
+            if action is None:
+                continue
+
+            self._append_creates_relation_once(action, target)
+
+    def _find_action_for_call_model(self, callable_model: dict, call: dict):
+        call_id = call.get("id") or call.get("call_id") or call.get("callId")
+
+        if call_id and call_id in self.action_index:
+            return self.action_index[call_id]
+
+        line = call.get("line") or call.get("lineStart") or call.get("line_start")
+        name = call.get("name") or call.get("function") or call.get("class_name") or call.get("className")
+
+        action = self._find_action_by_owner_line_and_name(
+            callable_model=callable_model,
+            line=line,
+            name=name,
+        )
+
+        if action is not None:
+            return action
+
+        owner_id = callable_model.get("id")
+        if owner_id is None or line is None:
+            return None
+
+        same_line_actions = self.action_index.get((owner_id, line), [])
+        if len(same_line_actions) == 1:
+            return same_line_actions[0]
+
+        return None
+
+    def _create_constructor_action_for_call(
+        self,
+        call: dict,
+        callable_model: dict,
+        file_model: dict,
+        body_block,
+    ):
+        if body_block is None or not self.factory.has_feature(body_block, "codeElement"):
+            return None
+
+        name = (
+            call.get("name")
+            or call.get("function")
+            or call.get("class_name")
+            or call.get("className")
+            or "constructor_call"
+        )
+
+        action = self.factory.create_action_element(name=str(name), kind="call")
+
+        source_file = self._get_source_file(file_model)
+        start_line = call.get("line") or call.get("lineStart") or call.get("line_start")
+        end_line = call.get("line_end") or call.get("lineEnd") or call.get("endLine") or start_line
+
+        self.factory.add_source_region(
+            action,
+            path=file_model.get("path"),
+            language=self.language,
+            start_line=start_line,
+            end_line=end_line,
+            file_item=source_file,
+        )
+
+        self.factory.add_attribute(action, "expression_role", "callable_level_constructor")
+        self._attach_action_to_parent(action, body_block)
+
+        call_id = call.get("id") or call.get("call_id") or call.get("callId")
+        if call_id:
+            self.action_index.setdefault(call_id, action)
+
+        owner_id = callable_model.get("id")
+        if owner_id is not None and start_line is not None:
+            self.action_index.setdefault((owner_id, start_line, str(name)), action)
+            self.action_index.setdefault((owner_id, start_line), []).append(action)
+
+        return action
+
+    def _resolve_constructor_target_from_call(self, call: dict):
+        candidate_names = [
+            call.get("targetId"),
+            call.get("target_id"),
+            call.get("resolvedTarget"),
+            call.get("resolved_target"),
+            call.get("resolved_type_id"),
+            call.get("resolvedType"),
+            call.get("resolved_type"),
+            call.get("className"),
+            call.get("class_name"),
+            call.get("class"),
+            call.get("function"),
+            call.get("name"),
+        ]
+
+        target = self._resolve_first_class_like_target(candidate_names)
+        if self._is_class_like(target):
+            return target
+
+        if self.external_builder is None:
+            return None
+
+        class_name = (
+            call.get("className")
+            or call.get("class_name")
+            or call.get("class")
+            or call.get("function")
+            or call.get("name")
+        )
+
+        if not class_name:
+            return None
+
+        class_name = self._simple_constructor_name(str(class_name))
+        if not class_name:
+            return None
+
+        import_source = call.get("import_source") if isinstance(call.get("import_source"), dict) else {}
+        library_name = (
+            import_source.get("imported_module")
+            or import_source.get("module")
+            or call.get("library")
+            or "external_constructors"
+        )
+
+        return self.external_builder.get_or_create_external_class(library_name, class_name)
+
+    def _append_creates_relation_once(self, action, target):
+        if action is None or target is None:
+            return
+
+        if not self.factory.has_feature(action, "actionRelation"):
+            return
+
+        if self._has_action_relation(source=action, target=target, relation_type="Creates"):
+            return
+
+        relation = self.factory.create_creates_relation(target)
+        if relation is not None:
+            action.actionRelation.append(relation)
+
+    def _has_constructor_call_model(self, item: dict) -> bool:
+        """Return True if any call model inside a body item is constructor-like."""
+        if not isinstance(item, dict):
+            return False
+
+        for call in self._body_call_models(item):
+            if isinstance(call, dict) and self._is_constructor_call_model(call):
+                return True
+
+        return False
+
     def _add_creates_for_body_item(self, action, item: dict):
+        constructor_calls = [
+            call
+            for call in self._body_call_models(item)
+            if isinstance(call, dict) and self._is_constructor_call_model(call)
+        ]
+
         call = self._json_get(item, "value_call", "valueCall") or {}
 
-        if not isinstance(call, dict):
-            call = {}
+        if isinstance(call, dict) and call not in constructor_calls:
+            constructor_calls.insert(0, call)
 
-        # Java body nodes may contain both the constructor/type name and the
+        if not constructor_calls:
+            constructor_calls = [{}]
+
+        # Java/Python body nodes may contain both the constructor/type name and the
         # target variable id. The KDM action::Creates relation expects its
         # target to be a Datatype (for example ClassUnit), not a StorableUnit
         # representing the local variable that receives the new object.
@@ -1291,18 +1513,28 @@ class BodyActionMapper:
             item.get("type_name"),
             item.get("resolvedType"),
             item.get("resolved_type"),
-            call.get("className"),
-            call.get("class_name"),
-            call.get("typeName"),
-            call.get("type_name"),
-            call.get("resolvedType"),
-            call.get("resolved_type"),
-            call.get("resolvedTarget"),
-            call.get("resolved_target"),
-            call.get("name"),
-            call.get("targetId"),
-            call.get("target_id"),
+            item.get("value"),
         ]
+
+        for constructor_call in constructor_calls:
+            if not isinstance(constructor_call, dict):
+                continue
+
+            candidate_names.extend([
+                constructor_call.get("className"),
+                constructor_call.get("class_name"),
+                constructor_call.get("class"),
+                constructor_call.get("typeName"),
+                constructor_call.get("type_name"),
+                constructor_call.get("resolvedType"),
+                constructor_call.get("resolved_type"),
+                constructor_call.get("resolvedTarget"),
+                constructor_call.get("resolved_target"),
+                constructor_call.get("name"),
+                constructor_call.get("function"),
+                constructor_call.get("targetId"),
+                constructor_call.get("target_id"),
+            ])
 
         target = self._resolve_first_class_like_target(candidate_names)
 
@@ -1343,6 +1575,35 @@ class BodyActionMapper:
             return
         action.actionRelation.append(self.factory.create_throws_relation(storable))
 
+
+    def _copy_source_region_from(self, source_element, target_element):
+        """Copy the first SourceRegion from an action to a synthetic child element."""
+        if source_element is None or target_element is None:
+            return False
+
+        if not self.factory.has_feature(target_element, "source"):
+            return False
+
+        if list(getattr(target_element, "source", []) or []):
+            return False
+
+        for source_ref in list(getattr(source_element, "source", []) or []):
+            source_language = getattr(source_ref, "language", None)
+            for region in list(getattr(source_ref, "region", []) or []):
+                self.factory.add_source_region(
+                    target_element,
+                    path=getattr(region, "path", None),
+                    language=getattr(region, "language", None) or source_language,
+                    start_line=getattr(region, "startLine", None),
+                    end_line=getattr(region, "endLine", None),
+                    start_position=getattr(region, "startPosition", None),
+                    end_position=getattr(region, "endPosition", None),
+                    file_item=getattr(region, "file", None),
+                )
+                return True
+
+        return False
+
     def _get_or_create_exception_storable(self, action, exception_name: str):
         safe_name = self._safe_name(exception_name.split(".")[-1])
         storable_name = f"thrown_{safe_name}"
@@ -1353,6 +1614,7 @@ class BodyActionMapper:
                 return child
         storable = self.factory.create_storable_unit(storable_name)
         self._add_attribute_once(storable, "role", "thrown_exception")
+        self._copy_source_region_from(action, storable)
         action.codeElement.append(storable)
         return storable
 

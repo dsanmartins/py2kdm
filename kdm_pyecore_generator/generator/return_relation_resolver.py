@@ -68,6 +68,41 @@ class ReturnRelationResolver:
         self.storable_index = storable_index or {}
         self.id_index = id_index or {}
 
+
+    def _copy_source_region_from(self, source_element, target_element):
+        """Copy the first SourceRegion from source_element to target_element.
+
+        Synthetic StorableUnit and Value nodes created for return semantics
+        should remain traceable to the return statement that produced them.
+        SourceRef/SourceRegion are containment objects, so we must create a
+        fresh region instead of reusing the existing one.
+        """
+        if source_element is None or target_element is None:
+            return False
+
+        if not self.factory.has_feature(target_element, "source"):
+            return False
+
+        if list(getattr(target_element, "source", []) or []):
+            return False
+
+        for source_ref in list(getattr(source_element, "source", []) or []):
+            source_language = getattr(source_ref, "language", None)
+            for region in list(getattr(source_ref, "region", []) or []):
+                self.factory.add_source_region(
+                    target_element,
+                    path=getattr(region, "path", None),
+                    language=getattr(region, "language", None) or source_language,
+                    start_line=getattr(region, "startLine", None),
+                    end_line=getattr(region, "endLine", None),
+                    start_position=getattr(region, "startPosition", None),
+                    end_position=getattr(region, "endPosition", None),
+                    file_item=getattr(region, "file", None),
+                )
+                return True
+
+        return False
+
     def _json_get(self, item: dict, snake_name: str, camel_name: str = None, default=None):
         if item is None:
             return default
@@ -401,6 +436,7 @@ class ReturnRelationResolver:
                 value_text,
             )
 
+            self._copy_source_region_from(return_action, literal_storable)
             return_action.codeElement.append(literal_storable)
 
         value_element = None
@@ -439,6 +475,7 @@ class ReturnRelationResolver:
                 value_text,
             )
 
+            self._copy_source_region_from(return_action, value_element)
             return_action.codeElement.append(value_element)
 
         if not self._has_has_value_relation(literal_storable, value_element):
@@ -506,6 +543,8 @@ class ReturnRelationResolver:
             "returned_call_result",
         )
 
+        self._copy_source_region_from(return_action, return_value)
+
         if self.factory.has_feature(return_action, "codeElement"):
             return_action.codeElement.append(return_value)
         else:
@@ -530,6 +569,7 @@ class ReturnRelationResolver:
         if expression_storable is None:
             expression_storable = self.factory.create_storable_unit(storable_name)
             self._add_attribute_once(expression_storable, "role", "returned_expression")
+            self._copy_source_region_from(return_action, expression_storable)
             return_action.codeElement.append(expression_storable)
         value_element = None
         for child in return_action.codeElement:
@@ -538,6 +578,7 @@ class ReturnRelationResolver:
                 break
         if value_element is None:
             value_element = self.factory.create_value(name=value_name, value=value_text)
+            self._copy_source_region_from(return_action, value_element)
             return_action.codeElement.append(value_element)
         if not self._has_has_value_relation(expression_storable, value_element):
             has_value = self.factory.create_has_value_relation(value_element)

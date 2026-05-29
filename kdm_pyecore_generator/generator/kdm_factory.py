@@ -129,12 +129,6 @@ class KDMFactory:
         -------
         bool
             True if the element supports the requested feature.
-
-        Notes
-        -----
-        Relationship mapping may receive unresolved references. In that case
-        ``obj`` can be ``None``. Returning ``False`` keeps the generator
-        defensive and avoids leaking low-level PyEcore errors.
         """
 
         if obj is None:
@@ -145,7 +139,7 @@ class KDMFactory:
             return False
 
         return feature_name in [
-            feature.name for feature in eclass.eAllStructuralFeatures()
+            feature.name for feature in obj.eClass.eAllStructuralFeatures()
         ]
 
     # ------------------------------------------------------------

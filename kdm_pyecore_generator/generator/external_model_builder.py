@@ -74,6 +74,54 @@ class ExternalModelBuilder:
         "junit",
     }
 
+    PYTHON_BUILTIN_TYPES = {
+        "object", "type", "None", "bool", "int", "float", "complex", "str",
+        "bytes", "bytearray", "list", "tuple", "dict", "set", "frozenset",
+        "range", "slice", "property", "staticmethod", "classmethod",
+    }
+
+    PYTHON_BUILTIN_EXCEPTIONS = {
+        "BaseException", "Exception", "RuntimeError", "ValueError", "TypeError",
+        "KeyError", "IndexError", "AttributeError", "ImportError", "OSError",
+        "IOError", "StopIteration", "NotImplementedError", "AssertionError",
+    }
+
+    PYTHON_BUILTIN_CALLABLES = {
+        "super", "len", "max", "min", "sum", "print", "range", "enumerate",
+        "zip", "map", "filter", "sorted", "reversed", "isinstance",
+        "issubclass", "getattr", "setattr", "hasattr", "dict", "list",
+        "tuple", "set", "str", "int", "float", "bool", "type", "open",
+    }
+
+    # Names that commonly appear as local receivers, aliases, or runtime
+    # variables in Python code. They should remain as traceability data on
+    # ActionElement nodes, not be promoted to ExternalLibraries_CodeModel.
+    PYTHON_NON_EXTERNAL_RECEIVERS = {
+        "self", "cls", "logger", "log", "root", "args", "kwargs",
+        "task", "cfg", "config", "spec", "event", "item", "value",
+        "mape", "ops", "np", "path",
+    }
+
+    # Library/target names that are almost always local variables, aliases or
+    # receiver names in Python projects.  They should not become standalone
+    # external libraries.  Real external packages such as numpy are still kept
+    # when the import module is explicit; only the alias np is filtered.
+    PYTHON_NON_EXTERNAL_LIBRARY_NAMES = {
+        "self", "cls", "logger", "log", "root", "args", "kwargs",
+        "task", "cfg", "config", "spec", "event", "item", "value",
+        "mape", "ops", "np", "path", "h_out", "h_err", "n",
+        "unknown_external", "external",
+    }
+
+    PYTHON_INTERNAL_OR_LOCAL_CLASSIFICATIONS = {
+        "internal",
+        "internal_candidate",
+        "internal_ambiguous",
+        "unresolved_method_on_parameter",
+        "unresolved_method_on_local",
+        "unresolved_method_on_self",
+    }
+
     def __init__(self, factory, segment, language="unknown"):
         self.factory = factory
         self.segment = segment
@@ -91,6 +139,9 @@ class ExternalModelBuilder:
         self.internal_callable_names = set()
         self.project_package_roots = set()
         self.imported_type_to_package = {}
+        self.internal_module_names = set()
+        self.internal_qualified_module_names = set()
+
 
     def ensure_external_model(self):
         if self.external_code_model is None:
@@ -119,6 +170,8 @@ class ExternalModelBuilder:
             self._register_internal_element(element)
 
         for file_model in data.get("files", []) or []:
+            self._register_internal_module(file_model)
+
             for cls in file_model.get("classes", []) or []:
                 self._register_internal_element(cls)
             for interface in file_model.get("interfaces", []) or []:
@@ -132,6 +185,32 @@ class ExternalModelBuilder:
 
             for import_model in file_model.get("imports", []) or []:
                 self._register_import(import_model)
+
+    def _register_internal_module(self, file_model: dict):
+        if not isinstance(file_model, dict):
+            return
+
+        name = file_model.get("name")
+        qualified_name = (
+            file_model.get("qualifiedName")
+            or file_model.get("qualified_name")
+            or file_model.get("module")
+            or file_model.get("id")
+        )
+
+        if isinstance(qualified_name, str) and qualified_name.startswith("module:"):
+            qualified_name = qualified_name.replace("module:", "", 1)
+
+        if name:
+            self.internal_module_names.add(str(name))
+
+        if qualified_name:
+            qualified_name = str(qualified_name)
+            self.internal_qualified_module_names.add(qualified_name)
+            parts = [part for part in qualified_name.split(".") if part]
+            if parts:
+                self.project_package_roots.add(parts[0])
+                self.internal_module_names.add(parts[-1])
 
     def _register_internal_element(self, element: dict):
         if not isinstance(element, dict):
@@ -150,7 +229,10 @@ class ExternalModelBuilder:
         )
 
         if name:
-            self.internal_type_names.add(str(name))
+            if kind in {"function", "method", "callable", "callableunit"}:
+                self.internal_callable_names.add(str(name))
+            else:
+                self.internal_type_names.add(str(name))
 
         if qualified_name:
             qualified_name = str(qualified_name)
@@ -209,12 +291,44 @@ class ExternalModelBuilder:
         external APIs and classes.
         """
 
+        if self.language == "python" and not self._is_valid_python_external_call(call):
+            return None
+
         if self.language == "java" and not self._is_valid_java_external_call(call):
             return None
 
         library_name = self._infer_library_name(call)
         target_name = self._infer_target_name(call)
         target_kind = self._infer_target_kind(call)
+
+        if self.language == "python":
+            library_name = self._normalize_python_library_name(library_name, call)
+            target_name = self._normalize_python_target_name(target_name)
+
+            # If the target is already a resolved internal project element, do
+            # not create an external stub.  Ambiguous/unresolved local receiver
+            # calls are handled below as conservative external_calls targets so
+            # that action::Calls semantics are preserved without creating noisy
+            # libraries such as self/logger/mape/ops.
+            if self._is_resolved_internal_python_call(call):
+                return None
+
+            if target_kind == "class" and self._is_python_builtin_name(target_name):
+                library_name = "builtins"
+            if target_kind == "callable" and target_name in self.PYTHON_BUILTIN_CALLABLES:
+                library_name = "builtins"
+
+            if not self._is_valid_python_external_library_name(library_name, target_name, call):
+                if target_kind == "callable":
+                    library_name = "external_calls"
+                elif self._is_python_constructor_call(call, target_name):
+                    # Preserve object creation semantics without creating noisy
+                    # libraries from local receivers or aliases.  The target
+                    # remains a ClassUnit so action::Creates can still be
+                    # emitted by the body/reference mappers.
+                    library_name = "external_constructors"
+                else:
+                    return None
 
         if self.language == "java":
             if target_kind == "class":
@@ -280,6 +394,9 @@ class ExternalModelBuilder:
         """
 
         library_name = str(library_name or "unknown_external").strip()
+
+        if self.language == "python":
+            library_name = self._normalize_python_library_unit_name(library_name)
 
         if self.language == "java" and not self._is_valid_java_external_library_name(library_name):
             library_name = "unknown_external"
@@ -380,6 +497,16 @@ class ExternalModelBuilder:
         library_name = str(library_name or "unknown_external").strip()
         class_name = str(class_name or "UnknownExternalClass").strip()
 
+        if self.language == "python":
+            class_name = self._normalize_python_target_name(class_name)
+            library_name = self._normalize_python_library_unit_name(library_name)
+            if self._is_project_internal_python_reference(class_name):
+                return None
+            if self._is_python_builtin_name(class_name):
+                library_name = "builtins"
+            if not self._is_valid_python_external_library_name(library_name, class_name):
+                return None
+
         if self.language == "java":
             class_name = self._normalize_java_type_name(class_name)
 
@@ -460,6 +587,10 @@ class ExternalModelBuilder:
         if not target_name:
             target_name = "unknown_external_import"
 
+        if self.language == "python":
+            if self._is_python_internal_import(import_model, module_name, target_name):
+                return None
+
         target_kind = self._infer_import_target_kind(import_model)
 
         if self.language == "java":
@@ -486,7 +617,13 @@ class ExternalModelBuilder:
             if target_kind == "class" and library_name == "java.lang" and target_name not in self.JAVA_LANG_TYPES:
                 return None
         else:
-            library_name = module_name.split(".")[0] if module_name else "unknown_external"
+            library_name = self._normalize_python_import_library(module_name, target_name, import_model)
+            target_name = self._normalize_python_target_name(target_name)
+            if self._is_python_builtin_name(target_name):
+                library_name = "builtins"
+            library_name = self._normalize_python_library_unit_name(library_name)
+            if not self._is_valid_python_external_library_name(library_name, target_name, import_model):
+                return None
 
         key = f"{library_name}:import:{target_kind}:{target_name}"
 
@@ -554,6 +691,355 @@ class ExternalModelBuilder:
             return "module"
 
         return "callable"
+
+    # ------------------------------------------------------------
+    # Python conservative filtering helpers
+    # ------------------------------------------------------------
+
+    def _is_valid_python_external_call(self, call: dict) -> bool:
+        if not isinstance(call, dict):
+            return False
+
+        # Only fully resolved internal calls are suppressed.  Ambiguous or
+        # unresolved calls are still useful KDM semantics; they are later
+        # grouped under external_calls instead of creating libraries from local
+        # receivers such as self, logger, mape, ops, etc.
+        if self._is_resolved_internal_python_call(call):
+            return False
+
+        name = call.get("name") or call.get("method") or call.get("function")
+        target = self._normalize_python_target_name(name or "")
+
+        # Nothing useful to materialize.
+        if not target or target in {"unknown_external", "unknown_external_import"}:
+            return False
+
+        return True
+
+    def _is_resolved_internal_python_call(self, call: dict) -> bool:
+        if not isinstance(call, dict):
+            return False
+
+        classification = str(call.get("classification") or "").strip()
+        resolved = call.get("resolved")
+        target_id = call.get("target_id") or call.get("targetId")
+
+        if classification == "internal" or resolved is True:
+            return True
+
+        if isinstance(target_id, str) and target_id.startswith(("class:", "function:", "method:", "module:")):
+            return True
+
+        return False
+
+    def _is_internal_python_import_source(self, import_source) -> bool:
+        if not isinstance(import_source, dict):
+            return False
+
+        classification = import_source.get("classification")
+        resolved = import_source.get("resolved")
+        target_id = import_source.get("target_id") or import_source.get("targetId")
+        target_qualified_name = import_source.get("target_qualified_name")
+
+        if classification == "internal" or resolved is True:
+            return True
+
+        if isinstance(target_id, str) and target_id.startswith(("class:", "function:", "method:", "module:")):
+            return True
+
+        if target_qualified_name and str(target_qualified_name) in (
+            self.internal_qualified_type_names | self.internal_qualified_module_names
+        ):
+            return True
+
+        return False
+
+    def _is_python_local_receiver(self, receiver) -> bool:
+        if not receiver:
+            return False
+
+        text = str(receiver).strip()
+        if not text:
+            return False
+
+        root = text.split(".", 1)[0]
+        if root in self.PYTHON_NON_EXTERNAL_RECEIVERS:
+            return True
+
+        if root in self.internal_module_names or root in self.internal_qualified_module_names:
+            return True
+
+        return False
+
+    def _is_unqualified_python_local_name(self, name, call: dict | None = None) -> bool:
+        if not name:
+            return False
+
+        text = str(name).strip()
+        if not text:
+            return False
+
+        # Do not block true builtins or explicitly external imported calls.
+        if self._is_python_builtin_name(text):
+            return False
+
+        import_source = call.get("import_source") if isinstance(call, dict) else None
+        if isinstance(import_source, dict) and import_source.get("classification") == "external":
+            return False
+
+        root = text.split(".", 1)[0]
+        if root in self.PYTHON_NON_EXTERNAL_RECEIVERS:
+            return True
+        if root in self.internal_module_names or root in self.internal_qualified_module_names:
+            return True
+
+        # Lowercase unqualified names with no external import are usually local
+        # functions, parameters, variables, or aliases.  Keeping them out of the
+        # external model avoids noise such as logger, self, mape, or ops.
+        if "." not in text and text[:1].islower():
+            return True
+
+        return False
+
+    def _is_python_internal_import(self, import_model: dict, module_name: str, target_name: str) -> bool:
+        classification = import_model.get("classification")
+        resolved = import_model.get("resolved")
+        target_id = import_model.get("target_id") or import_model.get("targetId")
+
+        if classification == "internal" or resolved is True:
+            return True
+
+        if isinstance(target_id, str) and target_id.startswith(("class:", "function:", "method:", "module:")):
+            return True
+
+        qualified = import_model.get("target_qualified_name") or import_model.get("qualifiedName") or import_model.get("qualified_name")
+        if qualified and str(qualified) in self.internal_qualified_type_names | self.internal_qualified_module_names:
+            return True
+
+        if module_name in self.internal_qualified_module_names or module_name in self.internal_module_names:
+            return True
+
+        if target_name in self.internal_type_names or target_name in self.internal_callable_names:
+            # Only treat simple-name matches as internal when the import itself
+            # is explicitly resolved/internal. Otherwise third-party libraries
+            # may legitimately export symbols with the same simple name.
+            return classification == "internal" or resolved is True
+
+        return False
+
+    def _strip_python_external_marker(self, value: str) -> str:
+        """Removes synthetic extractor prefixes from Python external names.
+
+        The Python extractor sometimes emits identifiers such as
+        ``external:asyncio`` or ``external_type:Observable``.  Those prefixes
+        are useful in the intermediate JSON but should not become literal
+        CompilationUnit names in ExternalLibraries_CodeModel.
+        """
+        text = str(value or "").strip()
+
+        for prefix in ("external_type:", "external:"):
+            if text.startswith(prefix):
+                text = text.replace(prefix, "", 1).strip()
+
+        return text
+
+    def _normalize_python_library_name(self, library_name: str, call: dict) -> str:
+        library_name = self._strip_python_external_marker(library_name)
+        library_name = str(library_name or "unknown_external").strip() or "unknown_external"
+        classification = str(call.get("classification") or "").strip() if isinstance(call, dict) else ""
+        receiver = call.get("receiver") if isinstance(call, dict) else None
+        import_source = call.get("import_source") if isinstance(call, dict) else None
+
+        target_name = self._normalize_python_target_name(call.get("class_name") or call.get("function") or call.get("method") or call.get("name") or "") if isinstance(call, dict) else ""
+        if self._is_python_builtin_name(target_name):
+            return "builtins"
+
+        # Preserve call semantics for unresolved/ambiguous local receiver calls,
+        # but do not create noisy libraries from the receiver/alias itself.
+        if classification in self.PYTHON_INTERNAL_OR_LOCAL_CLASSIFICATIONS:
+            return "external_calls"
+        if receiver and self._is_python_local_receiver(receiver):
+            return "external_calls"
+
+        if isinstance(import_source, dict):
+            module = import_source.get("module") or import_source.get("imported_module")
+            if module and import_source.get("classification") == "external":
+                return str(module)
+            if self._is_internal_python_import_source(import_source):
+                return "external_calls"
+
+        if library_name in self.internal_module_names or library_name in self.internal_qualified_module_names:
+            return "external_calls"
+        if library_name in self.PYTHON_NON_EXTERNAL_LIBRARY_NAMES or library_name.split('.', 1)[0] in self.PYTHON_NON_EXTERNAL_LIBRARY_NAMES:
+            return "external_calls"
+        return library_name
+
+    def _normalize_python_import_library(self, module_name: str, target_name: str, import_model: dict) -> str:
+        module_name = self._strip_python_external_marker(module_name)
+        module_name = str(module_name or "unknown_external").strip() or "unknown_external"
+
+        if module_name.startswith("builtin_type:") or module_name.startswith("builtin:"):
+            return "builtins"
+
+        if module_name in self.internal_module_names or module_name in self.internal_qualified_module_names:
+            return "unknown_external"
+        # Keep full external module names when they carry useful package
+        # information, e.g. prompt_toolkit.shortcuts or simple_pid.
+        return module_name
+
+    def _normalize_python_target_name(self, value: str) -> str:
+        value = self._strip_python_external_marker(value)
+        value = str(value or "unknown_external").strip()
+        if value.startswith("builtin:"):
+            value = value.replace("builtin:", "", 1)
+        if value.startswith("builtin_type:"):
+            value = value.replace("builtin_type:", "", 1)
+        if "(" in value:
+            value = value.split("(", 1)[0]
+        if value.endswith("()"):
+            value = value[:-2]
+        if ":" in value:
+            value = value.rsplit(":", 1)[-1]
+        if "." in value and value.split(".")[-1]:
+            return value.split(".")[-1]
+        return value or "unknown_external"
+
+    def _is_python_builtin_name(self, value: str) -> bool:
+        name = self._normalize_python_target_name(value)
+        return (
+            name in self.PYTHON_BUILTIN_TYPES
+            or name in self.PYTHON_BUILTIN_EXCEPTIONS
+            or name in self.PYTHON_BUILTIN_CALLABLES
+        )
+
+    def _is_project_internal_python_name(self, value: str) -> bool:
+        """Backward-compatible alias for older cleanup logic.
+
+        Python internal/external classification is centralized in
+        _is_project_internal_python_reference(...). Some call sites only pass
+        a class/type name, so this wrapper keeps the public behavior stable.
+        """
+        return self._is_project_internal_python_reference(value)
+
+    def _is_project_internal_python_reference(self, value: str, call: dict | None = None) -> bool:
+        if not value:
+            return False
+        text = str(value).strip()
+        simple = self._normalize_python_target_name(text)
+        if text in self.internal_qualified_type_names or text in self.internal_qualified_module_names:
+            return True
+        if simple in self.internal_type_names or simple in self.internal_callable_names:
+            if call and call.get("classification") in {"external", "builtin", "builtin_type_method"}:
+                return False
+            return True
+        return False
+
+
+    def _is_valid_python_external_library_name(self, library_name: str, target_name: str | None = None, context: dict | None = None) -> bool:
+        """Central gate for Python external model creation.
+
+        This prevents local receivers, internal aliases and builtin-type
+        markers from becoming CompilationUnit nodes under
+        ExternalLibraries_CodeModel.  It is intentionally conservative: when
+        the source says the reference is internal/resolved, the external target
+        is suppressed.
+        """
+        library = str(library_name or "").strip()
+        target = self._normalize_python_target_name(target_name or "")
+
+        if not library:
+            return False
+
+        if library.startswith("builtin_type:"):
+            return False
+
+        if library in {"builtins", "external_calls"}:
+            return True
+
+        root = library.split(".", 1)[0]
+        if library in self.PYTHON_NON_EXTERNAL_LIBRARY_NAMES or root in self.PYTHON_NON_EXTERNAL_LIBRARY_NAMES:
+            return False
+
+        if target in self.PYTHON_NON_EXTERNAL_LIBRARY_NAMES:
+            return False
+
+        if self._is_project_internal_python_reference(library, context):
+            return False
+
+        if library != "external_calls" and self._is_project_internal_python_reference(target, context):
+            return False
+
+        if isinstance(context, dict):
+            classification = context.get("classification")
+            resolved = context.get("resolved")
+            target_id = context.get("target_id") or context.get("targetId")
+
+            if classification == "internal" or resolved is True:
+                return False
+
+            if isinstance(target_id, str) and target_id.startswith(("class:", "function:", "method:", "module:")):
+                return False
+
+            if self._is_internal_python_import_source(context.get("import_source")):
+                return False
+
+            # A lowercase unqualified target with no explicit external import
+            # is usually a parameter, local variable, receiver alias, or local
+            # helper.  Keep the ActionElement traceability but do not create an
+            # external model element for it.
+            if library != "external_calls" and target and target[:1].islower() and "." not in str(target_name or target):
+                import_source = context.get("import_source")
+                if not (isinstance(import_source, dict) and import_source.get("classification") == "external"):
+                    return False
+
+        return True
+
+
+    def _normalize_python_library_unit_name(self, library_name: str) -> str:
+        """Normalizes Python library buckets before materialization.
+
+        Builtins should not appear as standalone external libraries named
+        ``super`` or ``builtin_type:*``.  They are grouped under the
+        PythonBuiltins/builtins bucket used by the current generator.
+
+        Synthetic prefixes such as ``external:`` and ``external_type:`` are
+        stripped so the XMI contains clean library names like ``asyncio`` or
+        ``Observable`` rather than ``external:asyncio``.
+        """
+        original = str(library_name or "unknown_external").strip() or "unknown_external"
+
+        if original in {"external_calls", "external_constructors", "unknown_external"}:
+            return original
+
+        text = self._strip_python_external_marker(original) or "unknown_external"
+        normalized = self._normalize_python_target_name(text)
+
+        if text.startswith("builtin_type:") or text.startswith("builtin:"):
+            return "builtins"
+
+        if normalized in self.PYTHON_BUILTIN_TYPES or normalized in self.PYTHON_BUILTIN_EXCEPTIONS or normalized in self.PYTHON_BUILTIN_CALLABLES:
+            return "builtins"
+
+        if text == "super":
+            return "builtins"
+
+        return text
+
+    def _is_python_constructor_call(self, call: dict | None, target_name: str | None = None) -> bool:
+        if not isinstance(call, dict):
+            return False
+
+        kind = str(call.get("kind") or "")
+        classification = str(call.get("classification") or "")
+        name = target_name or call.get("class_name") or call.get("function") or call.get("name")
+        name = self._normalize_python_target_name(name or "")
+
+        if kind == "constructor_call" or classification == "constructor":
+            return bool(name and name not in {"unknown_external", "unknown_external_import"})
+
+        # Uppercase unresolved function calls in Python are often constructor
+        # calls even when the extractor could not fully classify them.
+        return bool(name and name[:1].isupper() and classification in {"external", "unresolved", "internal_candidate", "internal_ambiguous"})
 
     # ------------------------------------------------------------
     # Java conservative filtering helpers

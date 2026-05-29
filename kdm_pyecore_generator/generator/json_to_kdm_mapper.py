@@ -25,6 +25,15 @@ class JsonToKDMMapper:
         self.compilation_unit_by_path = {}
         self.package_by_qualified_name = {}
 
+        # Source-file lookup for generic Python elements.  The Python extractor
+        # often emits module_id/module_qualified_name on classes, functions,
+        # methods and parameters, but those generic elements do not always carry
+        # a direct filePath/sourceFile.  These indexes let the mapper recover the
+        # physical file and attach SourceRegion without changing Java package
+        # containment.
+        self.file_path_by_module_id = {}
+        self.file_path_by_module_qualified_name = {}
+
         # Formal KDM extension support for Java annotations and Python decorators.
         self.segment = None
         self.annotation_extension_family = None
@@ -154,9 +163,6 @@ class JsonToKDMMapper:
         self.factory.add_attributes_from_dict(kdm_element, metadata)
 
     def _append_code_element(self, parent, child):
-        if parent is None or child is None:
-            return False
-
         if self.factory.has_feature(parent, "codeElement"):
             parent.codeElement.append(child)
             return True
@@ -183,6 +189,72 @@ class JsonToKDMMapper:
 
         return False
 
+    def _line_start(self, model: dict, fallback: dict = None):
+        if not isinstance(model, dict):
+            return None
+
+        value = (
+            model.get("line_start")
+            or model.get("lineStart")
+            or model.get("startLine")
+            or model.get("start_line")
+            or model.get("line")
+            or model.get("lineno")
+        )
+
+        if value is not None:
+            return value
+
+        if isinstance(fallback, dict):
+            return self._line_start(fallback)
+
+        return None
+
+    def _line_end(self, model: dict, fallback: dict = None):
+        if not isinstance(model, dict):
+            return None
+
+        value = (
+            model.get("line_end")
+            or model.get("lineEnd")
+            or model.get("endLine")
+            or model.get("end_line")
+        )
+
+        if value is not None:
+            return value
+
+        start = self._line_start(model)
+        if start is not None:
+            return start
+
+        if isinstance(fallback, dict):
+            return self._line_end(fallback)
+
+        return None
+
+    def _add_source_region_from_model(
+        self,
+        kdm_element,
+        model: dict,
+        file_model: dict = None,
+        fallback_model: dict = None,
+    ):
+        if kdm_element is None:
+            return
+
+        file_model = file_model or self._generic_file_model(model or {})
+        source_file = self._get_source_file(file_model)
+
+        self.factory.add_source_region(
+            kdm_element,
+            path=file_model.get("path") if isinstance(file_model, dict) else None,
+            language=self.language,
+            start_line=self._line_start(model or {}, fallback_model),
+            end_line=self._line_end(model or {}, fallback_model),
+            file_item=source_file,
+        )
+
     def _safe_join(self, values):
         if not values:
             return None
@@ -195,6 +267,18 @@ class JsonToKDMMapper:
 
     def _map_file(self, code_model, file_model: dict):
         path = file_model.get("path")
+
+        if path:
+            module_id = file_model.get("id")
+            module_qn = (
+                file_model.get("qualified_name")
+                or file_model.get("qualifiedName")
+                or file_model.get("name")
+            )
+            if module_id:
+                self.file_path_by_module_id.setdefault(module_id, path)
+            if module_qn:
+                self.file_path_by_module_qualified_name.setdefault(module_qn, path)
 
         # Java uses a MoDisco-like layout: Package -> ... -> ClassUnit.
         # The physical file is still represented by InventoryModel/SourceFile
@@ -255,8 +339,8 @@ class JsonToKDMMapper:
             class_unit,
             path=file_model.get("path"),
             language=self.language,
-            start_line=cls.get("line_start"),
-            end_line=cls.get("line_end"),
+            start_line=self._line_start(cls),
+            end_line=self._line_end(cls),
             file_item=source_file,
         )
 
@@ -286,8 +370,8 @@ class JsonToKDMMapper:
             method_unit,
             path=file_model.get("path"),
             language=self.language,
-            start_line=method.get("line_start"),
-            end_line=method.get("line_end"),
+            start_line=self._line_start(method),
+            end_line=self._line_end(method),
             file_item=source_file,
         )
 
@@ -298,7 +382,7 @@ class JsonToKDMMapper:
         self._register(method.get("id"), method_unit, method)
 
         for param in method.get("parameters", []):
-            self._map_parameter(method_unit, param)
+            self._map_parameter(method_unit, param, file_model=file_model, owner_callable=method)
 
         for var in method.get("local_variables", []):
             self._map_storable(method_unit, var, file_model, method)
@@ -318,8 +402,8 @@ class JsonToKDMMapper:
             callable_unit,
             path=file_model.get("path"),
             language=self.language,
-            start_line=func.get("line_start"),
-            end_line=func.get("line_end"),
+            start_line=self._line_start(func),
+            end_line=self._line_end(func),
             file_item=source_file,
         )
 
@@ -330,7 +414,7 @@ class JsonToKDMMapper:
         self._register(func.get("id"), callable_unit, func)
 
         for param in func.get("parameters", []):
-            self._map_parameter(callable_unit, param)
+            self._map_parameter(callable_unit, param, file_model=file_model, owner_callable=func)
 
         for var in func.get("local_variables", []):
             self._map_storable(callable_unit, var, file_model, func)
@@ -338,7 +422,13 @@ class JsonToKDMMapper:
         for var in func.get("context_variables", []):
             self._map_storable(callable_unit, var, file_model, func)
 
-    def _map_parameter(self, parent, param: dict):
+    def _map_parameter(
+        self,
+        parent,
+        param: dict,
+        file_model: dict = None,
+        owner_callable: dict = None,
+    ):
         parameter_unit = self.factory.create_parameter_unit(
             param.get("name", "param")
         )
@@ -347,6 +437,13 @@ class JsonToKDMMapper:
             parent.parameterUnit.append(parameter_unit)
         else:
             parent.codeElement.append(parameter_unit)
+
+        self._add_source_region_from_model(
+            parameter_unit,
+            param,
+            file_model=file_model,
+            fallback_model=owner_callable,
+        )
 
         self._apply_parameter_native_properties(parameter_unit, param)
         self._add_native_annotations(parameter_unit, param)
@@ -496,6 +593,9 @@ class JsonToKDMMapper:
         return parent
 
     def _generic_file_model(self, element_or_relation: dict):
+        if not isinstance(element_or_relation, dict):
+            return {}
+
         path = (
             element_or_relation.get("filePath")
             or element_or_relation.get("file_path")
@@ -503,6 +603,22 @@ class JsonToKDMMapper:
             or element_or_relation.get("source_file")
             or element_or_relation.get("path")
         )
+
+        if not path:
+            module_id = element_or_relation.get("module_id") or element_or_relation.get("moduleId")
+            module_qn = (
+                element_or_relation.get("module_qualified_name")
+                or element_or_relation.get("moduleQualifiedName")
+                or element_or_relation.get("module")
+                or element_or_relation.get("packageName")
+                or element_or_relation.get("package_name")
+            )
+
+            if module_id:
+                path = self.file_path_by_module_id.get(module_id)
+
+            if not path and module_qn:
+                path = self.file_path_by_module_qualified_name.get(module_qn)
 
         return {"path": path} if path else {}
 
@@ -539,8 +655,8 @@ class JsonToKDMMapper:
             class_unit,
             path=file_model.get("path"),
             language=self.language,
-            start_line=element.get("line_start") or element.get("lineStart"),
-            end_line=element.get("line_end") or element.get("lineEnd"),
+            start_line=self._line_start(element),
+            end_line=self._line_end(element),
             file_item=source_file,
         )
 
@@ -585,8 +701,8 @@ class JsonToKDMMapper:
             callable_unit,
             path=file_model.get("path"),
             language=self.language,
-            start_line=element.get("line_start") or element.get("lineStart"),
-            end_line=element.get("line_end") or element.get("lineEnd"),
+            start_line=self._line_start(element),
+            end_line=self._line_end(element),
             file_item=source_file,
         )
 
@@ -684,8 +800,8 @@ class JsonToKDMMapper:
             method_unit,
             path=file_model.get("path"),
             language=self.language,
-            start_line=method.get("line_start") or method.get("lineStart"),
-            end_line=method.get("line_end") or method.get("lineEnd"),
+            start_line=self._line_start(method),
+            end_line=self._line_end(method),
             file_item=source_file,
         )
 
@@ -724,6 +840,14 @@ class JsonToKDMMapper:
             param.get("name", "param")
         )
         self._append_parameter_unit(parent, parameter_unit)
+
+        file_model = self._generic_file_model(owner_callable or param)
+        self._add_source_region_from_model(
+            parameter_unit,
+            param,
+            file_model=file_model,
+            fallback_model=owner_callable,
+        )
 
         resolved_type = (
             param.get("resolvedType")
@@ -802,14 +926,12 @@ class JsonToKDMMapper:
 
         file_model = self._generic_file_model(owner_element or owner_callable)
         source_file = self._get_source_file(file_model)
-        line = local_var.get("line") or local_var.get("lineStart") or local_var.get("line_start")
-
         self.factory.add_source_region(
             storable_unit,
             path=file_model.get("path"),
             language=self.language,
-            start_line=line,
-            end_line=line,
+            start_line=self._line_start(local_var),
+            end_line=self._line_end(local_var),
             file_item=source_file,
         )
 
@@ -1808,13 +1930,13 @@ class JsonToKDMMapper:
             default_kind=access_kind,
         )
 
-        if action is None:
-            return
-
         target = self._resolve_access_target(
             relationship.get("target"),
             relationship.get("source"),
         )
+
+        if action is None:
+            return
 
         if target is None:
             return
@@ -1902,10 +2024,10 @@ class JsonToKDMMapper:
             default_kind="constructor",
         )
 
+        target = self._resolve_indexed_element(relationship.get("target"))
+
         if action is None:
             return
-
-        target = self._resolve_indexed_element(relationship.get("target"))
 
         if target is None:
             # No reliable create target could be resolved. Do not emit
@@ -1934,10 +2056,10 @@ class JsonToKDMMapper:
             default_kind="throw",
         )
 
+        target = self._resolve_indexed_element(relationship.get("target"))
+
         if action is None:
             return
-
-        target = self._resolve_indexed_element(relationship.get("target"))
 
         if target is None:
             self.factory.add_attributes_from_dict(
@@ -1962,13 +2084,27 @@ class JsonToKDMMapper:
         default_name: str,
         default_kind: str,
     ):
+        """Return an ActionElement that can safely own action relations.
+
+        Generic Python relationships may use a StorableUnit, ParameterUnit or
+        another DataElement as their source.  Those elements are not executable
+        containers in KDM and their ``codeElement`` reference is typed as
+        ``Datatype``; inserting a BlockUnit there makes the XMI invalid.
+        Therefore, only MethodUnit, CallableUnit and existing ActionElement
+        sources are accepted for synthetic relationship actions.
+        """
         if source is None:
             return None
 
         try:
-            if source.eClass.name == "ActionElement":
-                return source
+            source_type = source.eClass.name
         except AttributeError:
+            return None
+
+        if source_type == "ActionElement":
+            return source
+
+        if source_type not in {"MethodUnit", "CallableUnit"}:
             return None
 
         body_block = self._get_or_create_callable_body(source)
@@ -1979,6 +2115,7 @@ class JsonToKDMMapper:
             relationship.get("line")
             or relationship.get("lineStart")
             or relationship.get("line_start")
+            or relationship.get("startLine")
         )
 
         action = self._find_body_action_by_line(body_block, line)
@@ -2003,7 +2140,9 @@ class JsonToKDMMapper:
             file_item=source_file,
         )
 
-        self._append_code_element(body_block, action)
+        if not self._append_code_element(body_block, action):
+            return None
+
         return action
 
     def _find_body_action_by_line(self, body_block, line):
@@ -2069,33 +2208,32 @@ class JsonToKDMMapper:
         return before_args.rsplit(".", 1)[0]
 
     def _get_or_create_callable_body(self, callable_unit):
-        """
-        Returns the body BlockUnit of a MethodUnit or CallableUnit.
+        """Return the body BlockUnit of a MethodUnit or CallableUnit only.
 
-        KDM validation requires executable ActionElement nodes to be contained
-        in a BlockUnit, not directly inside MethodUnit or CallableUnit.
-        Only MethodUnit and CallableUnit can own executable bodies here.
-        DataElement/StorableUnit/ParameterUnit may also expose a ``codeElement``
-        feature in the KDM metamodel, but their feature is typed for Datatype
-        containment and cannot accept BlockUnit.
+        Do not create a BlockUnit for DataElement, StorableUnit or ParameterUnit.
+        In KDM those elements may expose a ``codeElement`` feature, but that
+        feature is typed as ``Datatype`` and cannot contain action::BlockUnit.
         """
         if callable_unit is None:
             return None
 
         try:
-            eclass_name = callable_unit.eClass.name
+            callable_type = callable_unit.eClass.name
         except AttributeError:
             return None
 
-        if eclass_name not in {"MethodUnit", "CallableUnit"}:
+        if callable_type not in {"MethodUnit", "CallableUnit"}:
             return None
 
         if not self.factory.has_feature(callable_unit, "codeElement"):
             return None
 
-        for child in callable_unit.codeElement:
-            if getattr(child.eClass, "name", None) == "BlockUnit":
-                return child
+        for child in list(getattr(callable_unit, "codeElement", []) or []):
+            try:
+                if child.eClass.name == "BlockUnit":
+                    return child
+            except AttributeError:
+                continue
 
         block = self.factory.create_block_unit(name="body", kind="body")
 
