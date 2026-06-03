@@ -1,0 +1,109 @@
+{
+  "pymape_hierarchical": {
+    "min_counts": {
+      "Imports": 150,
+      "Extends": 50,
+      "Implements": 1,
+      "Calls": 800,
+      "Creates": 80,
+      "Reads": 900,
+      "Writes": 500,
+      "Throws": 30,
+      "ExceptionFlow": 10,
+      "HasType": 430,
+      "HasValue": 200
+    },
+    "min_source_region": {
+      "MethodUnit": 248,
+      "ParameterUnit": 750,
+      "StorableUnit": 580,
+      "ActionElement": 2000,
+      "TryUnit": 10,
+      "CatchUnit": 10
+    },
+    "forbidden_external_library_roots": {
+      "model_names": [
+        "ExternalLibraries_CodeModel"
+      ],
+      "names": [
+        "self",
+        "logger",
+        "mape",
+        "ops",
+        "np",
+        "path",
+        "task",
+        "cfg"
+      ]
+    },
+    "forbidden_external_library_prefixes": {
+      "model_names": [
+        "ExternalLibraries_CodeModel"
+      ],
+      "prefixes": [
+        "builtin_type:",
+        "external:"
+      ]
+    }
+  },
+  "phoneadapter": {
+    "min_counts": {
+      "Imports": 250,
+      "Extends": 10,
+      "Implements": 1,
+      "Calls": 2300,
+      "Creates": 130,
+      "Reads": 3800,
+      "Writes": 1450,
+      "HasType": 1900,
+      "HasValue": 200
+    },
+    "min_source_region": {
+      "MethodUnit": 480,
+      "StorableUnit": 1300,
+      "ActionElement": 5800
+    },
+    "forbidden_names_global": [
+      "PythonBuiltins",
+      "JavaBuiltins"
+    ]
+  },
+  "demo_java_project": {
+    "min_counts": {
+      "Imports": 20,
+      "Calls": 40,
+      "Creates": 3,
+      "Reads": 100,
+      "Writes": 40,
+      "Throws": 1,
+      "HasType": 50,
+      "HasValue": 10
+    },
+    "min_source_region": {
+      "MethodUnit": 15,
+      "ActionElement": 150
+    },
+    "forbidden_names_global": [
+      "PythonBuiltins",
+      "JavaBuiltins"
+    ]
+  },
+  "python": {
+    "min_counts": {
+      "Calls": 1,
+      "Reads": 1,
+      "Writes": 1
+    }
+  },
+  "java": {
+    "min_counts": {
+      "Calls": 1,
+      "Reads": 1,
+      "Writes": 1
+    },
+    "forbidden_names_global": [
+      "PythonBuiltins",
+      "JavaBuiltins"
+    ]
+  }
+}
