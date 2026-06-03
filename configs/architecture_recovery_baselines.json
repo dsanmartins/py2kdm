@@ -1,0 +1,110 @@
+{
+  "phoneadapter": {
+    "expected_decision": "candidate_autonomic_system",
+    "expected_status": "mapek_recovery_enabled",
+    "expected_mapek_recovery": "enabled",
+    "min_score": 0.8,
+    "expected_matched_rules": [
+      "SAS-GATE-01",
+      "SAS-GATE-03",
+      "SAS-GATE-04",
+      "SAS-GATE-05",
+      "SAS-GATE-07"
+    ],
+    "required_roles": [
+      "Monitor",
+      "Analyzer",
+      "Planner",
+      "Executor",
+      "Knowledge"
+    ],
+    "expected_roles_by_component": {
+      "ContextManager": [
+        "Monitor",
+        "Sensor",
+        "LoopManager"
+      ],
+      "AdaptationManager": [
+        "Analyzer",
+        "Planner",
+        "Executor",
+        "Effector"
+      ],
+      "MyDbAdapter": [
+        "Knowledge"
+      ]
+    },
+    "optional_roles_by_component": {
+      "MyDbHelper": [
+        "Knowledge"
+      ]
+    },
+    "forbidden_roles_by_component": {
+      "MyDbAdapter": [
+        "Analyzer",
+        "Planner",
+        "Executor",
+        "Monitor",
+        "Sensor",
+        "Effector",
+        "LoopManager"
+      ],
+      "MyDbHelper": [
+        "Analyzer",
+        "Planner",
+        "Executor",
+        "Monitor",
+        "Sensor",
+        "Effector",
+        "LoopManager"
+      ],
+      "ContextManager": [
+        "Analyzer",
+        "Planner",
+        "Executor",
+        "Knowledge",
+        "Effector"
+      ],
+      "AdaptationManager": [
+        "Knowledge",
+        "Monitor",
+        "Sensor"
+      ]
+    },
+    "min_components_count": 8,
+    "min_control_loops_count": 1,
+    "min_subsystems_count": 2,
+    "min_structure_relationships_count": 15,
+    "require_complete_loop": true,
+    "required_loop_roles": [
+      "Monitor",
+      "Analyzer",
+      "Planner",
+      "Executor",
+      "Knowledge"
+    ],
+    "min_loop_confidence": 0.75,
+    "forbidden_component_suffixes": [
+      "Activity"
+    ],
+    "forbidden_component_names": [
+      "R",
+      "BuildConfig"
+    ]
+  },
+  "pymape_hierarchical": {
+    "min_score": 0.5,
+    "required_roles": [
+      "Monitor",
+      "Analyzer",
+      "Planner",
+      "Executor",
+      "Knowledge"
+    ],
+    "min_components_count": 5,
+    "min_control_loops_count": 1
+  },
+  "default": {
+    "min_score": 0.5
+  }
+}
