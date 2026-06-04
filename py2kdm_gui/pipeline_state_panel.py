@@ -21,11 +21,9 @@ class PipelineStatePanel(QWidget):
 
     STEPS = [
         ("static_extraction", "Static extraction", None),
-        ("dynamic_analysis", "Dynamic analysis", None),
+        ("dynamic_analysis", "Dynamic analysis (Python)", None),
         ("architecture_recovery", "Architecture recovery", None),
-        ("pre_review_agents", "Pre-review agents", None),
-        ("human_review", "Human review export", None),
-        ("final_kdm", "Final KDM generation", "model.reviewed.kdm.xmi"),
+        ("structure_kdm", "KDM generation", "model.structure.kdm.xmi"),
     ]
 
     def __init__(self, parent=None):
@@ -102,6 +100,7 @@ class PipelineStatePanel(QWidget):
             "pre_review_runtime": output_dir / f"{basename}.runtime_enriched.ai_architecture.json",
             "pre_review_static": output_dir / f"{basename}.ai_architecture.json",
             "human_review": output_dir / f"{basename}.reviewed_architecture.json",
+            "structure_kdm": output_dir / "model.structure.kdm.xmi",
             "final_kdm": output_dir / "model.reviewed.kdm.xmi",
         }
 
@@ -121,6 +120,7 @@ class PipelineStatePanel(QWidget):
                 artifacts["pre_review_static"],
             ),
             "human_review": "done" if artifacts["human_review"].exists() else "pending",
+            "structure_kdm": "done" if artifacts["structure_kdm"].exists() else "pending",
             "final_kdm": "done" if artifacts["final_kdm"].exists() else "pending",
         }
 
@@ -172,6 +172,9 @@ class PipelineStatePanel(QWidget):
 
         if step_id == "human_review":
             return output_dir / f"{basename}.reviewed_architecture.json"
+
+        if step_id == "structure_kdm":
+            return output_dir / "model.structure.kdm.xmi"
 
         if step_id == "final_kdm":
             return output_dir / "model.reviewed.kdm.xmi"

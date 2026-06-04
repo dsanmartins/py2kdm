@@ -1,85 +1,50 @@
-# py2kdm
+# py2kdm documentation
 
-**Author:** [Daniel San Martín](https://www.danielsanmartin.cl/)
+This documentation describes the current `py2kdm` system in a compact form. It focuses on what the system does, how each subproject is executed, how the full pipeline is configured, which artifacts are produced, how KDM is constructed, and how deterministic and LLM-assisted architecture agents operate.
 
-`py2kdm` is a model-driven reverse-engineering workbench for generating validated KDM XMI models from Python and Java projects. It combines static extraction, optional runtime evidence, architecture recovery, human review, and KDM generation using the KDM 1.4 Ecore metamodel.
+## Recommended reading order
 
-The current workflow is organized around two complementary interfaces:
+1. [System purpose](01-system-purpose.md)
+2. [Subprojects and standalone execution](02-subprojects-cli.md)
+3. [Pipeline execution](03-run-pipeline.md)
+4. [Project configuration files](04-config-files.md)
+5. [Technical artifacts and KDM construction](05-technical-artifacts-kdm.md)
+6. [Architecture agents](06-architecture-agents.md)
 
-- a **GUI workbench** for configuration, pipeline execution, human review, traceability inspection, and artifact inspection;
-- a **console pipeline** through `run_pipeline.py` for reproducible command-line execution, KDM validation and regression checks.
-
-## Main workflows
-
-### Direct KDM generation
+## Current high-level flow
 
 ```text
-Python or Java source project
-  -> static extraction
+source project
   -> intermediate JSON
+  -> optional runtime-enriched JSON
+  -> architecture JSON
+  -> optional AI architecture JSON
+  -> optional reviewed architecture JSON
   -> KDM XMI
-  -> KDM validation
-  -> regression checks
 ```
 
-### Architecture-oriented workflow
+## Main outputs
 
-```text
-Python project
-  -> static extraction
-  -> optional dynamic analysis
-  -> architecture recovery
-  -> pre-review suggestions
-  -> human review
-  -> reviewed architecture JSON
-  -> final KDM XMI
-```
+| Artifact | Meaning |
+|---|---|
+| `python_model.json` / `java_model.json` | Static intermediate code model. |
+| `runtime_trace.<scenario>.json` | Runtime evidence collected from a Python scenario. |
+| `*.runtime_enriched.combined.json` | Static model enriched with runtime evidence. |
+| `*.architecture.json` | Deterministic architecture recovery output. |
+| `*.ai_architecture.json` | Architecture output enriched with pre-review suggestions and code context. |
+| `*.reviewed_architecture.json` | Human-reviewed architecture model. |
+| `model.kdm.xmi` | Base KDM, usually generated from the intermediate model. |
+| `model.structure.kdm.xmi` | KDM generated from architecture JSON, including `StructureModel`. |
+| `model.reviewed.kdm.xmi` | KDM generated from the human-reviewed architecture JSON. |
 
-The reviewed architecture JSON is authoritative. Pre-review agents produce reviewable suggestions, but no default post-review agent modifies the reviewed model before KDM generation.
+## Documentation map
 
-## Language support
+This documentation is organized around the main use cases of the project:
 
-| Language | Extractor | Main intermediate artifact |
-|---|---|---|
-| Python | `python_kdm_extractor` | `python_model.json` |
-| Java | `java2kdm` JAR | `java_model.json` |
-
-Both Python and Java KDM models include structural and behavioral elements when the extractor provides enough evidence.
-
-## Behavioral KDM coverage
-
-The KDM generator maps body-level behavior to KDM elements and relations such as:
-
-```text
-ActionElement
-BlockUnit
-Calls
-Reads
-Writes
-Creates
-Throws
-TryUnit
-CatchUnit
-ExceptionFlow
-HasValue
-Value
-```
-
-Java annotations and Python decorators are represented using native KDM annotations and formal extension mechanisms:
-
-```text
-kdm:Annotation
-Stereotype
-TaggedValue
-```
-
-## Regression checks
-
-The console pipeline can run integrated regression checks after KDM generation. These checks protect against common regressions such as:
-
-- executable actions directly under `MethodUnit` or `CallableUnit`;
-- `return` actions without `Reads` or `return_flow="void"`;
-- source regions without file or path;
-- debug or redundant attributes in the final XMI.
-
-See [KDM Regression Checks](kdm_regression_checks.md).
+1. system purpose;
+2. subprojects and command-line execution;
+3. complete pipeline execution;
+4. configuration files;
+5. technical artifacts and KDM construction;
+6. architecture agents;
+7. graphical user interface.

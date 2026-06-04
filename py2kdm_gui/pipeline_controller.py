@@ -134,6 +134,7 @@ class PipelineController(QObject):
         self,
         input_json: Path,
         output_json: Path,
+        code_context_input: Path | None = None,
         llm_provider: str = "none",
         llm_model: str | None = None,
         llm_timeout: int = 300,
@@ -155,6 +156,9 @@ class PipelineController(QObject):
 
         if llm_model:
             command.extend(["--llm-model", llm_model])
+
+        if code_context_input is not None:
+            command.extend(["--code-context-input", str(code_context_input)])
 
         self._run(
             step_name="Pre-review architecture agents",

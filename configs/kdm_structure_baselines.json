@@ -1,0 +1,84 @@
+{
+  "phoneadapter": {
+    "require_structure_model": true,
+    "require_adaptive_domain": true,
+    "forbid_explicit_in_out_aggregated": true,
+    "require_aggregated_required_fields": true,
+    "min_counts": {
+      "StructureModel": 1,
+      "SoftwareSystem": 1,
+      "ArchitectureView": 1,
+      "Subsystem": 2,
+      "Component": 8,
+      "StructureRelationship": 15,
+      "AggregatedRelationship": 15
+    },
+    "min_components_with_stereotype": 8,
+    "min_components_with_implementation": 3,
+    "min_aggregated_relationships": 15,
+    "min_aggregated_with_required_fields": 15,
+    "required_roles": [
+      "Monitor",
+      "Analyzer",
+      "Planner",
+      "Executor",
+      "Knowledge"
+    ],
+    "required_stereotypes": [
+      "Monitor",
+      "Analyzer",
+      "Planner",
+      "Executor",
+      "Knowledge",
+      "Control Loop",
+      "Managing Subsystem",
+      "Managed Subsystem"
+    ]
+  },
+  "pymape_hierarchical": {
+    "require_structure_model": true,
+    "require_adaptive_domain": true,
+    "forbid_explicit_in_out_aggregated": true,
+    "require_aggregated_required_fields": true,
+    "min_counts": {
+      "StructureModel": 1,
+      "SoftwareSystem": 1,
+      "ArchitectureView": 1,
+      "Subsystem": 2,
+      "Component": 17,
+      "StructureRelationship": 30,
+      "AggregatedRelationship": 30
+    },
+    "min_components_with_stereotype": 17,
+    "min_components_with_implementation": 15,
+    "min_aggregated_relationships": 30,
+    "min_aggregated_with_required_fields": 30,
+    "required_roles": [
+      "Monitor",
+      "Analyzer",
+      "Planner",
+      "Executor",
+      "Knowledge"
+    ],
+    "required_stereotypes": [
+      "Monitor",
+      "Analyzer",
+      "Planner",
+      "Executor",
+      "Knowledge",
+      "Control Loop",
+      "Managing Subsystem",
+      "Managed Subsystem"
+    ]
+  },
+  "default": {
+    "require_structure_model": true,
+    "require_adaptive_domain": true,
+    "forbid_explicit_in_out_aggregated": true,
+    "require_aggregated_required_fields": true,
+    "min_counts": {
+      "StructureModel": 1,
+      "Component": 1
+    }
+  }
+}

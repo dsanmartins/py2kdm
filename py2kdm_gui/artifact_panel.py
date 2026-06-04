@@ -51,6 +51,10 @@ class ArtifactPanel(QWidget):
         "python_model.reviewed_architecture.json": (
             "Human-reviewed architecture JSON. This is the input used for final KDM generation."
         ),
+        "model.structure.kdm.xmi": (
+            "Architecture-enriched KDM XMI generated from architecture_json. "
+            "It contains InventoryModel, CodeModel, Action elements and StructureModel."
+        ),
         "model.reviewed.kdm.xmi": (
             "Final KDM XMI model generated from the reviewed architecture."
         ),
@@ -445,9 +449,16 @@ class ArtifactPanel(QWidget):
         lines.append("Approximate XMI counters:")
         lines.append(f"  action:Calls: {text.count('xsi:type=\"action:Calls\"')}")
         lines.append(f"  runtime_call labels: {text.count('runtime_call:')}")
+        has_structure_model = "structure:StructureModel" in text
+        has_adaptive_domain = "Adaptive System Domain" in text
+
+        lines.append(f"  StructureModel present: {has_structure_model}")
+        lines.append(f"  Adaptive System Domain present: {has_adaptive_domain}")
         lines.append(f"  structure:Component: {text.count('xsi:type=\"structure:Component\"')}")
         lines.append(f"  structure:Subsystem: {text.count('xsi:type=\"structure:Subsystem\"')}")
         lines.append(f"  structure:StructureRelationship: {text.count('xsi:type=\"structure:StructureRelationship\"')}")
+        lines.append(f"  aggregatedRelation: {text.count('aggregatedRelation')}")
+        lines.append(f"  implementation links: {text.count('implementation=')}")
         lines.append(f"  extensionFamily: {text.count('extensionFamily')}")
         lines.append("")
         lines.append("Preview:")
@@ -513,6 +524,7 @@ class ArtifactPanel(QWidget):
             "python_model.runtime_enriched.ai_architecture.json": 40,
             "python_model.ai_architecture.json": 41,
             "python_model.reviewed_architecture.json": 50,
+            "model.structure.kdm.xmi": 55,
             "model.reviewed.kdm.xmi": 60,
         }
 

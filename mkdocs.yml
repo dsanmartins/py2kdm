@@ -1,41 +1,19 @@
 site_name: py2kdm
 site_author: "Daniel San Martín"
-extra:
-  author_url: "https://www.danielsanmartin.cl/"
 site_description: KDM-based reverse engineering workbench for Python and Java projects
 copyright: 'Author: <a href="https://www.danielsanmartin.cl/">Daniel San Martín</a>'
+extra:
+  author_url: "https://www.danielsanmartin.cl/"
 
 theme:
   name: material
 
 nav:
   - Home: index.md
-  - User Guide:
-      - GUI Workflow: gui_workflow.md
-      - GUI Configuration: gui_configuration.md
-      - GUI Process Tab: gui_process.md
-      - Architecture Review GUI: architecture_review_gui.md
-      - Human Review: human_review.md
-      - Artifact Reference: artifact_reference.md
-      - CLI Usage: cli_usage.md
-      - Pipeline Configuration: pipeline_configuration.md
-      - Examples and Case Studies: examples.md
-  - Pipeline Internals:
-      - Architecture: architecture.md
-      - Python Extractor: python_extractor.md
-      - Java Extractor: java_extractor.md
-      - Intermediate JSON Model: intermediate_json_model.md
-      - Dynamic Analysis: dynamic_analysis.md
-      - Dynamic Scenarios: dynamic_scenarios.md
-      - Architecture Recovery: architecture_recovery.md
-      - MAPE-K Recovery Rules: mapek_recovery_rules.md
-      - Structure Model Mapping: structure_model_mapping.md
-      - Architecture Agents: architecture_agents.md
-      - JSON to KDM Mapping: json_to_kdm_mapping.md
-      - Validation Rules: validation_rules.md
-      - KDM Regression Checks: kdm_regression_checks.md
-  - Development:
-      - Development Guide: development_guide.md
-      - Testing Strategy: testing_strategy.md
-      - JSON Schemas: json_schemas.md
-      - Limitations: limitations.md
+  - 1. System purpose: 01-system-purpose.md
+  - 2. Subprojects and standalone execution: 02-subprojects-cli.md
+  - 3. Pipeline execution: 03-run-pipeline.md
+  - 4. Project configuration files: 04-config-files.md
+  - 5. Technical artifacts and KDM construction: 05-technical-artifacts-kdm.md
+  - 6. Architecture agents: 06-architecture-agents.md
+  - 7. Graphical User Interface: 07-gui.md

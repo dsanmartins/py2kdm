@@ -87,6 +87,20 @@ class PipelinePanel(QWidget):
         config_layout.addWidget(self._project_group())
         config_layout.addWidget(self._dynamic_group())
         config_layout.addWidget(self._agents_group())
+
+        config_actions = QHBoxLayout()
+        self.validate_setup_btn = QPushButton("Validate setup")
+        config_actions.addWidget(self.validate_setup_btn)
+        config_actions.addStretch(1)
+        config_layout.addLayout(config_actions)
+
+        self.setup_validation_report = QTextEdit()
+        self.setup_validation_report.setReadOnly(True)
+        self.setup_validation_report.setMaximumHeight(150)
+        self.setup_validation_report.setPlaceholderText(
+            "Press Validate setup to check project paths, scenarios and LLM settings."
+        )
+        config_layout.addWidget(self.setup_validation_report)
         config_layout.addStretch(1)
 
         self.process_widget = QWidget()
@@ -96,17 +110,6 @@ class PipelinePanel(QWidget):
 
         self.state_panel = PipelineStatePanel()
         layout.addWidget(self._state_group())
-
-        self.setup_validation_report = QTextEdit()
-        self.setup_validation_report.setReadOnly(True)
-        self.setup_validation_report.setMaximumHeight(150)
-        self.setup_validation_report.setPlaceholderText(
-            "Press Validate setup to check project paths, scenarios and LLM settings."
-        )
-        layout.addWidget(self.setup_validation_report)
-
-        self.summary_label = QLabel("No artifact summary loaded.")
-        layout.addWidget(self.summary_label)
 
         self.kdm_generation_summary_panel = QPlainTextEdit()
         self.kdm_generation_summary_panel.setReadOnly(True)
@@ -256,19 +259,15 @@ class PipelinePanel(QWidget):
         manual = QHBoxLayout()
 
         self.run_static_btn = QPushButton("1. Static extraction")
-        self.run_dynamic_btn = QPushButton("2. Dynamic analysis")
+        self.run_dynamic_btn = QPushButton("2. Dynamic analysis (Python)")
         self.run_recovery_btn = QPushButton("3. Architecture recovery")
-        self.run_agents_btn = QPushButton("4. Pre-review agents")
-        self.load_review_btn = QPushButton("5. Load for review")
-        self.generate_kdm_btn = QPushButton("6. Generate final KDM")
+        self.generate_structure_kdm_btn = QPushButton("4. Generate KDM")
 
         for button in [
             self.run_static_btn,
             self.run_dynamic_btn,
             self.run_recovery_btn,
-            self.run_agents_btn,
-            self.load_review_btn,
-            self.generate_kdm_btn,
+            self.generate_structure_kdm_btn,
         ]:
             manual.addWidget(button)
 
@@ -277,15 +276,9 @@ class PipelinePanel(QWidget):
         auto = QHBoxLayout()
 
         self.refresh_state_btn = QPushButton("Refresh state")
-        self.validate_setup_btn = QPushButton("Validate setup")
-        self.run_until_review_btn = QPushButton("Run until Human Review")
-        self.run_pre_review_pipeline_btn = QPushButton("Run full pre-review pipeline")
         self.clean_outputs_btn = QPushButton("Clean project outputs")
 
         auto.addWidget(self.refresh_state_btn)
-        auto.addWidget(self.validate_setup_btn)
-        auto.addWidget(self.run_until_review_btn)
-        auto.addWidget(self.run_pre_review_pipeline_btn)
         auto.addWidget(self.clean_outputs_btn)
         auto.addStretch(1)
 
@@ -319,14 +312,10 @@ class PipelinePanel(QWidget):
         self.run_static_btn.clicked.connect(self.run_static_extraction)
         self.run_dynamic_btn.clicked.connect(self.run_dynamic_analysis)
         self.run_recovery_btn.clicked.connect(self.run_architecture_recovery)
-        self.run_agents_btn.clicked.connect(self.run_pre_review_agents)
-        self.load_review_btn.clicked.connect(self.load_for_review)
-        self.generate_kdm_btn.clicked.connect(self.generate_final_kdm)
+        self.generate_structure_kdm_btn.clicked.connect(self.generate_structure_kdm)
 
         self.refresh_state_btn.clicked.connect(self.refresh_state)
         self.validate_setup_btn.clicked.connect(self.validate_setup)
-        self.run_until_review_btn.clicked.connect(self.run_until_human_review)
-        self.run_pre_review_pipeline_btn.clicked.connect(self.run_until_human_review)
         self.clean_outputs_btn.clicked.connect(self.clean_project_outputs)
 
         self.llm_provider_combo.currentTextChanged.connect(self._refresh_env_status)
@@ -680,6 +669,10 @@ class PipelinePanel(QWidget):
         return self.output_dir / f"{self.model_basename}.reviewed_architecture.json"
 
     @property
+    def structure_kdm_xmi(self) -> Path:
+        return self.output_dir / "model.structure.kdm.xmi"
+
+    @property
     def final_kdm_xmi(self) -> Path:
         return self.output_dir / "model.reviewed.kdm.xmi"
 
@@ -689,7 +682,6 @@ class PipelinePanel(QWidget):
         # even if the user saved it outside the default output directory.
 
         self.reviewed_architecture_path_override = Path(path).expanduser().resolve()
-        self.generate_kdm_btn.setEnabled(self.reviewed_architecture_json.exists())
         self.refresh_state()
 
     def _browse_project(self):
@@ -990,6 +982,10 @@ class PipelinePanel(QWidget):
         self.controller.run_pre_review_agents(
             input_json=self.architecture_json,
             output_json=self.ai_architecture_json,
+            code_context_input=self.runtime_enriched_json
+            if self.dynamic_analysis_enabled_for_current_language()
+            and self.runtime_enriched_json.exists()
+            else self.intermediate_json,
             llm_provider=self.llm_provider_combo.currentText(),
             llm_model=self.llm_model_edit.text().strip() or None,
             llm_timeout=self.llm_timeout_spin.value(),
@@ -1011,6 +1007,23 @@ class PipelinePanel(QWidget):
             return
 
         self.proposal_ready.emit(str(input_json))
+
+    def generate_structure_kdm(self):
+        input_json = self.architecture_json
+
+        if not input_json.exists():
+            QMessageBox.warning(
+                self,
+                "Missing architecture JSON",
+                "Run architecture recovery first.",
+            )
+            return
+
+        self.controller.run_kdm_generation(
+            input_json=input_json,
+            output_xmi=self.structure_kdm_xmi,
+            validate=True,
+        )
 
     def generate_final_kdm(self):
         input_json = self.reviewed_architecture_json
@@ -1157,7 +1170,6 @@ class PipelinePanel(QWidget):
             self.kdm_generation_summary_panel.clear()
 
         self._reset_reviewed_override_after_clean(output_dir)
-        self.summary_label.setText("Outputs cleaned.")
         self.refresh_state()
         self.outputs_cleaned.emit(str(output_dir))
 
@@ -1191,12 +1203,6 @@ class PipelinePanel(QWidget):
         static_done = state.get("static_extraction") == "done"
         dynamic_done_or_skipped = state.get("dynamic_analysis") in {"done", "skipped", "disabled"}
         recovery_done = state.get("architecture_recovery") == "done"
-        agents_done = state.get("pre_review_agents") == "done"
-        review_done = (
-            state.get("human_review") == "done"
-            or self.reviewed_architecture_json.exists()
-        )
-
         self.run_static_btn.setEnabled(setup_ready)
         self.run_dynamic_btn.setEnabled(
             setup_ready
@@ -1204,11 +1210,7 @@ class PipelinePanel(QWidget):
             and self.dynamic_analysis_enabled_for_current_language()
         )
         self.run_recovery_btn.setEnabled(setup_ready and static_done and dynamic_done_or_skipped)
-        self.run_agents_btn.setEnabled(setup_ready and recovery_done)
-        self.load_review_btn.setEnabled(setup_ready and (recovery_done or agents_done))
-        self.generate_kdm_btn.setEnabled(setup_ready and review_done)
-        self.run_until_review_btn.setEnabled(setup_ready)
-        self.run_pre_review_pipeline_btn.setEnabled(setup_ready)
+        self.generate_structure_kdm_btn.setEnabled(setup_ready and recovery_done)
 
     # ------------------------------------------------------------
     # Controller feedback
@@ -1239,7 +1241,10 @@ class PipelinePanel(QWidget):
             elif step_name == "Pre-review architecture agents":
                 self._update_summary(self.ai_architecture_json)
             elif step_name == "Final KDM generation":
-                self._append_log(f"Final KDM: {self.final_kdm_xmi}")
+                if self.structure_kdm_xmi.exists():
+                    self._append_log(f"Structure KDM: {self.structure_kdm_xmi}")
+                if self.final_kdm_xmi.exists():
+                    self._append_log(f"Reviewed KDM: {self.final_kdm_xmi}")
 
             self._continue_auto_queue()
         else:
@@ -1254,8 +1259,15 @@ class PipelinePanel(QWidget):
         if step_name != "Final KDM generation":
             return
 
+        output_path = (
+            self.structure_kdm_xmi
+            if self.structure_kdm_xmi.exists()
+            and not self.final_kdm_xmi.exists()
+            else self.final_kdm_xmi
+        )
+
         summary = build_kdm_generation_summary(
-            output_path=self.final_kdm_xmi,
+            output_path=output_path,
             command_output=command_output,
         )
         self.kdm_generation_summary_panel.setPlainText(summary.to_text())
@@ -1280,13 +1292,9 @@ class PipelinePanel(QWidget):
             self.run_static_btn,
             self.run_dynamic_btn,
             self.run_recovery_btn,
-            self.run_agents_btn,
-            self.load_review_btn,
-            self.generate_kdm_btn,
+            self.generate_structure_kdm_btn,
             self.refresh_state_btn,
             self.validate_setup_btn,
-            self.run_until_review_btn,
-            self.run_pre_review_pipeline_btn,
             self.clean_outputs_btn,
             self.load_config_btn,
             self.save_config_btn,
@@ -1316,24 +1324,9 @@ class PipelinePanel(QWidget):
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def _update_summary(self, path: Path):
-        if not path.exists():
-            return
-
-        try:
-            summary = summarize_json(path)
-        except Exception as exc:
-            self.summary_label.setText(f"Could not summarize {path}: {exc}")
-            return
-
-        self.summary_label.setText(
-            "Artifact summary: "
-            f"{path.name} | "
-            f"files={summary.get('files')} | "
-            f"relationships={summary.get('relationships')} | "
-            f"components={summary.get('components')} | "
-            f"loops={summary.get('control_loops')} | "
-            f"ai={summary.get('ai_enrichment')}"
-        )
+        # Artifact summaries are shown in the Artifacts tab.
+        # The Process tab only reports command execution and validation output.
+        return
 
     def _refresh_env_status(self):
         provider = self.llm_provider_combo.currentText()
