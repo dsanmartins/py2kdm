@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections import Counter, defaultdict
 from typing import Any
 
@@ -131,16 +132,16 @@ class AgentContextBuilder:
                 "classes": [],
             }
 
-        elements = [
-            element for element in code_model.get("elements", [])
-            if isinstance(element, dict) and element.get("kind") in {"class", "module"}
-        ]
+        elements = self._extract_code_context_elements(code_model)
 
-        file_by_path = {
-            file_model.get("path"): file_model
-            for file_model in code_model.get("files", [])
-            if isinstance(file_model, dict) and file_model.get("path")
-        }
+        file_by_path = {}
+        for file_model in code_model.get("files", []) or []:
+            if not isinstance(file_model, dict):
+                continue
+            for key in ("path", "filePath", "file", "sourceFile"):
+                value = file_model.get(key)
+                if value:
+                    file_by_path[self._stable_key_value(value)] = file_model
 
         selected = self._select_code_context_classes(
             architecture_model=architecture_model,
@@ -150,8 +151,13 @@ class AgentContextBuilder:
 
         classes = []
 
-        for element in selected[:12]:
-            file_model = file_by_path.get(element.get("filePath"), {})
+        for element in selected[:30]:
+            file_model = (
+                file_by_path.get(self._stable_key_value(element.get("filePath")))
+                or file_by_path.get(self._stable_key_value(element.get("file")))
+                or file_by_path.get(self._stable_key_value(element.get("sourceFile")))
+                or {}
+            )
             summary = self._summarize_code_class(
                 element=element,
                 file_model=file_model,
@@ -175,6 +181,205 @@ class AgentContextBuilder:
             "classes_count": len(classes),
             "classes": classes,
         }
+
+    def _extract_code_context_elements(self, code_model: dict[str, Any]) -> list[dict[str, Any]]:
+        """
+        Extracts class/module-like elements from Java and Python intermediate
+        JSON formats.
+
+        Java extractors usually populate code_model["elements"].  Some Python
+        extractor outputs instead nest classes, modules, callables or files in
+        different sections.  This method intentionally supports both shapes.
+        """
+        extracted: list[dict[str, Any]] = []
+
+        def add_element(element: dict[str, Any], inherited_file: str | None = None):
+            if not isinstance(element, dict):
+                return
+
+            kind = str(
+                element.get("kind")
+                or element.get("type")
+                or element.get("element_type")
+                or ""
+            ).lower()
+
+            name = element.get("name")
+            methods = (
+                element.get("methods")
+                or element.get("functions")
+                or element.get("callables")
+                or []
+            )
+
+            looks_class_or_module = (
+                kind in {"class", "module", "classunit", "compilationunit"}
+                or bool(element.get("qualifiedName") or element.get("qualified_name"))
+                or bool(methods and name)
+            )
+
+            if not looks_class_or_module:
+                return
+
+            normalized = dict(element)
+
+            if inherited_file and not (
+                normalized.get("filePath")
+                or normalized.get("file")
+                or normalized.get("sourceFile")
+            ):
+                normalized["filePath"] = inherited_file
+
+            if not normalized.get("qualifiedName") and normalized.get("qualified_name"):
+                normalized["qualifiedName"] = normalized.get("qualified_name")
+            if not normalized.get("packageName") and normalized.get("package"):
+                normalized["packageName"] = normalized.get("package")
+            if not normalized.get("filePath"):
+                normalized["filePath"] = (
+                    normalized.get("file")
+                    or normalized.get("sourceFile")
+                    or inherited_file
+                )
+            if "methods" not in normalized:
+                normalized["methods"] = methods
+
+            extracted.append(normalized)
+
+        for element in code_model.get("elements", []) or []:
+            if isinstance(element, dict):
+                add_element(element)
+
+        for module in code_model.get("modules", []) or []:
+            if isinstance(module, dict):
+                add_element(module)
+                for cls in module.get("classes", []) or []:
+                    add_element(cls, inherited_file=module.get("filePath") or module.get("file"))
+
+        for file_model in code_model.get("files", []) or []:
+            if not isinstance(file_model, dict):
+                continue
+            file_path = (
+                file_model.get("path")
+                or file_model.get("filePath")
+                or file_model.get("file")
+                or file_model.get("sourceFile")
+            )
+
+            # Treat Python files with top-level functions as module-like code
+            # elements if no explicit module object is present.
+            functions = file_model.get("functions") or file_model.get("callables") or []
+            if functions and file_model.get("name"):
+                add_element(
+                    {
+                        "kind": "module",
+                        "name": file_model.get("name"),
+                        "qualifiedName": file_model.get("qualifiedName") or file_model.get("module"),
+                        "packageName": file_model.get("packageName") or file_model.get("package"),
+                        "filePath": file_path,
+                        "methods": functions,
+                        "imports": file_model.get("imports", []),
+                    },
+                    inherited_file=file_path,
+                )
+
+                # Also expose top-level Python functions as reviewable code
+                # context units.  In decorator-based MAPE-K examples, roles are
+                # often assigned to functions via loop.monitor/loop.plan/
+                # loop.execute rather than to classes.
+                for function in functions:
+                    if not isinstance(function, dict):
+                        continue
+                    add_element(
+                        {
+                            "kind": "function",
+                            "name": function.get("name"),
+                            "qualifiedName": (
+                                function.get("qualifiedName")
+                                or function.get("qualified_name")
+                            ),
+                            "packageName": (
+                                file_model.get("packageName")
+                                or file_model.get("package")
+                            ),
+                            "filePath": file_path,
+                            "methods": [function],
+                            "decorators": function.get("decorators", []),
+                            "imports": file_model.get("imports", []),
+                        },
+                        inherited_file=file_path,
+                    )
+
+            for key in ("classes", "classUnits", "types"):
+                for cls in file_model.get(key, []) or []:
+                    add_element(cls, inherited_file=file_path)
+
+        # Fallback: recursively scan for nested class/module dictionaries.  This
+        # keeps the builder robust when the intermediate JSON evolves.
+        seen_object_ids = set(id(item) for item in extracted)
+
+        def visit(value: Any, inherited_file: str | None = None):
+            if isinstance(value, dict):
+                current_file = (
+                    value.get("filePath")
+                    or value.get("file")
+                    or value.get("sourceFile")
+                    or value.get("path")
+                    or inherited_file
+                )
+
+                before = len(extracted)
+                add_element(value, inherited_file=current_file)
+                if len(extracted) > before:
+                    seen_object_ids.add(id(value))
+
+                for child in value.values():
+                    visit(child, inherited_file=current_file)
+
+            elif isinstance(value, list):
+                for child in value:
+                    visit(child, inherited_file=inherited_file)
+
+        visit(code_model)
+
+        unique = []
+        seen_keys = set()
+        for element in extracted:
+            key = (
+                self._stable_key_value(
+                    element.get("qualifiedName")
+                    or element.get("qualified_name")
+                    or element.get("name")
+                ),
+                self._stable_key_value(
+                    element.get("filePath")
+                    or element.get("file")
+                    or element.get("sourceFile")
+                ),
+            )
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            unique.append(element)
+
+        return unique
+
+    def _stable_key_value(self, value: Any) -> str:
+        """
+        Converts intermediate JSON values into hashable strings for
+        de-duplication.
+
+        Python extractor fields may sometimes contain lists or dictionaries
+        instead of plain strings.  Those objects cannot be used directly inside
+        a set key.
+        """
+        if value is None:
+            return ""
+        if isinstance(value, (str, int, float, bool)):
+            return str(value)
+        try:
+            return json.dumps(value, sort_keys=True, ensure_ascii=False)
+        except TypeError:
+            return str(value)
 
     def _select_code_context_classes(
         self,
@@ -221,12 +426,36 @@ class AgentContextBuilder:
             tokens = self._element_tokens(element)
             score += self._technology_score(tokens)
 
-            if str(element.get("packageName", "")).endswith(".context"):
+            package_name = str(element.get("packageName", "")).lower()
+            file_path_lower = str(element.get("filePath") or element.get("file") or "").lower()
+
+            if package_name.endswith(".context") or "/context" in file_path_lower or "context" in package_name:
                 score += 20
-            if str(element.get("packageName", "")).endswith(".database"):
+            if package_name.endswith(".database") or "/database" in file_path_lower or "knowledge" in file_path_lower:
                 score += 20
 
-            package_name = str(element.get("packageName", "")).lower()
+            # Python/MAPE-K projects often use explicit role names in modules or
+            # class names rather than Android technology APIs.
+            if any(
+                token in f"{name} {qualified_name} {file_path_lower}".lower()
+                for token in (
+                    "mapek",
+                    "mape",
+                    "monitor",
+                    "analyzer",
+                    "planner",
+                    "executor",
+                    "knowledge",
+                    "sensor",
+                    "effector",
+                    "adaptation",
+                    "controller",
+                    "control_loop",
+                    "loop",
+                )
+            ):
+                score += 60
+
             if name.endswith("Activity") or package_name.endswith(".activity"):
                 score -= 70
 
@@ -246,9 +475,19 @@ class AgentContextBuilder:
         implementation_index: dict,
     ) -> dict[str, Any]:
         name = element.get("name")
-        qualified_name = element.get("qualifiedName") or name
-        fields = element.get("fields", []) or []
-        methods = element.get("methods", []) or []
+        qualified_name = element.get("qualifiedName") or element.get("qualified_name") or name
+        fields = (
+            element.get("fields")
+            or element.get("attributes")
+            or element.get("class_variables")
+            or []
+        )
+        methods = (
+            element.get("methods")
+            or element.get("functions")
+            or element.get("callables")
+            or []
+        )
         tokens = self._element_tokens(element)
         candidate_roles, evidence = self._infer_code_context_roles(
             element=element,
@@ -270,13 +509,17 @@ class AgentContextBuilder:
         return {
             "name": name,
             "qualified_name": qualified_name,
-            "package": element.get("packageName"),
-            "file": self._compact_path(element.get("filePath")),
-            "line_start": element.get("lineStart"),
-            "line_end": element.get("lineEnd"),
-            "extends": element.get("extendsTypes", [])[:5],
-            "implements": element.get("implementsTypes", [])[:5],
-            "imports": self._select_relevant_imports(file_model.get("imports", [])),
+            "package": element.get("packageName") or element.get("package"),
+            "file": self._compact_path(
+                element.get("filePath") or element.get("file") or element.get("sourceFile")
+            ),
+            "line_start": element.get("lineStart") or element.get("line_start"),
+            "line_end": element.get("lineEnd") or element.get("line_end"),
+            "extends": (element.get("extendsTypes") or element.get("extends") or element.get("base_classes") or [])[:5],
+            "implements": (element.get("implementsTypes") or element.get("implements") or [])[:5],
+            "imports": self._select_relevant_imports(
+                file_model.get("imports", []) or element.get("imports", [])
+            ),
             "fields": [
                 {
                     "name": field.get("name"),
@@ -295,13 +538,19 @@ class AgentContextBuilder:
 
     def _summarize_method(self, method: dict[str, Any]) -> dict[str, Any]:
         calls = self._collect_method_calls(method)
-        local_variables = method.get("localVariables", []) or []
+        local_variables = (
+            method.get("localVariables")
+            or method.get("local_variables")
+            or method.get("variables")
+            or []
+        )
         return {
             "name": method.get("name"),
             "signature": method.get("signature"),
-            "return_type": method.get("returnType") or method.get("resolvedReturnType"),
-            "line_start": method.get("lineStart"),
-            "line_end": method.get("lineEnd"),
+            "return_type": method.get("returnType") or method.get("resolvedReturnType") or method.get("return_type"),
+            "decorators": method.get("decorators", []) or [],
+            "line_start": method.get("lineStart") or method.get("line_start"),
+            "line_end": method.get("lineEnd") or method.get("line_end"),
             "parameters": [
                 {
                     "name": parameter.get("name"),
@@ -359,12 +608,20 @@ class AgentContextBuilder:
     def _collect_method_calls(self, method: dict[str, Any]) -> list[str]:
         calls = []
 
-        def add_call(call: dict[str, Any]):
+        def add_call(call: Any):
+            if isinstance(call, str):
+                calls.append(call)
+                return
             if not isinstance(call, dict):
                 return
-            scope = call.get("scope")
-            name = call.get("methodName") or call.get("name")
-            resolved = call.get("resolvedTarget")
+            scope = call.get("scope") or call.get("receiver") or call.get("object")
+            name = (
+                call.get("methodName")
+                or call.get("functionName")
+                or call.get("name")
+                or call.get("callee")
+            )
+            resolved = call.get("resolvedTarget") or call.get("qualified_name") or call.get("qualifiedName")
             if scope and name:
                 calls.append(f"{scope}.{name}")
             elif resolved:
@@ -436,6 +693,85 @@ class AgentContextBuilder:
                 add("LoopManager", "event/control-flow evidence: BroadcastReceiver, onReceive, sendBroadcast or IntentFilter")
             return roles, evidence
 
+        if {"loop.monitor", "loop_monitor"} & tokens:
+            add("Monitor", "Python decorator evidence: loop.monitor")
+        if {"loop.analyze", "loop_analyze", "loop.analyse", "loop_analyse"} & tokens:
+            add("Analyzer", "Python decorator evidence: loop.analyze/loop.analyse")
+        if {"loop.plan", "loop_plan"} & tokens:
+            add("Planner", "Python decorator evidence: loop.plan")
+        if {"loop.execute", "loop_execute"} & tokens:
+            add("Executor", "Python decorator evidence: loop.execute")
+        if {"loop.register", "loop_register"} & tokens:
+            add("LoopManager", "Python decorator evidence: loop.register")
+
+        if any(token in name for token in ("monitor", "sensor", "collector", "observer")):
+            add("Monitor", "Python/MAPE-K naming evidence: monitor/sensor/collector/observer")
+            if "sensor" in name:
+                add("Sensor", "Python/MAPE-K naming evidence: sensor")
+
+        if name in {"read", "sense", "measure", "collect"} or any(token in name for token in ("read_", "sense_", "measure_", "collect_")):
+            add("Sensor", "Python sensing function evidence: read/sense/measure/collect")
+            add("Monitor", "Python monitoring function evidence: read/sense/measure/collect")
+
+        if any(token in name for token in ("gas", "brake", "siren", "light", "hazard", "actuator", "effector")):
+            add("Effector", "Python effector function evidence: gas/brake/siren/light/hazard/actuator")
+            if any(token in name for token in ("gas_brake", "actuate", "execute", "command")):
+                add("Executor", "Python execution function evidence: gas_brake/actuate/execute/command")
+
+        if any(token in name for token in ("analyzer", "analysis", "analyser", "diagnosis")):
+            add("Analyzer", "Python/MAPE-K naming evidence: analyzer/analysis/diagnosis")
+
+        if any(token in name for token in ("planner", "planning", "plan", "strategy")):
+            add("Planner", "Python/MAPE-K naming evidence: planner/plan/strategy")
+
+        if any(token in name for token in ("executor", "execution", "execute", "actuator", "effector")):
+            add("Executor", "Python/MAPE-K naming evidence: executor/execute/actuator/effector")
+            if "effector" in name or "actuator" in name:
+                add("Effector", "Python/MAPE-K naming evidence: effector/actuator")
+
+        if any(token in name for token in ("knowledge", "repository", "store", "memory", "model", "state")):
+            add("Knowledge", "Python/MAPE-K naming evidence: knowledge/repository/store/memory/state")
+
+        if any(token in name for token in ("loop", "controller", "manager", "coordinator", "orchestrator")):
+            add("LoopManager", "Python/MAPE-K naming evidence: loop/controller/manager/coordinator")
+
+        if {
+            "observe",
+            "monitor",
+            "collect",
+            "sense",
+            "read",
+            "measure",
+            "sensor",
+            "metrics",
+            "telemetry",
+            "loop.monitor",
+            "loop.plan",
+            "loop.execute",
+            "loop.analyze",
+            "loop.register",
+            "gas",
+            "brake",
+            "siren",
+            "hazard",
+            "light",
+        } & tokens:
+            add("Monitor", "Python behavior evidence: observe/monitor/collect/sense telemetry")
+
+        if {"analyze", "analyse", "diagnose", "evaluate", "detect", "threshold"} & tokens:
+            add("Analyzer", "Python behavior evidence: analyze/diagnose/evaluate/detect")
+
+        if {"plan", "select", "decide", "strategy", "policy", "rank"} & tokens:
+            add("Planner", "Python behavior evidence: plan/select/decide/strategy/policy")
+
+        if {"execute", "apply", "actuate", "adapt", "change", "command"} & tokens:
+            add("Executor", "Python behavior evidence: execute/apply/actuate/adapt/change")
+            if {"actuate", "command"} & tokens:
+                add("Effector", "Python behavior evidence: actuate/command")
+
+        if {"knowledge", "repository", "store", "state", "memory", "history", "cache"} & tokens:
+            add("Knowledge", "Python behavior evidence: knowledge/repository/store/state/memory/history")
+
         if {
             "sqlitedatabase",
             "sqliteopenhelper",
@@ -503,6 +839,9 @@ class AgentContextBuilder:
         add(element.get("qualifiedName"))
         add(element.get("packageName"))
 
+        for decorator in element.get("decorators", []) or []:
+            add(decorator)
+
         for field in element.get("fields", []) or []:
             add(field.get("name"))
             add(field.get("type"))
@@ -512,6 +851,8 @@ class AgentContextBuilder:
             add(method.get("name"))
             add(method.get("signature"))
             add(method.get("returnType"))
+            for decorator in method.get("decorators", []) or []:
+                add(decorator)
             for call in self._collect_method_calls(method):
                 add(call)
             for parameter in method.get("parameters", []) or []:
@@ -545,6 +886,26 @@ class AgentContextBuilder:
             "checkrules",
             "priority",
             "random",
+            "monitor",
+            "analyzer",
+            "planner",
+            "executor",
+            "knowledge",
+            "sensor",
+            "effector",
+            "observe",
+            "analyze",
+            "diagnose",
+            "plan",
+            "execute",
+            "actuate",
+            "adapt",
+            "policy",
+            "strategy",
+            "repository",
+            "state",
+            "metrics",
+            "telemetry",
         ):
             if token in tokens:
                 score += 10
@@ -566,6 +927,14 @@ class AgentContextBuilder:
                 "knowledge",
                 "sensor",
                 "effector",
+                "adaptation",
+                "controller",
+                "coordinator",
+                "orchestrator",
+                "repository",
+                "state",
+                "policy",
+                "strategy",
             )
         )
 
@@ -587,6 +956,16 @@ class AgentContextBuilder:
                     "mydbadapter",
                     "contextmanager",
                     "adaptationmanager",
+                    "monitor",
+                    "analyzer",
+                    "planner",
+                    "executor",
+                    "knowledge",
+                    "sensor",
+                    "effector",
+                    "repository",
+                    "controller",
+                    "adaptation",
                 )
             ):
                 relevant.append(item)

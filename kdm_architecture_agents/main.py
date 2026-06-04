@@ -12,18 +12,42 @@ if str(PY2KDM_PROJECT_ROOT) not in sys.path:
 
 def load_dotenv_if_available() -> None:
     """
-    Loads .env from the py2kdm project root when python-dotenv is installed.
+    Loads .env from the py2kdm project root.
 
-    This is optional. If python-dotenv is not installed, the tool still works
-    with normal environment variables such as GEMINI_API_KEY.
+    The Gemini provider reads GEMINI_API_KEY or GOOGLE_API_KEY from
+    os.environ.  Therefore this function must run before the provider is
+    created.  It first tries python-dotenv with override=True and then falls
+    back to a minimal parser for GEMINI_API_KEY / GOOGLE_API_KEY.
     """
+    import os
+
+    env_path = PY2KDM_PROJECT_ROOT / ".env"
+
+    if not env_path.exists():
+        return
 
     try:
         from dotenv import load_dotenv
     except ImportError:
-        return
+        load_dotenv = None
 
-    load_dotenv(PY2KDM_PROJECT_ROOT / ".env")
+    if load_dotenv is not None:
+        load_dotenv(env_path, override=True)
+
+    # Fallback parser in case python-dotenv is not installed in the exact
+    # virtualenv used by run_pipeline.py, or if the key was not loaded for any
+    # other reason.
+    for line in env_path.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or "=" not in stripped:
+            continue
+
+        key, value = stripped.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+
+        if key in {"GEMINI_API_KEY", "GOOGLE_API_KEY"} and value:
+            os.environ[key] = value
 
 
 load_dotenv_if_available()

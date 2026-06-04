@@ -14,15 +14,15 @@ class RuleBasedMAPEKRoleInferer:
 
     ROLE_RULES = [
         {"role": "Monitor", "name_terms": ["monitor"], "method_terms": ["collect", "observe", "measure", "read", "get_status"], "decorator_terms": ["monitor"]},
-        {"role": "Analyzer", "name_terms": ["analyzer", "analyser"], "method_terms": ["analyze", "analyse", "detect", "evaluate", "diagnose", "check"], "decorator_terms": ["analyze", "analyse", "analyzer", "analyser"]},
-        {"role": "Planner", "name_terms": ["planner"], "method_terms": ["plan", "select", "decide", "choose", "strategy", "priority"], "decorator_terms": ["plan", "planner"]},
-        {"role": "Executor", "name_terms": ["executor"], "method_terms": ["execute", "apply", "reconfigure", "adapt", "restart", "set"], "decorator_terms": ["execute", "executor"]},
+        {"role": "Analyzer", "name_terms": ["analyzer", "analyser", "analyze", "analyse", "analysis"], "method_terms": ["analyze", "analyse", "detect", "evaluate", "diagnose", "check"], "decorator_terms": ["analyze", "analyse", "analyzer", "analyser"]},
+        {"role": "Planner", "name_terms": ["planner", "plan", "planning", "strategy"], "method_terms": ["plan", "select", "decide", "choose", "strategy", "priority"], "decorator_terms": ["plan", "planner"]},
+        {"role": "Executor", "name_terms": ["executor", "execute", "execution"], "method_terms": ["execute", "apply", "reconfigure", "adapt", "restart", "set"], "decorator_terms": ["execute", "executor"]},
         {"role": "Knowledge", "name_terms": ["knowledge"], "method_terms": ["store", "update", "query", "remember", "record", "fetch", "insert", "delete"], "decorator_terms": ["knowledge"]},
         {"role": "Sensor", "name_terms": ["sensor", "probe"], "method_terms": ["read", "sense", "collect", "measure"], "decorator_terms": ["sensor", "probe"]},
         {"role": "Effector", "name_terms": ["effector", "actuator"], "method_terms": ["actuate", "apply", "change", "execute", "set"], "decorator_terms": ["effector", "actuator"]},
         {"role": "ReferenceInput", "name_terms": ["reference", "goal", "threshold", "target"], "method_terms": ["threshold", "target", "goal"], "decorator_terms": ["reference", "goal", "threshold", "target"]},
         {"role": "Alternative", "name_terms": ["alternative", "strategy", "plan"], "method_terms": ["strategy", "alternative", "plan"], "decorator_terms": ["alternative", "strategy"]},
-        {"role": "LoopManager", "name_terms": ["loop", "coordinator", "manager"], "method_terms": ["run_loop", "coordinate", "orchestrate", "adapt"], "decorator_terms": ["loop"]},
+        {"role": "LoopManager", "name_terms": ["loop", "coordinator", "manager", "mape"], "method_terms": ["run_loop", "coordinate", "orchestrate", "adapt", "register"], "decorator_terms": ["loop", "register"]},
     ]
 
     DECORATOR_ROLE_TERMS = {
@@ -31,6 +31,7 @@ class RuleBasedMAPEKRoleInferer:
         "analyse": "Analyzer",
         "plan": "Planner",
         "execute": "Executor",
+        "register": "LoopManager",
     }
 
     REGISTRATION_ROLE_TERMS = {
@@ -54,17 +55,17 @@ class RuleBasedMAPEKRoleInferer:
             "bluetoothdevice", "broadcastreceiver", "sensor", "gps", "bt_",
         },
         "Analyzer": {
-            "adaptationmanager", "checkrules", "check", "evaluate", "validate",
+            "adaptationmanager", "analyze", "analyse", "analysis", "checkrules", "check", "evaluate", "validate",
             "filter", "contextoperator", "getbooleanextra", "getstringextra",
             "getdoubleextra", "getstringarrayextra", "rule", "condition",
             "operator", "satisfiedrulelist",
         },
         "Planner": {
-            "priority", "candidate", "satisfiedrulelist", "choice", "choose",
+            "plan", "planner", "planning", "priority", "candidate", "satisfiedrulelist", "choice", "choose",
             "select", "random", "nextint", "conflict", "strategy", "rulelist",
         },
         "Executor": {
-            "audiomanager", "settings", "settings_system", "setstreamvolume",
+            "execute", "executor", "execution", "audiomanager", "settings", "settings_system", "setstreamvolume",
             "setringermode", "setvibratesetting", "putint", "sendbroadcast",
             "airplane_mode", "action_airplane_mode_changed", "ringer_mode",
         },
@@ -74,13 +75,13 @@ class RuleBasedMAPEKRoleInferer:
             "airplane_mode", "ringer_mode",
         },
         "Knowledge": {
-            "mydbadapter", "mydbhelper", "sqlitedatabase", "sqliteopenhelper",
+            "knowledge", "keyspace", "hash", "lifoqueue", "lock", "mydbadapter", "mydbhelper", "sqlitedatabase", "sqliteopenhelper",
             "cursor", "contentvalues", "table_rule", "table_filter",
             "table_profile", "table_constant", "fetch", "insert", "update",
             "delete", "rule", "filter", "profile", "contextconstant",
         },
         "LoopManager": {
-            "contextmanager", "adaptationmanager", "intentservice", "onreceive",
+            "loop", "mapeloop", "register", "contextmanager", "adaptationmanager", "intentservice", "onreceive",
             "sendbroadcast", "registerreceiver", "startservice", "newcontext",
         },
     }
@@ -118,9 +119,58 @@ class RuleBasedMAPEKRoleInferer:
             return []
 
         suggestions = []
+        suggestions.extend(self._infer_class_roles_from_explicit_mapek_names(cls, file_model))
         suggestions.extend(self._infer_class_roles_from_general_rules(cls, file_model))
         suggestions.extend(self._infer_class_roles_from_responsibilities(cls, file_model))
         return suggestions
+
+    def _infer_class_roles_from_explicit_mapek_names(self, cls: dict, file_model: dict):
+        """
+        Strong Python/MAPE-K convention rule.
+
+        Frameworks such as pymape define role classes directly as Monitor,
+        Analyze, Plan, Execute and Knowledge.  These are architecture-bearing
+        abstractions even if they do not use Android-like technology APIs.
+        """
+        class_name = str(cls.get("name") or "").lower()
+        qualified_name = self._qualified_name(cls)
+        explicit_roles = {
+            "monitor": "Monitor",
+            "analyze": "Analyzer",
+            "analyse": "Analyzer",
+            "analyzer": "Analyzer",
+            "analyser": "Analyzer",
+            "plan": "Planner",
+            "planner": "Planner",
+            "execute": "Executor",
+            "executor": "Executor",
+            "knowledge": "Knowledge",
+            "loop": "LoopManager",
+            "mapeloop": "LoopManager",
+        }
+
+        role = explicit_roles.get(class_name)
+        if role is None:
+            return []
+
+        evidence = [
+            f"Explicit Python/MAPE-K class name maps to role {role}: {cls.get('name')}"
+        ]
+
+        bases = cls.get("bases", []) or cls.get("extendsTypes", []) or []
+        if bases:
+            evidence.append("Base classes: " + ", ".join(str(base) for base in bases[:5]))
+
+        return [
+            self._build_class_suggestion(
+                cls,
+                qualified_name,
+                role,
+                0.90,
+                evidence,
+                "rule_based_explicit_python_mapek_class",
+            )
+        ]
 
     def _infer_class_roles_from_general_rules(self, cls: dict, file_model: dict):
         class_name = cls.get("name", "")
@@ -200,6 +250,19 @@ class RuleBasedMAPEKRoleInferer:
             base = max(base, 0.82)
         if class_name in {"mydbadapter", "mydbhelper"} and role == "Knowledge":
             base = max(base, 0.85)
+
+        explicit_python_roles = {
+            "monitor": "Monitor",
+            "analyze": "Analyzer",
+            "analyse": "Analyzer",
+            "plan": "Planner",
+            "execute": "Executor",
+            "knowledge": "Knowledge",
+            "loop": "LoopManager",
+            "mapeloop": "LoopManager",
+        }
+        if explicit_python_roles.get(class_name) == role:
+            base = max(base, 0.90)
 
         return round(min(base, 0.95), 2)
 
@@ -387,11 +450,20 @@ class RuleBasedMAPEKRoleInferer:
             return False
 
         lowered_name = name.lower()
-        eligible_terms = ["manager", "adapter", "helper", "rule", "filter", "profile", "context", "sensor", "effector", "service", "knowledge"]
+        eligible_terms = [
+            "manager", "adapter", "helper", "rule", "filter", "profile",
+            "context", "sensor", "effector", "service", "knowledge",
+            "monitor", "analyze", "analyse", "analyzer", "analyser",
+            "plan", "planner", "execute", "executor", "loop", "mape",
+        ]
         if any(term in lowered_name for term in eligible_terms):
             return True
-        if "/context/" in path or "/database/" in path:
+        if "/context/" in path or "/database/" in path or "/mape/" in path:
             return True
+        for base in cls.get("bases", []) + cls.get("extendsTypes", []) + cls.get("implementsTypes", []):
+            base_text = str(base).lower()
+            if any(term in base_text for term in ("monitor", "analyze", "analyse", "plan", "execute", "element")):
+                return True
         return False
 
     def _contains_any(self, text: str, terms: list):

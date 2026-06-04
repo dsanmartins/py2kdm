@@ -86,11 +86,17 @@ class AutonomicApplicabilityGate:
         "monitor": "Monitor",
         "analyzer": "Analyzer",
         "analyser": "Analyzer",
+        "analyze": "Analyzer",
+        "analyse": "Analyzer",
         "planner": "Planner",
+        "plan": "Planner",
         "executor": "Executor",
+        "execute": "Executor",
         "knowledge": "Knowledge",
         "sensor": "Sensor",
         "effector": "Effector",
+        "loop": "LoopManager",
+        "mape": "LoopManager",
     }
 
     SENSOR_TERMS = {
@@ -114,6 +120,7 @@ class AutonomicApplicabilityGate:
 
     RESPONSIBILITY_SIGNALS = {
         "Monitor": {
+            "monitor", "loop_monitor", "observe", "collect", "measurement",
             "contextmanager", "locationmanager", "locationlistener",
             "bluetoothadapter", "bluetoothdevice", "broadcastreceiver",
             "intentservice", "getsystemservice", "requestlocationupdates",
@@ -122,22 +129,23 @@ class AutonomicApplicabilityGate:
             "weekday", "time",
         },
         "Analyzer": {
+            "analyze", "analyse", "analyzer", "analysis", "loop_analyze", "loop_analyse",
             "adaptationmanager", "checkrules", "check", "evaluate", "validate",
             "filter", "contextoperator", "getbooleanextra", "getstringextra",
             "getdoubleextra", "getstringarrayextra", "rule", "condition",
             "operator", "satisfiedrulelist",
         },
         "Planner": {
-            "priority", "candidate", "satisfiedrulelist", "choice", "choose",
+            "plan", "planner", "planning", "loop_plan", "priority", "candidate", "satisfiedrulelist", "choice", "choose",
             "select", "random", "nextint", "conflict", "strategy", "rulelist",
         },
         "Executor": {
-            "audiomanager", "settings", "settings_system", "setstreamvolume",
+            "execute", "executor", "execution", "loop_execute", "audiomanager", "settings", "settings_system", "setstreamvolume",
             "setringermode", "setvibratesetting", "putint", "sendbroadcast",
             "airplane_mode", "action_airplane_mode_changed", "ringer_mode",
         },
         "Knowledge": {
-            "mydbadapter", "mydbhelper", "sqlitedatabase", "sqliteopenhelper",
+            "knowledge", "keyspace", "hash", "lifoqueue", "lock", "mydbadapter", "mydbhelper", "sqlitedatabase", "sqliteopenhelper",
             "cursor", "contentvalues", "table_rule", "table_filter",
             "table_profile", "table_constant", "fetch", "insert", "update",
             "delete", "rule", "filter", "profile", "contextconstant",
@@ -248,12 +256,23 @@ class AutonomicApplicabilityGate:
                 else:
                     self._append_terms(corpus, import_model)
 
+            for func in file_model.get("functions", []) or []:
+                self._append_terms(corpus, func.get("name"))
+                self._append_terms(corpus, func.get("qualifiedName"))
+                self._append_terms(corpus, func.get("qualified_name"))
+                for decorator in func.get("decorators", []) or []:
+                    self._append_terms(corpus, decorator)
+                self._append_callable_terms(corpus, func)
+
         for cls, file_model in self._iter_classes(project_model):
             self._append_terms(corpus, cls.get("name"))
             self._append_terms(corpus, cls.get("qualifiedName"))
             self._append_terms(corpus, cls.get("qualified_name"))
             self._append_terms(corpus, cls.get("packageName"))
             self._append_terms(corpus, cls.get("filePath"))
+
+            for decorator in cls.get("decorators", []) or []:
+                self._append_terms(corpus, decorator)
 
             for base in cls.get("bases", []) + cls.get("extendsTypes", []) + cls.get("implementsTypes", []):
                 self._append_terms(corpus, base)
@@ -270,6 +289,8 @@ class AutonomicApplicabilityGate:
                 self._append_terms(corpus, method.get("qualified_name"))
                 self._append_terms(corpus, method.get("returnType"))
                 self._append_terms(corpus, method.get("return_annotation"))
+                for decorator in method.get("decorators", []) or []:
+                    self._append_terms(corpus, decorator)
                 self._append_callable_terms(corpus, method)
 
         for func in project_model.get("functions", []):
@@ -393,6 +414,20 @@ class AutonomicApplicabilityGate:
         role_to_classes = {}
         flow_classes = []
 
+        # Python MAPE frameworks often encode MAPE roles as decorated
+        # functions, e.g. @loop.monitor, @loop.plan, @loop.execute.
+        for func, file_model in self._iter_functions(project_model):
+            decorator_roles = self._callable_decorator_roles(func)
+            for role, evidence in decorator_roles.items():
+                role_to_classes.setdefault(role, []).append(
+                    {
+                        "class": self._callable_display_name(func),
+                        "evidence": evidence[:4],
+                    }
+                )
+            if decorator_roles:
+                flow_classes.append(self._callable_display_name(func))
+
         for cls, file_model in self._iter_classes(project_model):
             if not self._is_architecturally_eligible_class(cls, file_model):
                 continue
@@ -481,6 +516,21 @@ class AutonomicApplicabilityGate:
             role_evidence.setdefault("Executor", []).append("class name AdaptationManager")
         if "mydbadapter" in class_name or "mydbhelper" in class_name:
             role_evidence.setdefault("Knowledge", []).append("database adapter/helper class")
+
+        explicit_python_roles = {
+            "monitor": "Monitor",
+            "analyze": "Analyzer",
+            "analyse": "Analyzer",
+            "plan": "Planner",
+            "execute": "Executor",
+            "knowledge": "Knowledge",
+            "loop": "LoopManager",
+        }
+        explicit_role = explicit_python_roles.get(class_name)
+        if explicit_role:
+            role_evidence.setdefault(explicit_role, []).append(
+                f"explicit Python/MAPE-K class name {self._class_display_name(cls)}"
+            )
 
         return role_evidence
 
@@ -594,6 +644,63 @@ class AutonomicApplicabilityGate:
     # Control-loop relation evidence
     # ------------------------------------------------------------
 
+    def _iter_functions(self, project_model: dict):
+        seen = set()
+
+        for file_model in project_model.get("files", []) or []:
+            for func in file_model.get("functions", []) or []:
+                key = func.get("id") or func.get("qualifiedName") or func.get("qualified_name") or id(func)
+                if key in seen:
+                    continue
+                seen.add(key)
+                yield func, file_model
+
+        for func in project_model.get("functions", []) or []:
+            key = func.get("id") or func.get("qualifiedName") or func.get("qualified_name") or id(func)
+            if key in seen:
+                continue
+            seen.add(key)
+            yield func, {}
+
+        for element in project_model.get("elements", []) or []:
+            if element.get("kind") not in {"function", "callable"}:
+                continue
+            key = element.get("id") or element.get("qualifiedName") or element.get("qualified_name") or id(element)
+            if key in seen:
+                continue
+            seen.add(key)
+            yield element, {}
+
+    def _callable_decorator_roles(self, callable_model: dict):
+        roles = {}
+        for decorator in callable_model.get("decorators", []) or []:
+            decorator_text = str(decorator).lower().replace(".", "_")
+            if "loop_monitor" in decorator_text or decorator_text.endswith("monitor"):
+                roles.setdefault("Monitor", []).append(f"Decorator {decorator} maps to Monitor")
+            if (
+                "loop_analyze" in decorator_text
+                or "loop_analyse" in decorator_text
+                or decorator_text.endswith("analyze")
+                or decorator_text.endswith("analyse")
+            ):
+                roles.setdefault("Analyzer", []).append(f"Decorator {decorator} maps to Analyzer")
+            if "loop_plan" in decorator_text or decorator_text.endswith("plan"):
+                roles.setdefault("Planner", []).append(f"Decorator {decorator} maps to Planner")
+            if "loop_execute" in decorator_text or decorator_text.endswith("execute"):
+                roles.setdefault("Executor", []).append(f"Decorator {decorator} maps to Executor")
+            if "loop_register" in decorator_text or decorator_text.endswith("register"):
+                roles.setdefault("LoopManager", []).append(f"Decorator {decorator} maps to LoopManager")
+
+        return roles
+
+    def _callable_display_name(self, callable_model: dict):
+        return str(
+            callable_model.get("qualifiedName")
+            or callable_model.get("qualified_name")
+            or callable_model.get("name")
+            or ""
+        )
+
     def _rule_partial_control_loop_relations(self, project_model: dict):
         role_by_class_id = {}
         for cls, file_model in self._iter_classes(project_model):
@@ -601,7 +708,11 @@ class AutonomicApplicabilityGate:
             if role:
                 role_by_class_id[cls.get("id")] = role
 
-        if len(set(role_by_class_id.values())) < 2:
+        decorated_roles = set()
+        for func, file_model in self._iter_functions(project_model):
+            decorated_roles.update(self._callable_decorator_roles(func).keys())
+
+        if len(set(role_by_class_id.values())) < 2 and len(decorated_roles) < 2:
             return []
 
         relations_between_roles = []
@@ -617,6 +728,16 @@ class AutonomicApplicabilityGate:
                         relations_between_roles.append(f"{source_role}->{target_role}")
 
         if not relations_between_roles:
+            if len(decorated_roles) >= 2:
+                return [
+                    {
+                        "rule_id": "SAS-GATE-06",
+                        "message": (
+                            "Decorated Python MAPE loop roles detected: "
+                            + ", ".join(sorted(decorated_roles))
+                        ),
+                    }
+                ]
             return []
 
         return [{"rule_id": "SAS-GATE-06", "message": "Relations between candidate MAPE-K roles detected: " + ", ".join(sorted(set(relations_between_roles)))}]
@@ -672,11 +793,17 @@ class AutonomicApplicabilityGate:
         eligible_terms = [
             "manager", "adapter", "helper", "rule", "filter", "profile",
             "context", "sensor", "effector", "service", "knowledge",
+            "monitor", "analyze", "analyse", "analyzer", "analyser",
+            "plan", "planner", "execute", "executor", "loop", "mape",
         ]
         if any(term in lowered_name for term in eligible_terms):
             return True
-        if "/context/" in lowered_path or "/database/" in lowered_path:
+        if "/context/" in lowered_path or "/database/" in lowered_path or "/mape/" in lowered_path:
             return True
+        for base in cls.get("bases", []) + cls.get("extendsTypes", []) + cls.get("implementsTypes", []):
+            base_text = str(base).lower()
+            if any(term in base_text for term in ("monitor", "analyze", "analyse", "plan", "execute", "element")):
+                return True
 
         return False
 

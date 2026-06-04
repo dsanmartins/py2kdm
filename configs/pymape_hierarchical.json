@@ -9,13 +9,22 @@
   "outputs": {
     "intermediate_json": "outputs/pymape_hierarchical/python_model.json",
     "architecture_json": "outputs/pymape_hierarchical/python_model.architecture.json",
+    "ai_architecture_json": "outputs/pymape_hierarchical/python_model.ai_architecture.json",
     "kdm_xmi": "outputs/pymape_hierarchical/model.kdm.xmi"
   },
 
   "architecture_recovery": {
-    "enabled": false,
+    "enabled": true,
     "mode": "semi_automatic",
     "target_architecture": "mapek"
+  },
+
+  "pre_review_agents": {
+    "enabled": true,
+    "llm_provider": "gemini",
+    "llm_model": "gemini-2.5-flash-lite",
+    "input": "architecture_json",
+    "output": "ai_architecture_json"
   },
 
   "kdm_generation": {
