@@ -116,14 +116,33 @@ class LLMArchitectureReasoningAgent:
         required_format = {
             "suggestions": [
                 {
-                    "suggestion_type": "missing_abstraction",
+                    "suggestion_type": "role_confirmation",
                     "message": "Explain the reviewable suggestion.",
-                    "confidence": 0.65,
-                    "status": "needs_review",
-                    "severity": "warning",
-                    "affected_elements": [],
-                    "evidence": [],
-                    "proposed_changes": [],
+                    "confidence": 0.90,
+                    "status": "confirmed",
+                    "severity": "info",
+                    "affected_elements": [
+                        "component:example_component"
+                    ],
+                    "evidence": [
+                        {
+                            "type": "architecture_context",
+                            "content": "component:example_component has role ExampleRole"
+                        },
+                        {
+                            "type": "code_context",
+                            "content": "ExampleClass has candidate role ExampleRole and code evidence supporting it"
+                        }
+                    ],
+                    "proposed_changes": [
+                        {
+                            "operation": "review_textual_change",
+                            "description": "Describe the reviewable change. Use [] if no change is needed.",
+                            "target": "component:example_component",
+                            "status": "needs_review",
+                            "source_agent": "LLMArchitectureReasoningAgent"
+                        }
+                    ],
                 }
             ]
         }
@@ -151,8 +170,27 @@ class LLMArchitectureReasoningAgent:
             "or architecture_consistency_review.\n"
             "- Use status needs_review for uncertain suggestions.\n"
             "- Return JSON only.\n\n"
+            "Strict JSON schema constraints:\n"
+            "- The root object MUST contain a suggestions array.\n"
+            "- Each suggestion MUST be a JSON object.\n"
+            "- evidence MUST be an array. Each evidence item MAY be a string or an object "
+            "with type and content fields.\n"
+            "- proposed_changes MUST be an array of JSON objects.\n"
+            "- NEVER put strings inside proposed_changes.\n"
+            "- If no change is needed, use proposed_changes: [].\n"
+            "- Every proposed_changes object MUST include operation, description, "
+            "target, status, and source_agent.\n"
+            "- Use operation values such as review_textual_change, optional_add_component, "
+            "optional_remove_component, optional_role_reassignment, or no_change.\n"
+            "- Do not wrap the JSON in Markdown fences.\n\n"
             "Required output format:\n"
             f"{json.dumps(required_format, indent=2)}\n\n"
+            "Invalid example: proposed_changes: [\"Review responsibilities\"]\n"
+            "Valid example: proposed_changes: [{\"operation\": \"review_textual_change\", "
+            "\"description\": \"Review responsibilities\", "
+            "\"target\": \"component:adaptationmanager_analyzer\", "
+            "\"status\": \"needs_review\", "
+            "\"source_agent\": \"LLMArchitectureReasoningAgent\"}]\n\n"
             "Architecture context:\n"
             f"{json.dumps(compact_context, indent=2, ensure_ascii=False)}"
         )

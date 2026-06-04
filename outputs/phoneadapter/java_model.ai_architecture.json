@@ -259775,8 +259775,8 @@
           "DynamicEvidenceAgent can use relationships[type='runtime_calls'] from the model or an optional trace JSON."
         ],
         "metadata": {},
-        "id": "ai_suggestion:fc14044260e841e7ad6deb543fb6d27d",
-        "created_at": "2026-06-04T02:22:18.191994+00:00"
+        "id": "ai_suggestion:b5ed3e8baf3b49caae4918ee37bbe958",
+        "created_at": "2026-06-04T03:38:25.260176+00:00"
       },
       {
         "suggestion_type": "missing_abstraction",
@@ -259798,8 +259798,8 @@
           "The architecture contains no materialized component with role ReferenceInput."
         ],
         "metadata": {},
-        "id": "ai_suggestion:f8a3e124fe3441008a4986674b98ee58",
-        "created_at": "2026-06-04T02:22:18.192064+00:00"
+        "id": "ai_suggestion:4293d8eeafc1432299179515fce12c97",
+        "created_at": "2026-06-04T03:38:25.260262+00:00"
       },
       {
         "suggestion_type": "missing_abstraction",
@@ -259821,22 +259821,189 @@
           "The architecture contains no materialized component with role MeasuredOutput."
         ],
         "metadata": {},
-        "id": "ai_suggestion:0809ff7a8b794da2ab5d55695bde01ca",
-        "created_at": "2026-06-04T02:22:18.192094+00:00"
+        "id": "ai_suggestion:23ee8ab292bf466abab64f569e00dabd",
+        "created_at": "2026-06-04T03:38:25.260305+00:00"
       },
       {
-        "suggestion_type": "llm_disabled",
-        "message": "LLM-assisted reasoning is disabled. The pipeline is running in deterministic/offline mode.",
-        "confidence": 1.0,
-        "status": "informational",
-        "source": "llm_disabled",
+        "suggestion_type": "role_confirmation",
+        "message": "The 'AdaptationManager' component is identified as having the 'LoopManager' role. This is supported by the code context where the 'ContextManager' class, which is also identified as a 'LoopManager', has methods like 'onHandleIntent', 'onCreate', and 'onDestroy' that suggest lifecycle management and event handling typical of a loop manager. The architecture context also shows 'component:contextmanager_loopmanager' with the 'LoopManager' role.",
+        "confidence": 0.8,
+        "status": "confirmed",
         "severity": "info",
-        "affected_elements": [],
+        "affected_elements": [
+          "component:contextmanager_loopmanager"
+        ],
+        "evidence": [
+          "{'type': 'architecture_context', 'content': 'component:contextmanager_loopmanager has role LoopManager'}",
+          "{'type': 'code_context', 'content': 'Class ContextManager has candidate roles Monitor, LoopManager. Methods: onHandleIntent, onCreate, onDestroy.'}"
+        ],
         "proposed_changes": [],
-        "evidence": [],
-        "metadata": {},
-        "id": "ai_suggestion:98c119fcb3814706b805fa9c46175eda",
-        "created_at": "2026-06-04T02:22:18.192759+00:00"
+        "id": "llm_suggestion:0",
+        "source": "llm_assisted_enrichment:gemini",
+        "metadata": {}
+      },
+      {
+        "suggestion_type": "role_confirmation",
+        "message": "The 'AdaptationManager' component is identified as having the 'Effector' role. This is supported by the code context where the 'AdaptationManager' class has methods like 'onCreate' which calls 'this.getSystemService' for 'AudioManager' and interacts with 'Settings.System' and 'AudioManager.getRingerMode', indicating it can affect system settings. The architecture context also lists 'component:adaptationmanager_effector' with the 'Effector' role, and a relationship 'component_adaptationmanager_executor__acts_through__component_adaptationmanager_effector' suggests the executor uses the effector.",
+        "confidence": 0.85,
+        "status": "confirmed",
+        "severity": "info",
+        "affected_elements": [
+          "component:adaptationmanager_effector"
+        ],
+        "evidence": [
+          "{'type': 'architecture_context', 'content': 'component:adaptationmanager_effector has role Effector'}",
+          "{'type': 'architecture_context', 'content': 'relationship:component_adaptationmanager_executor__acts_through__component_adaptationmanager_effector'}",
+          "{'type': 'code_context', 'content': 'Class AdaptationManager has candidate roles Analyzer, Planner, Executor, LoopManager. Methods: onCreate calls getSystemService(AudioManager), interacts with Settings.System, AudioManager.getRingerMode.'}"
+        ],
+        "proposed_changes": [],
+        "id": "llm_suggestion:1",
+        "source": "llm_assisted_enrichment:gemini",
+        "metadata": {}
+      },
+      {
+        "suggestion_type": "role_confirmation",
+        "message": "The 'ContextManager' component is identified as having the 'Sensor' role. This is supported by the code context where the 'ContextManager' class has fields like 'mLocManager' (LocationManager) and methods like 'onCreate' which calls 'mLocManager.requestLocationUpdates', and 'onDestroy' which calls 'mLocManager.removeUpdates'. These indicate it interacts with sensors to gather context. The architecture context also lists 'component:contextmanager_sensor' with the 'Sensor' role, and a relationship 'component_contextmanager_monitor__observes_through__component_contextmanager_sensor' suggests the monitor uses the sensor.",
+        "confidence": 0.85,
+        "status": "confirmed",
+        "severity": "info",
+        "affected_elements": [
+          "component:contextmanager_sensor"
+        ],
+        "evidence": [
+          "{'type': 'architecture_context', 'content': 'component:contextmanager_sensor has role Sensor'}",
+          "{'type': 'architecture_context', 'content': 'relationship:component_contextmanager_monitor__observes_through__component_contextmanager_sensor'}",
+          "{'type': 'code_context', 'content': 'Class ContextManager has candidate roles Monitor, LoopManager. Fields: mLocManager (LocationManager). Methods: onCreate calls mLocManager.requestLocationUpdates, onDestroy calls mLocManager.removeUpdates.'}"
+        ],
+        "proposed_changes": [],
+        "id": "llm_suggestion:2",
+        "source": "llm_assisted_enrichment:gemini",
+        "metadata": {}
+      },
+      {
+        "suggestion_type": "role_confirmation",
+        "message": "The 'AdaptationManager' component is identified as having the 'Analyzer' role. This is supported by the code context where the 'AdaptationManager' class has a method 'checkRules' which takes a list of rules and an Intent, and appears to evaluate conditions based on intent extras (e.g., 'getBooleanExtra', 'getStringExtra', 'getDoubleExtra'). This aligns with the Analyzer's responsibility of evaluating context and rules. The architecture context also lists 'component:adaptationmanager_analyzer' with the 'Analyzer' role.",
+        "confidence": 0.9,
+        "status": "confirmed",
+        "severity": "info",
+        "affected_elements": [
+          "component:adaptationmanager_analyzer"
+        ],
+        "evidence": [
+          "{'type': 'architecture_context', 'content': 'component:adaptationmanager_analyzer has role Analyzer'}",
+          "{'type': 'code_context', 'content': 'Class AdaptationManager has candidate roles Analyzer, Planner, Executor, LoopManager. Method checkRules evaluates conditions based on Intent extras.'}"
+        ],
+        "proposed_changes": [],
+        "id": "llm_suggestion:3",
+        "source": "llm_assisted_enrichment:gemini",
+        "metadata": {}
+      },
+      {
+        "suggestion_type": "role_confirmation",
+        "message": "The 'AdaptationManager' component is identified as having the 'Planner' role. This is supported by the code context where the 'AdaptationManager' class has a method 'fetchRulesFromDb' which retrieves rules and potentially selects them based on criteria. The architecture context also lists 'component:adaptationmanager_planner' with the 'Planner' role, and a 'mapek_flow' relationship exists from 'component:adaptationmanager_analyzer' to 'component:adaptationmanager_planner', suggesting a sequence where planning follows analysis.",
+        "confidence": 0.85,
+        "status": "confirmed",
+        "severity": "info",
+        "affected_elements": [
+          "component:adaptationmanager_planner"
+        ],
+        "evidence": [
+          "{'type': 'architecture_context', 'content': 'component:adaptationmanager_planner has role Planner'}",
+          "{'type': 'architecture_context', 'content': 'relationship:component_adaptationmanager_analyzer__mapek_flow__component_adaptationmanager_planner'}",
+          "{'type': 'code_context', 'content': 'Class AdaptationManager has candidate roles Analyzer, Planner, Executor, LoopManager. Method fetchRulesFromDb retrieves rules from the database.'}"
+        ],
+        "proposed_changes": [],
+        "id": "llm_suggestion:4",
+        "source": "llm_assisted_enrichment:gemini",
+        "metadata": {}
+      },
+      {
+        "suggestion_type": "role_confirmation",
+        "message": "The 'AdaptationManager' component is identified as having the 'Executor' role. This is supported by the code context where the 'AdaptationManager' class has methods that interact with system services like 'AudioManager' and 'Settings.System' to modify settings (e.g., 'onCreate' method). The architecture context also lists 'component:adaptationmanager_executor' with the 'Executor' role, and a 'mapek_flow' relationship exists from 'component:adaptationmanager_planner' to 'component:adaptationmanager_executor', indicating execution follows planning.",
+        "confidence": 0.85,
+        "status": "confirmed",
+        "severity": "info",
+        "affected_elements": [
+          "component:adaptationmanager_executor"
+        ],
+        "evidence": [
+          "{'type': 'architecture_context', 'content': 'component:adaptationmanager_executor has role Executor'}",
+          "{'type': 'architecture_context', 'content': 'relationship:component_adaptationmanager_planner__mapek_flow__component_adaptationmanager_executor'}",
+          "{'type': 'code_context', 'content': 'Class AdaptationManager has candidate roles Analyzer, Planner, Executor, LoopManager. Methods interact with AudioManager and Settings.System to modify settings.'}"
+        ],
+        "proposed_changes": [],
+        "id": "llm_suggestion:5",
+        "source": "llm_assisted_enrichment:gemini",
+        "metadata": {}
+      },
+      {
+        "suggestion_type": "role_confirmation",
+        "message": "The 'MyDbAdapter' component is identified as having the 'Knowledge' role. This is supported by the code context where the 'MyDbAdapter' class has methods like 'checkRulesByProfileRowId', 'deleteFilterByRuleRowId', 'fetchFilterByRuleId', and interacts with database tables like 'TABLE_RULE', 'TABLE_FILTER', 'TABLE_PROFILE', 'TABLE_CONSTANT'. This strongly suggests it manages and provides access to the system's knowledge base. The architecture context also lists 'component:mydbadapter_knowledge' with the 'Knowledge' role.",
+        "confidence": 0.9,
+        "status": "confirmed",
+        "severity": "info",
+        "affected_elements": [
+          "component:mydbadapter_knowledge"
+        ],
+        "evidence": [
+          "{'type': 'architecture_context', 'content': 'component:mydbadapter_knowledge has role Knowledge'}",
+          "{'type': 'code_context', 'content': 'Class MyDbAdapter has candidate role Knowledge. Methods interact with database tables like TABLE_RULE, TABLE_FILTER, TABLE_PROFILE, TABLE_CONSTANT.'}"
+        ],
+        "proposed_changes": [],
+        "id": "llm_suggestion:6",
+        "source": "llm_assisted_enrichment:gemini",
+        "metadata": {}
+      },
+      {
+        "suggestion_type": "role_confirmation",
+        "message": "The 'ContextManager' component is identified as having the 'Monitor' role. This is supported by the code context where the 'ContextManager' class has fields like 'mBtAdapter' (BluetoothAdapter), 'mLocManager' (LocationManager), and methods like 'onCreate' which registers a 'BroadcastReceiver' and requests location updates. These actions are indicative of monitoring system state and events. The architecture context also lists 'component:contextmanager_monitor' with the 'Monitor' role, and a 'mapek_flow' relationship exists from 'component:contextmanager_monitor' to 'component:adaptationmanager_analyzer', suggesting monitoring feeds into analysis.",
+        "confidence": 0.9,
+        "status": "confirmed",
+        "severity": "info",
+        "affected_elements": [
+          "component:contextmanager_monitor"
+        ],
+        "evidence": [
+          "{'type': 'architecture_context', 'content': 'component:contextmanager_monitor has role Monitor'}",
+          "{'type': 'architecture_context', 'content': 'relationship:component_contextmanager_monitor__mapek_flow__component_adaptationmanager_analyzer'}",
+          "{'type': 'code_context', 'content': 'Class ContextManager has candidate roles Monitor, LoopManager. Fields: mBtAdapter, mLocManager. Methods: onCreate registers BroadcastReceiver, requests location updates.'}"
+        ],
+        "proposed_changes": [],
+        "id": "llm_suggestion:7",
+        "source": "llm_assisted_enrichment:gemini",
+        "metadata": {}
+      },
+      {
+        "suggestion_type": "architecture_consistency_review",
+        "message": "The 'AdaptationManager' component is listed with candidate roles 'Analyzer', 'Planner', 'Executor', and 'LoopManager' in the code context. However, in the architecture context, these roles are distributed among separate components: 'component:adaptationmanager_analyzer' (Analyzer), 'component:adaptationmanager_planner' (Planner), 'component:adaptationmanager_executor' (Executor), and 'component:contextmanager_loopmanager' (LoopManager). This suggests a potential inconsistency or a need to clarify how these roles are mapped to components in the architecture.",
+        "confidence": 0.7,
+        "status": "needs_review",
+        "severity": "warning",
+        "affected_elements": [
+          "component:adaptationmanager_analyzer",
+          "component:adaptationmanager_planner",
+          "component:adaptationmanager_executor",
+          "component:contextmanager_loopmanager"
+        ],
+        "evidence": [
+          "{'type': 'architecture_context', 'content': 'component:adaptationmanager_analyzer has role Analyzer'}",
+          "{'type': 'architecture_context', 'content': 'component:adaptationmanager_planner has role Planner'}",
+          "{'type': 'architecture_context', 'content': 'component:adaptationmanager_executor has role Executor'}",
+          "{'type': 'architecture_context', 'content': 'component:contextmanager_loopmanager has role LoopManager'}",
+          "{'type': 'code_context', 'content': 'Class AdaptationManager has candidate roles Analyzer, Planner, Executor, LoopManager.'}"
+        ],
+        "proposed_changes": [
+          {
+            "operation": "review_textual_change",
+            "description": "Review the mapping of roles 'Analyzer', 'Planner', 'Executor', and 'LoopManager' to components. The code context suggests 'AdaptationManager' class might encompass all these roles, while the architecture separates them into 'adaptationmanager_analyzer', 'adaptationmanager_planner', 'adaptationmanager_executor', and 'contextmanager_loopmanager'. Clarify if the 'AdaptationManager' class implements all these roles or if the architecture correctly distributes them.",
+            "target": "component:adaptationmanager_analyzer",
+            "status": "needs_review",
+            "source_agent": "LLMArchitectureReasoningAgent"
+          }
+        ],
+        "id": "llm_suggestion:8",
+        "source": "llm_assisted_enrichment:gemini",
+        "metadata": {}
       }
     ],
     "code_context": {
@@ -261822,14 +261989,14 @@
       }
     },
     "summary": {
-      "suggestions": 4,
-      "raw_suggestions": 4,
+      "suggestions": 12,
+      "raw_suggestions": 12,
       "deduplicated_suggestions": 0,
       "dynamic_suggestions": 1,
       "architecture_suggestions": 2,
-      "llm_suggestions": 1,
-      "llm_provider": "none",
-      "llm_model": null,
+      "llm_suggestions": 9,
+      "llm_provider": "gemini",
+      "llm_model": "gemini-2.5-flash-lite",
       "llm_timeout": 300,
       "code_context_available": true,
       "code_context_classes": 4,

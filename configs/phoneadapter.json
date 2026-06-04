@@ -31,8 +31,8 @@
 
   "pre_review_agents": {
     "enabled": true,
-    "llm_provider": "none",
-    "llm_model": "",
+    "llm_provider": "gemini",
+    "llm_model": "gemini-2.5-flash-lite",
     "llm_timeout": 300,
     "input": "architecture_json",
     "output": "ai_architecture_json"
