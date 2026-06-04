@@ -108,6 +108,9 @@ class LLMArchitectureReasoningAgent:
                 }
                 for relationship in context.get("relationships", [])
             ],
+            "code_context": self._compact_code_context(
+                context.get("code_context", {})
+            ),
         }
 
         required_format = {
@@ -128,15 +131,24 @@ class LLMArchitectureReasoningAgent:
         return (
             "You are assisting the py2kdm architecture recovery pipeline.\n"
             "The input is an architecture proposal for a self-adaptive MAPE-K system.\n"
-            "The context may include runtime evidence summarized from "
+            "The context may include two evidence layers:\n"
+            "1. architecture_context: recovered components, roles, relationships and loops;\n"
+            "2. code_context: a compact summary extracted from the intermediate code JSON.\n"
+            "The code_context is selected evidence, not the full source code.\n"
+            "The context may also include runtime evidence summarized from "
             "relationships[type='runtime_calls']; such evidence was generated "
             "from execution traces and mapped to native KDM action::Calls.\n\n"
             "Rules:\n"
             "- Suggest only reviewable improvements.\n"
             "- Do not modify the architecture directly.\n"
             "- Do not invent explicit code evidence.\n"
+            "- When confirming or questioning a role, cite evidence from code_context "
+            "or architecture_context in the suggestion evidence field.\n"
             "- Use runtime_summary only as supporting evidence; do not claim "
             "that it proves behavior not present in the summary.\n"
+            "- Prefer suggestion_type values such as role_confirmation, "
+            "role_adjustment, missing_abstraction, confidence_review, "
+            "or architecture_consistency_review.\n"
             "- Use status needs_review for uncertain suggestions.\n"
             "- Return JSON only.\n\n"
             "Required output format:\n"
@@ -144,6 +156,48 @@ class LLMArchitectureReasoningAgent:
             "Architecture context:\n"
             f"{json.dumps(compact_context, indent=2, ensure_ascii=False)}"
         )
+
+
+    def _compact_code_context(self, code_context: dict[str, Any]):
+        if not code_context:
+            return {
+                "available": False,
+                "classes": [],
+            }
+
+        classes = []
+        for cls in code_context.get("classes", [])[:10]:
+            classes.append(
+                {
+                    "name": cls.get("name"),
+                    "qualified_name": cls.get("qualified_name"),
+                    "package": cls.get("package"),
+                    "candidate_roles": cls.get("candidate_roles", []),
+                    "role_evidence": cls.get("role_evidence", []),
+                    "related_architecture_components": cls.get(
+                        "related_architecture_components", []
+                    ),
+                    "imports": cls.get("imports", [])[:12],
+                    "fields": cls.get("fields", [])[:12],
+                    "methods": [
+                        {
+                            "name": method.get("name"),
+                            "signature": method.get("signature"),
+                            "calls": method.get("calls", [])[:12],
+                            "parameters": method.get("parameters", [])[:6],
+                        }
+                        for method in cls.get("methods", [])[:6]
+                    ],
+                }
+            )
+
+        return {
+            "available": code_context.get("available", False),
+            "source": code_context.get("source"),
+            "classes_count": code_context.get("classes_count", len(classes)),
+            "classes": classes,
+        }
+
 
     def _compact_runtime_summary(self, runtime_summary: dict[str, Any]):
         if not runtime_summary:

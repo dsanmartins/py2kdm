@@ -39,6 +39,9 @@ from kdm_architecture_agents.pre_review.architecture_enrichment_agent import (
 from kdm_architecture_agents.pre_review.dynamic_evidence_agent import (
     DynamicEvidenceAgent,
 )
+from kdm_architecture_agents.pre_review.deterministic_code_review_agent import (
+    DeterministicCodeReviewAgent,
+)
 from kdm_architecture_agents.pre_review.llm_architecture_reasoning_agent import (
     LLMArchitectureReasoningAgent,
 )
@@ -60,6 +63,7 @@ def save_json(data: dict, path: Path):
 def run_pre_review(
     model,
     trace_path=None,
+    code_model=None,
     llm_provider_name="none",
     llm_model=None,
     llm_base_url=None,
@@ -72,7 +76,7 @@ def run_pre_review(
     structure_model directly.
     """
 
-    context = AgentContextBuilder().build(model)
+    context = AgentContextBuilder().build(model, code_model=code_model)
 
     dynamic_suggestions = DynamicEvidenceAgent().run(
         model=model,
@@ -89,6 +93,11 @@ def run_pre_review(
         model=llm_model,
         base_url=llm_base_url,
         timeout_seconds=llm_timeout,
+    )
+
+    deterministic_code_review = DeterministicCodeReviewAgent().run(
+        model=model,
+        context=context,
     )
 
     llm_suggestions = LLMArchitectureReasoningAgent(provider).run(
@@ -110,6 +119,21 @@ def run_pre_review(
             "status": "pre_review_enriched",
             "source": "kdm_architecture_agents.pre_review",
             "suggestions": all_suggestions,
+            "code_context": context.get("code_context", {}),
+            "ai_architecture_review": {
+                "status": "available_for_review",
+                "source": "kdm_architecture_agents.pre_review",
+                "note": (
+                    "This review layer is non-invasive. It does not modify "
+                    "structure_model; it only stores reviewable suggestions, "
+                    "compact code evidence and deterministic code review."
+                ),
+                "code_context_available": bool(
+                    context.get("code_context", {}).get("available")
+                ),
+                "deterministic_review_available": True,
+            },
+            "deterministic_code_review": deterministic_code_review,
             "summary": {
                 "suggestions": len(all_suggestions),
                 "raw_suggestions": len(raw_suggestions),
@@ -120,6 +144,18 @@ def run_pre_review(
                 "llm_provider": getattr(provider, "name", "unknown"),
                 "llm_model": getattr(provider, "model", None),
                 "llm_timeout": llm_timeout,
+                "code_context_available": bool(
+                    context.get("code_context", {}).get("available")
+                ),
+                "code_context_classes": (
+                    context.get("code_context", {}).get("classes_count", 0)
+                ),
+                "deterministic_review_status": deterministic_code_review.get("status"),
+                "deterministic_review_confidence": (
+                    deterministic_code_review
+                    .get("architecture_assessment", {})
+                    .get("confidence")
+                ),
             },
         }
     )
@@ -150,6 +186,14 @@ def parse_args():
         help=(
             "Optional dynamic trace JSON. Usually not needed when the input "
             "model already contains relationships[type='runtime_calls']."
+        ),
+    )
+
+    parser.add_argument(
+        "--code-context-input",
+        help=(
+            "Optional intermediate extractor JSON used to build a compact "
+            "code_context for the LLM pre-review agent."
         ),
     )
 
@@ -190,12 +234,19 @@ def main():
         if args.dynamic_trace
         else None
     )
+    code_context_path = (
+        resolve_from_root(args.code_context_input)
+        if args.code_context_input
+        else None
+    )
 
     model = load_json(input_path)
+    code_model = load_json(code_context_path) if code_context_path else None
 
     model = run_pre_review(
         model,
         trace_path=trace_path,
+        code_model=code_model,
         llm_provider_name=args.llm_provider,
         llm_model=args.llm_model,
         llm_base_url=args.llm_base_url,
@@ -218,6 +269,8 @@ def main():
         print("- llm_model:", summary.get("llm_model"))
         print("- llm_suggestions:", summary.get("llm_suggestions", 0))
         print("- llm_timeout:", summary.get("llm_timeout"))
+        print("- code_context_available:", summary.get("code_context_available"))
+        print("- code_context_classes:", summary.get("code_context_classes"))
 
     return 0
 

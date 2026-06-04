@@ -168,12 +168,18 @@ def main() -> int:
         architecture_input_for_kdm = architecture_json
 
         if args.with_agents == "pre-review":
+            pre_review_config = config.get("pre_review_agents", {})
             run_architecture_agents(
                 mode="pre-review",
                 input_path=architecture_json,
                 output_path=ai_architecture_json,
                 dynamic_trace=args.dynamic_trace,
+                code_context_input=intermediate_json,
                 python_executable=args.python,
+                llm_provider_name=pre_review_config.get("llm_provider", "none"),
+                llm_model=pre_review_config.get("llm_model"),
+                llm_base_url=pre_review_config.get("llm_base_url"),
+                llm_timeout=pre_review_config.get("llm_timeout", 300),
             )
             architecture_input_for_kdm = ai_architecture_json
     else:
@@ -679,7 +685,12 @@ def run_architecture_agents(
     input_path: Path,
     output_path: Path,
     dynamic_trace: str | None,
+    code_context_input: Path | None,
     python_executable: str,
+    llm_provider_name: str = "none",
+    llm_model: str | None = None,
+    llm_base_url: str | None = None,
+    llm_timeout: int = 300,
 ) -> None:
     """
     Runs architecture agents over an architecture-enriched JSON model.
@@ -723,6 +734,27 @@ def run_architecture_agents(
             raise FileNotFoundError(f"Dynamic trace JSON not found: {trace_path}")
 
         command.extend(["--dynamic-trace", str(trace_path)])
+
+    if code_context_input is not None:
+        code_context_path = resolve_path(code_context_input)
+
+        if not code_context_path.exists():
+            raise FileNotFoundError(
+                f"Code context input JSON not found: {code_context_path}"
+            )
+
+        command.extend(["--code-context-input", str(code_context_path)])
+
+    command.extend(["--llm-provider", llm_provider_name or "none"])
+
+    if llm_model:
+        command.extend(["--llm-model", str(llm_model)])
+
+    if llm_base_url:
+        command.extend(["--llm-base-url", str(llm_base_url)])
+
+    if llm_timeout:
+        command.extend(["--llm-timeout", str(llm_timeout)])
 
     run_command(command, cwd=ROOT)
 

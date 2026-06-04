@@ -1,0 +1,68 @@
+{
+  "phoneadapter": {
+    "require_code_context": true,
+    "min_code_context_classes": 4,
+    "required_code_context_classes": [
+      "ContextManager",
+      "AdaptationManager",
+      "MyDbAdapter",
+      "MyDbHelper"
+    ],
+    "expected_review_status": "available",
+    "expected_assessment_status": "supported_by_code_context",
+    "expected_autonomic_candidate": true,
+    "min_assessment_confidence": 0.75,
+    "max_unsupported_architecture_roles": 0,
+    "required_confirmed_core_roles": [
+      "Monitor",
+      "Analyzer",
+      "Planner",
+      "Executor",
+      "Knowledge"
+    ],
+    "expected_confirmed_roles_by_component": {
+      "ContextManager": [
+        "Monitor",
+        "Sensor",
+        "LoopManager"
+      ],
+      "AdaptationManager": [
+        "Analyzer",
+        "Planner",
+        "Executor",
+        "Effector"
+      ],
+      "MyDbAdapter": [
+        "Knowledge"
+      ]
+    },
+    "forbidden_confirmed_roles_by_component": {
+      "MyDbAdapter": [
+        "Analyzer",
+        "Planner",
+        "Executor",
+        "Monitor",
+        "Sensor",
+        "Effector",
+        "LoopManager"
+      ],
+      "ContextManager": [
+        "Analyzer",
+        "Planner",
+        "Executor",
+        "Knowledge",
+        "Effector"
+      ],
+      "AdaptationManager": [
+        "Knowledge",
+        "Monitor",
+        "Sensor"
+      ]
+    }
+  },
+  "default": {
+    "require_code_context": true,
+    "expected_review_status": "available",
+    "max_unsupported_architecture_roles": 0
+  }
+}
