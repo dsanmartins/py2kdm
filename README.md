@@ -1,4 +1,4 @@
-# py2kdm
+# REMEDY-AR, implemented through the py2KDM tool
 
 **Author:** [Daniel San Martín](https://www.danielsanmartin.cl/)
 
